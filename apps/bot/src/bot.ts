@@ -2,6 +2,7 @@ import { Bot, session } from "grammy";
 import { conversations } from "@grammyjs/conversations";
 import type { BotContext, Services } from "./context.js";
 import { registerOnboarding } from "./handlers/start.js";
+import { registerTickets } from "./handlers/ticket.js";
 
 /**
  * Builds the grammY bot with session + conversations plugins and the shared
@@ -20,6 +21,7 @@ export function createBot(token: string, services: Services): Bot<BotContext> {
   bot.use(conversations());
 
   registerOnboarding(bot);
+  registerTickets(bot, services);
 
   // Acknowledge taps on menu buttons that later milestones will implement,
   // so the user doesn't see a spinner. MUST stay last among callback handlers.
