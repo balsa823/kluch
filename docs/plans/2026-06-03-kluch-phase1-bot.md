@@ -21,9 +21,9 @@
 
 These are account/tooling steps the human must do — they require interactive login or external dashboards. Suggest the user run shell commands with the `!` prefix in the session.
 
-- [ ] **Node 20 LTS** installed and active (repo is on 18.16). Recommend `nvm install 20 && nvm use 20`.
-- [ ] **pnpm** installed: `npm install -g pnpm` (or `corepack enable`).
-- [ ] **Docker Desktop** running (for the local test Postgres).
+- [x] **Node 22 LTS** installed and active (current LTS; satisfies `>=20`). Installed via `nvm install 22 && nvm alias default 22`.
+- [x] **pnpm** installed (v11.5.1, via `corepack prepare pnpm@latest --activate`).
+- [x] **Docker Desktop** running (for the local test Postgres).
 - [ ] **Telegram bot token** — talk to `@BotFather` → `/newbot` → save the token.
 - [ ] **Operator chat** — create a private Telegram group, add the bot, and get its numeric chat id (e.g. message the group and read it from `getUpdates`, or use `@RawDataBot`). This is `OPERATOR_CHAT_ID`.
 - [ ] **Supabase project** — create at supabase.com; copy the **pooled** connection string (Settings → Database → Connection string → "Transaction" pooler) and the **direct** one (for migrations).
@@ -45,7 +45,7 @@ These are account/tooling steps the human must do — they require interactive l
 **Step 1:** Create `.nvmrc`:
 
 ```
-20
+22
 ```
 
 **Step 2:** Create `pnpm-workspace.yaml`:
