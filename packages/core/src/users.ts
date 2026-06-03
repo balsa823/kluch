@@ -20,3 +20,8 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
   const [row] = await db.update(users).set({ locale }).where(eq(users.id, userId)).returning();
   return row;
 }
+
+export async function getUserById(db: Database, userId: string) {
+  const [row] = await db.select().from(users).where(eq(users.id, userId));
+  return row ?? null;
+}

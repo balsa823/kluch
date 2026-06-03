@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
 import { users } from "@kluch/db";
-import { findOrCreateUser, setUserLocale } from "../users.js";
+import { findOrCreateUser, setUserLocale, getUserById } from "../users.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -26,4 +26,11 @@ test("setUserLocale updates the locale", async () => {
   const u = await findOrCreateUser(db, { telegramUserId: 999 });
   const updated = await setUserLocale(db, u.id, "ru");
   expect(updated.locale).toBe("ru");
+});
+
+test("getUserById returns the user, or null when missing", async () => {
+  const u = await findOrCreateUser(db, { telegramUserId: 1212 });
+  const found = await getUserById(db, u.id);
+  expect(found!.telegramUserId).toBe(1212);
+  expect(await getUserById(db, "00000000-0000-0000-0000-000000000000")).toBeNull();
 });
