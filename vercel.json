@@ -1,8 +1,5 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/kluch-presentation.html" }
-  ],
   "headers": [
     {
       "source": "/(.*)",
