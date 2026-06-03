@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "seed": "tsx src/seed.ts",
     "cron:rent": "tsx src/cron/rentReminders.ts"
   },
   "dependencies": {
