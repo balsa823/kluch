@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { leases, properties, type Database } from "@kluch/db";
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
@@ -46,6 +46,15 @@ export async function createLease(db: Database, input: CreateLeaseInput) {
     dueDay: input.dueDay,
     startDate: input.startDate,
   }).returning();
+  return { lease, property };
+}
+
+/** The active lease (and its property) an occupant is linked to, or null. */
+export async function getActiveLeaseForUser(db: Database, userId: string) {
+  const [lease] = await db.select().from(leases)
+    .where(and(eq(leases.occupantUserId, userId), eq(leases.status, "active")));
+  if (!lease) return null;
+  const [property] = await db.select().from(properties).where(eq(properties.id, lease.propertyId));
   return { lease, property };
 }
 

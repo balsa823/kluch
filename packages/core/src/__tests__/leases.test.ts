@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
 import { findOrCreateUser } from "../users.js";
-import { createLease, linkOccupantByCode, generateJoinCode } from "../leases.js";
+import { createLease, linkOccupantByCode, generateJoinCode, getActiveLeaseForUser } from "../leases.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -46,6 +46,16 @@ test("the same user re-linking is idempotent", async () => {
   await linkOccupantByCode(db, user.id, lease.joinCode);
   const again = await linkOccupantByCode(db, user.id, lease.joinCode);
   expect(again!.lease.occupantUserId).toBe(user.id);
+});
+
+test("getActiveLeaseForUser returns the linked lease+property, or null", async () => {
+  const { lease } = await createLease(db, { property: sampleProperty, rentMinor: 45000, dueDay: 5 });
+  const user = await findOrCreateUser(db, { telegramUserId: 99 });
+  expect(await getActiveLeaseForUser(db, user.id)).toBeNull();
+  await linkOccupantByCode(db, user.id, lease.joinCode);
+  const res = await getActiveLeaseForUser(db, user.id);
+  expect(res!.lease.id).toBe(lease.id);
+  expect(res!.property.city).toBe("Budva");
 });
 
 test("a code already linked to another occupant is rejected", async () => {
