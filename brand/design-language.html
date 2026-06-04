@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kluch — Design Language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Brand — derived from the logo */
+    --navy-900:#13233A;
+    --navy-800:#17304B;
+    --navy:#1F3A5C;        /* primary */
+    --navy-400:#5C7796;
+    --navy-200:#A9B8CC;
+
+    --teal-700:#3C6B63;
+    --teal:#4E827A;        /* accent */
+    --teal-300:#8DB7AE;
+    --teal-100:#DCE8E4;
+
+    --cream:#F1ECE0;       /* the icon background */
+    --paper:#FBF8F1;       /* cards */
+    --page:#F6F2E9;        /* page background */
+    --sand:#E7DFCF;        /* hairlines / wells */
+
+    --ink:#16243A;         /* headings */
+    --body:#44535F;        /* body text */
+    --muted:#8A95A1;
+
+    --amber:#C9883C;       /* warning */
+    --terracotta:#B4543F;  /* danger */
+
+    --r-sm:12px; --r:18px; --r-lg:26px; --r-xl:34px;
+    --shadow:0 14px 36px rgba(20,35,58,.10), 0 3px 8px rgba(20,35,58,.05);
+    --shadow-sm:0 4px 14px rgba(20,35,58,.07);
+
+    --maxw:1080px;
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+  }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body {
+    font-family:var(--font-body);
+    color:var(--body);
+    background:var(--page);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4 { font-family:var(--font-display); color:var(--ink); line-height:1.15; letter-spacing:-.01em; }
+  section { padding:72px 24px; }
+  .wrap { max-width:var(--maxw); margin:0 auto; }
+  .eyebrow { font-family:var(--font-display); font-weight:700; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--teal-700); margin-bottom:14px; }
+  .lede { font-size:1.12rem; color:var(--body); max-width:60ch; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position:sticky; top:0; z-index:20;
+    background:rgba(246,242,233,.82); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--sand);
+  }
+  .topbar .wrap { display:flex; align-items:center; gap:14px; padding:14px 24px; }
+  .topbar img { width:36px; height:36px; border-radius:9px; box-shadow:var(--shadow-sm); }
+  .topbar .name { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:1.05rem; }
+  .topbar .sep { color:var(--navy-200); }
+  .topbar .tag { color:var(--muted); font-size:.92rem; }
+  .topbar nav { margin-left:auto; display:flex; gap:22px; }
+  .topbar nav a { color:var(--navy); text-decoration:none; font-size:.9rem; font-weight:500; }
+  .topbar nav a:hover { color:var(--teal-700); }
+  @media (max-width:720px){ .topbar nav{ display:none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { background:
+      radial-gradient(1100px 460px at 78% -10%, rgba(78,130,122,.16), transparent 60%),
+      radial-gradient(900px 420px at 0% 0%, rgba(31,58,92,.10), transparent 55%);
+    padding-top:96px; padding-bottom:84px; }
+  .hero .wrap { display:grid; grid-template-columns:1.2fr .8fr; gap:48px; align-items:center; }
+  .hero h1 { font-size:clamp(2.4rem,5vw,3.6rem); font-weight:800; }
+  .hero h1 .accent { color:var(--teal); }
+  .hero p { margin-top:18px; font-size:1.15rem; }
+  .hero .mark { justify-self:center; }
+  .hero .mark img { width:230px; height:230px; border-radius:48px; box-shadow:var(--shadow); }
+  @media (max-width:820px){ .hero .wrap{ grid-template-columns:1fr; text-align:center; } .hero .mark{ order:-1; } .lede{ margin:0 auto; } }
+
+  /* ---------- Principles ---------- */
+  .grid { display:grid; gap:20px; }
+  .cols-4 { grid-template-columns:repeat(4,1fr); }
+  .cols-3 { grid-template-columns:repeat(3,1fr); }
+  .cols-2 { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:880px){ .cols-4{ grid-template-columns:repeat(2,1fr);} .cols-3{ grid-template-columns:1fr 1fr;} }
+  @media (max-width:620px){ .cols-4,.cols-3,.cols-2{ grid-template-columns:1fr;} }
+
+  .card { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:26px; box-shadow:var(--shadow-sm); }
+  .card .ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:var(--teal-100); color:var(--teal-700); margin-bottom:16px; font-size:1.2rem; }
+  .card h3 { font-size:1.06rem; margin-bottom:8px; }
+  .card p { font-size:.95rem; }
+
+  .section-head { margin-bottom:36px; }
+  .section-head h2 { font-size:2rem; font-weight:800; }
+  .section-head p { margin-top:10px; }
+
+  /* ---------- Logo anatomy ---------- */
+  .anatomy { display:grid; grid-template-columns:.9fr 1.1fr; gap:40px; align-items:center; }
+  .anatomy .stage { background:var(--cream); border-radius:var(--r-xl); padding:48px; display:grid; place-items:center; box-shadow:var(--shadow-sm); border:1px solid var(--sand); }
+  .anatomy .stage img { width:210px; height:210px; border-radius:44px; box-shadow:var(--shadow); }
+  .legend { display:flex; flex-direction:column; gap:18px; }
+  .legend .item { display:flex; gap:16px; align-items:flex-start; }
+  .legend .dot { flex:0 0 auto; width:34px; height:34px; border-radius:10px; }
+  .legend h4 { font-size:1rem; }
+  .legend p { font-size:.92rem; }
+  @media (max-width:820px){ .anatomy{ grid-template-columns:1fr; } }
+
+  /* ---------- Color ---------- */
+  .swatches { display:grid; gap:14px; }
+  .swatch { border-radius:var(--r); overflow:hidden; border:1px solid var(--sand); box-shadow:var(--shadow-sm); background:var(--paper); }
+  .swatch .chip { height:96px; }
+  .swatch .meta { padding:12px 14px; }
+  .swatch .meta .n { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.92rem; }
+  .swatch .meta .h { font-family:var(--font-body); color:var(--muted); font-size:.8rem; letter-spacing:.02em; }
+
+  /* ---------- Type ---------- */
+  .type-row { padding:18px 0; border-bottom:1px solid var(--sand); display:grid; grid-template-columns:130px 1fr; gap:24px; align-items:baseline; }
+  .type-row:last-child { border-bottom:0; }
+  .type-row .label { color:var(--muted); font-size:.8rem; font-family:var(--font-display); font-weight:600; letter-spacing:.04em; }
+  .t-display { font-family:var(--font-display); font-weight:800; color:var(--ink); font-size:2.6rem; line-height:1.1; }
+  .t-h2 { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:1.7rem; }
+  .t-h3 { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:1.2rem; }
+  .t-body { font-size:1rem; }
+  .t-small { font-size:.85rem; color:var(--muted); }
+
+  /* ---------- Tokens ---------- */
+  .token { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r); padding:20px; text-align:center; box-shadow:var(--shadow-sm); }
+  .token .demo-radius { height:64px; background:var(--navy); margin:0 auto 14px; width:80px; }
+  .token .n { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.9rem; }
+  .token .v { color:var(--muted); font-size:.8rem; }
+  .elev { height:90px; background:var(--paper); border-radius:var(--r); display:grid; place-items:center; color:var(--muted); font-size:.82rem; }
+
+  /* ---------- Components ---------- */
+  .btn { font-family:var(--font-display); font-weight:700; font-size:.95rem; border:0; border-radius:999px; padding:13px 24px; cursor:pointer; transition:transform .08s ease, box-shadow .2s ease; display:inline-flex; align-items:center; gap:8px; }
+  .btn:active { transform:translateY(1px); }
+  .btn-primary { background:var(--navy); color:#fff; box-shadow:0 8px 20px rgba(31,58,92,.25); }
+  .btn-primary:hover { background:var(--navy-800); }
+  .btn-accent { background:var(--teal); color:#fff; box-shadow:0 8px 20px rgba(78,130,122,.28); }
+  .btn-accent:hover { background:var(--teal-700); }
+  .btn-ghost { background:transparent; color:var(--navy); border:1.5px solid var(--navy-200); }
+  .btn-ghost:hover { border-color:var(--navy); }
+  .btn-soft { background:var(--teal-100); color:var(--teal-700); }
+  .btn-amber { background:var(--amber); color:#fff; box-shadow:0 8px 20px rgba(201,136,60,.28); }
+  .btn-amber:hover { background:#B97B31; }
+
+  .field { display:block; }
+  .field label { display:block; font-family:var(--font-display); font-weight:600; font-size:.82rem; color:var(--navy); margin-bottom:7px; }
+  .field input { width:100%; padding:13px 15px; border:1.5px solid var(--sand); border-radius:var(--r-sm); background:var(--paper); font-family:var(--font-body); font-size:.95rem; color:var(--ink); outline:none; transition:border-color .15s; }
+  .field input:focus { border-color:var(--teal); box-shadow:0 0 0 4px var(--teal-100); }
+
+  .pill { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:.76rem; padding:5px 11px; border-radius:999px; }
+  .pill::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.9; }
+  .pill-received { background:#EAF0F6; color:var(--navy); }
+  .pill-scheduled { background:#FBF0DD; color:var(--amber); }
+  .pill-done { background:var(--teal-100); color:var(--teal-700); }
+  .pill-cancelled { background:#F6E6E1; color:var(--terracotta); }
+
+  /* ---------- Product mockups ---------- */
+  .mock { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); box-shadow:var(--shadow); overflow:hidden; }
+  .mock .head { padding:18px 20px; border-bottom:1px solid var(--sand); display:flex; align-items:center; gap:10px; }
+  .mock .head .badge { width:30px; height:30px; border-radius:9px; background:var(--navy); color:#fff; display:grid; place-items:center; font-family:var(--font-display); font-weight:800; font-size:.95rem; }
+  .mock .head .title { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.98rem; }
+  .mock .head .sub { color:var(--muted); font-size:.8rem; }
+  .mock .body { padding:20px; }
+  .rent { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; }
+  .rent .amt { font-family:var(--font-display); font-weight:800; color:var(--ink); font-size:2.2rem; }
+  .rent .due { color:var(--muted); font-size:.85rem; }
+  .row-line { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--sand); }
+  .row-line .ic { width:34px; height:34px; border-radius:10px; background:var(--teal-100); color:var(--teal-700); display:grid; place-items:center; }
+  .row-line .lbl { font-weight:600; color:var(--ink); font-size:.92rem; }
+  .row-line .meta { color:var(--muted); font-size:.8rem; }
+  .row-line .chev { margin-left:auto; color:var(--navy-200); }
+
+  /* chat */
+  .chat { display:flex; flex-direction:column; gap:10px; }
+  .bubble { max-width:78%; padding:11px 15px; border-radius:18px; font-size:.92rem; }
+  .bubble.in { align-self:flex-start; background:var(--cream); color:var(--ink); border-bottom-left-radius:6px; }
+  .bubble.out { align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:6px; }
+  .bubble .trans { display:block; margin-top:5px; font-size:.78rem; opacity:.7; font-style:italic; }
+
+  footer { background:var(--navy-900); color:#C7D2DF; padding:48px 24px; }
+  footer .wrap { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  footer img { width:40px; height:40px; border-radius:10px; }
+  footer .name { font-family:var(--font-display); font-weight:800; color:#fff; }
+  footer .muted { color:#8497AC; font-size:.85rem; margin-left:auto; }
+
+  .note { font-size:.82rem; color:var(--muted); margin-top:10px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <img src="./kluch-icon.png" alt="Kluch logo">
+    <span class="name">Kluch</span>
+    <span class="sep">·</span>
+    <span class="tag">Design Language</span>
+    <nav>
+      <a href="#principles">Principles</a>
+      <a href="#logo">Logo</a>
+      <a href="#color">Color</a>
+      <a href="#type">Type</a>
+      <a href="#components">Components</a>
+      <a href="#product">In product</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Brand &amp; Product Design System</div>
+      <h1>Calm, trustworthy, and unmistakably <span class="accent">Mediterranean</span>.</h1>
+      <p class="lede">Kluch helps foreigners live in Montenegro. The design language carries that promise: a steady navy you can trust, a warm sand that feels like home, and a sea-green that points to the coast and the mountains. Geometric, generous, and quiet.</p>
+    </div>
+    <div class="mark">
+      <img src="./kluch-icon.png" alt="Kluch app icon">
+    </div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section id="principles">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Principles</div>
+      <h2>Four ideas behind every screen</h2>
+    </div>
+    <div class="grid cols-4">
+      <div class="card">
+        <div class="ico">🔑</div>
+        <h3>The key, literally</h3>
+        <p>"Kluch" means key. The keyhole in the mark is the throughline — we open doors to a new home and a new life.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🛡️</div>
+        <h3>Trust first</h3>
+        <p>People hand us their rent and their problems. Navy, clean structure, and no clutter signal a steady operator.</p>
+      </div>
+      <div class="card">
+        <div class="ico">⛰️</div>
+        <h3>Sense of place</h3>
+        <p>Sand and sea-green are Montenegro — the Adriatic and the mountains. Warm, never cold or corporate.</p>
+      </div>
+      <div class="card">
+        <div class="ico">◻️</div>
+        <h3>Geometric calm</h3>
+        <p>Bold shapes, soft rounded corners, lots of breathing room. Simple enough to feel effortless in any language.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGO -->
+<section id="logo" style="background:var(--cream);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The mark</div>
+      <h2>One letter, three meanings</h2>
+    </div>
+    <div class="anatomy">
+      <div class="stage"><img src="./kluch-icon.png" alt="Kluch mark"></div>
+      <div class="legend">
+        <div class="item">
+          <span class="dot" style="background:var(--navy);"></span>
+          <div><h4>The K — structure &amp; trust</h4><p>A bold, confident letterform in brand navy. It anchors everything and reads instantly at app-icon size.</p></div>
+        </div>
+        <div class="item">
+          <span class="dot" style="background:var(--cream); border:1.5px solid var(--sand);"></span>
+          <div><h4>The keyhole — access</h4><p>Carved from the negative space of the K. The promise of Kluch: the key to getting in and getting settled.</p></div>
+        </div>
+        <div class="item">
+          <span class="dot" style="background:var(--teal);"></span>
+          <div><h4>The mountain — Montenegro</h4><p>A single sea-green peak grounds the mark in place. It's the only spot of accent colour, so it always draws the eye.</p></div>
+        </div>
+        <p class="note">Clear space: keep at least one keyhole-width of padding around the mark. Minimum size 24px. Never recolour the K or stretch the icon.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COLOR -->
+<section id="color">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Color</div>
+      <h2>A warm, grounded palette</h2>
+      <p class="lede">Navy leads. Sea-green accents — used sparingly. Sand and paper carry the surfaces so the product feels warm, not clinical.</p>
+    </div>
+    <div class="grid cols-4 swatches">
+      <div class="swatch"><div class="chip" style="background:#1F3A5C;"></div><div class="meta"><div class="n">Navy</div><div class="h">#1F3A5C · primary</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#17304B;"></div><div class="meta"><div class="n">Navy 800</div><div class="h">#17304B · hover/depth</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#4E827A;"></div><div class="meta"><div class="n">Teal</div><div class="h">#4E827A · accent</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8DB7AE;"></div><div class="meta"><div class="n">Teal 300</div><div class="h">#8DB7AE · soft accent</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#F1ECE0;"></div><div class="meta"><div class="n">Cream</div><div class="h">#F1ECE0 · icon surface</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FBF8F1; border-bottom:1px solid #E7DFCF;"></div><div class="meta"><div class="n">Paper</div><div class="h">#FBF8F1 · cards</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#16243A;"></div><div class="meta"><div class="n">Ink</div><div class="h">#16243A · headings</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#44535F;"></div><div class="meta"><div class="n">Body</div><div class="h">#44535F · text</div></div></div>
+    </div>
+    <div style="height:18px"></div>
+    <div class="grid cols-3 swatches">
+      <div class="swatch"><div class="chip" style="background:#C9883C; height:60px;"></div><div class="meta"><div class="n">Amber — warning</div><div class="h">#C9883C · pending / due</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#4E827A; height:60px;"></div><div class="meta"><div class="n">Teal — success</div><div class="h">#4E827A · confirmed / done</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#B4543F; height:60px;"></div><div class="meta"><div class="n">Terracotta — danger</div><div class="h">#B4543F · errors / cancel</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TYPE -->
+<section id="type" style="background:var(--cream);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Typography</div>
+      <h2>Plus Jakarta Sans &amp; Inter</h2>
+      <p class="lede"><strong>Plus Jakarta Sans</strong> for display — geometric and friendly, echoing the bold K. <strong>Inter</strong> for body — quiet and legible across English, Russian, and Montenegrin.</p>
+    </div>
+    <div class="card" style="padding:8px 26px;">
+      <div class="type-row"><span class="label">Display / 800</span><span class="t-display">Your keys to Montenegro</span></div>
+      <div class="type-row"><span class="label">Heading / 700</span><span class="t-h2">Rent, handled in one tap</span></div>
+      <div class="type-row"><span class="label">Subhead / 600</span><span class="t-h3">Report a problem, in your language</span></div>
+      <div class="type-row"><span class="label">Body / Inter</span><span class="t-body">Onboard once and we handle the rest — rent, bills, inspections, maintenance, and translation. The same trusted operator from your first day to your last.</span></div>
+      <div class="type-row"><span class="label">Caption</span><span class="t-small">Due on the 5th · Apartment 4B, Budva</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENS -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Foundations</div>
+      <h2>Radius &amp; elevation</h2>
+      <p class="lede">Big, soft corners — straight from the app icon. Shadows are low and warm, never harsh.</p>
+    </div>
+    <div class="grid cols-4">
+      <div class="token"><div class="demo-radius" style="border-radius:12px;"></div><div class="n">Small</div><div class="v">12px · inputs, pills</div></div>
+      <div class="token"><div class="demo-radius" style="border-radius:18px;"></div><div class="n">Base</div><div class="v">18px · chips, fields</div></div>
+      <div class="token"><div class="demo-radius" style="border-radius:26px;"></div><div class="n">Large</div><div class="v">26px · cards</div></div>
+      <div class="token"><div class="demo-radius" style="border-radius:34px;"></div><div class="n">XL</div><div class="v">34px · surfaces, icon</div></div>
+    </div>
+    <div style="height:18px"></div>
+    <div class="grid cols-3">
+      <div class="token"><div class="elev" style="box-shadow:var(--shadow-sm);">Subtle</div></div>
+      <div class="token"><div class="elev" style="box-shadow:var(--shadow);">Card</div></div>
+      <div class="token"><div class="elev" style="box-shadow:0 20px 50px rgba(20,35,58,.16);">Floating</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section id="components" style="background:var(--cream);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Components</div>
+      <h2>Buttons, fields &amp; status</h2>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-bottom:18px;">Buttons</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+          <button class="btn btn-primary">Pay rent</button>
+          <button class="btn btn-accent">Confirm</button>
+          <button class="btn btn-ghost">View history</button>
+          <button class="btn btn-amber">Report a problem</button>
+        </div>
+        <h3 style="margin:26px 0 14px;">Status</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <span class="pill pill-received">Received</span>
+          <span class="pill pill-scheduled">Scheduled</span>
+          <span class="pill pill-done">Resolved</span>
+          <span class="pill pill-cancelled">Closed</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:18px;">Fields</h3>
+        <div class="field" style="margin-bottom:16px;">
+          <label>Join code</label>
+          <input type="text" placeholder="e.g. A468BU" value="A468BU">
+        </div>
+        <div class="field">
+          <label>What's wrong?</label>
+          <input type="text" placeholder="Describe the problem…">
+        </div>
+        <div style="margin-top:18px; display:flex; gap:10px;">
+          <button class="btn btn-primary">Continue</button>
+          <button class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IN PRODUCT -->
+<section id="product">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">In product</div>
+      <h2>What it feels like</h2>
+      <p class="lede">The same language, applied. This is the home a tenant in Budva would open every month.</p>
+    </div>
+    <div class="grid cols-3">
+
+      <!-- Rent card -->
+      <div class="mock">
+        <div class="head">
+          <div class="badge">K</div>
+          <div><div class="title">Rent</div><div class="sub">Apartment 4B · Budva</div></div>
+        </div>
+        <div class="body">
+          <div class="rent">
+            <div><div class="amt">€450</div><div class="due">Due on the 5th · June 2026</div></div>
+            <span class="pill pill-scheduled">Due soon</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%; justify-content:center;">💳 I've paid</button>
+        </div>
+      </div>
+
+      <!-- Services list -->
+      <div class="mock">
+        <div class="head">
+          <div class="badge">K</div>
+          <div><div class="title">Home</div><div class="sub">What would you like to do?</div></div>
+        </div>
+        <div class="body" style="padding-top:6px;">
+          <div class="row-line"><div class="ic" style="background:#FBF0DD; color:#C9883C;">🛠</div><div><div class="lbl">Report a problem</div><div class="meta">Maintenance &amp; repairs</div></div><div class="chev">›</div></div>
+          <div class="row-line"><div class="ic">💬</div><div><div class="lbl">Messages</div><div class="meta">We reply in your language</div></div><div class="chev">›</div></div>
+          <div class="row-line"><div class="ic">📄</div><div><div class="lbl">Documents</div><div class="meta">Lease &amp; receipts</div></div><div class="chev">›</div></div>
+        </div>
+      </div>
+
+      <!-- Chat / translation -->
+      <div class="mock">
+        <div class="head">
+          <div class="badge">K</div>
+          <div><div class="title">Messages</div><div class="sub">Translated, both ways</div></div>
+        </div>
+        <div class="body">
+          <div class="chat">
+            <div class="bubble out">Voda u kupatilu ne radi.<span class="trans">→ The water in the bathroom isn't working.</span></div>
+            <div class="bubble in">Got it — a plumber is booked for tomorrow at 10:00. ✅</div>
+            <div class="bubble out" style="background:var(--teal);">Hvala! 🙏</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <p class="note" style="text-align:center; margin-top:24px;">Mockups for direction only — the same tokens drive the web app, the mobile app, and the Telegram experience.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="./kluch-icon.png" alt="Kluch">
+    <span class="name">Kluch</span>
+    <span style="color:#8497AC;">· Your keys to Montenegro</span>
+    <span class="muted">Design language v0.1 · 2026</span>
+  </div>
+</footer>
+
+</body>
+</html>
