@@ -3,1522 +3,748 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kluch — Business Plan</title>
+<title>Kluch — Your keys to Montenegro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
-    --navy: #1F3A5F;
-    --navy-dark: #142944;
-    --teal: #5C8B7E;
-    --teal-soft: #87AB9F;
-    --cream: #F4EFE0;
-    --cream-dark: #E8DFC7;
-    --ink: #1A1A1A;
-    --muted: #5A5A5A;
-    --line: rgba(31, 58, 95, 0.15);
+    --navy-900:#13233A; --navy-800:#17304B; --navy:#1F3A5C; --navy-400:#5C7796; --navy-200:#A9B8CC;
+    --teal-700:#3C6B63; --teal:#4E827A; --teal-300:#8DB7AE; --teal-100:#DCE8E4;
+    --cream:#F1ECE0; --paper:#FBF8F1; --page:#F6F2E9; --sand:#E7DFCF;
+    --ink:#16243A; --body:#44535F; --muted:#8A95A1; --amber:#C9883C; --amber-100:#FBF0DD;
+    --r:18px; --r-lg:26px; --r-xl:34px;
+    --shadow:0 18px 44px rgba(20,35,58,.12), 0 4px 10px rgba(20,35,58,.05);
+    --shadow-sm:0 6px 18px rgba(20,35,58,.07);
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+    --maxw:1120px;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--navy-dark);
-    color: var(--ink);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  .deck {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  .slide {
-    position: absolute;
-    inset: 0;
-    background: var(--cream);
-    padding: 5vh 8vw;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateX(40px);
-    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0.5s;
-  }
-
-  .slide.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(0);
-    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0s;
-  }
-
-  .slide.dark {
-    background: var(--navy-dark);
-    color: var(--cream);
-  }
-
-  /* Typography */
-  .eyebrow {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--teal);
-    margin-bottom: 1.2rem;
-  }
-
-  .slide.dark .eyebrow { color: var(--teal-soft); }
-
-  h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 500;
-    font-size: clamp(2.5rem, 5.5vw, 5rem);
-    line-height: 1.05;
-    color: var(--navy);
-    letter-spacing: -0.02em;
-    margin-bottom: 1.5rem;
-  }
-
-  .slide.dark h1 { color: var(--cream); }
-
-  h2 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 500;
-    font-size: clamp(1.8rem, 3.8vw, 3.2rem);
-    line-height: 1.1;
-    color: var(--navy);
-    letter-spacing: -0.015em;
-    margin-bottom: 1.2rem;
-  }
-
-  .slide.dark h2 { color: var(--cream); }
-
-  h3 {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 1.05rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--teal);
-    margin-bottom: 0.6rem;
-  }
-
-  p, li {
-    font-size: clamp(1rem, 1.3vw, 1.25rem);
-    line-height: 1.55;
-    color: var(--ink);
-    font-weight: 400;
-  }
-
-  .slide.dark p, .slide.dark li { color: var(--cream); }
-
-  .lede {
-    font-size: clamp(1.2rem, 1.6vw, 1.55rem);
-    line-height: 1.5;
-    color: var(--muted);
-    max-width: 70ch;
-  }
-
-  .slide.dark .lede { color: var(--cream-dark); }
-
-  /* Lists */
-  ul { list-style: none; padding: 0; }
-  ul.bullets li {
-    padding-left: 1.6rem;
-    margin-bottom: 0.7rem;
-    position: relative;
-  }
-  ul.bullets li::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.7em;
-    width: 0.6rem;
-    height: 2px;
-    background: var(--teal);
-  }
-
-  /* Two column layout */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4vw;
-    align-items: start;
-  }
-
-  .three-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 2.5vw;
-  }
-
-  /* Cards / stats */
-  .card {
-    background: rgba(31, 58, 95, 0.06);
-    border-left: 3px solid var(--teal);
-    padding: 1.4rem 1.6rem;
-    border-radius: 4px;
-  }
-
-  .slide.dark .card {
-    background: rgba(244, 239, 224, 0.07);
-    border-left-color: var(--teal-soft);
-  }
-
-  .card .label {
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--teal);
-    margin-bottom: 0.4rem;
-  }
-
-  .slide.dark .card .label { color: var(--teal-soft); }
-
-  .card .value {
-    font-family: 'Fraunces', serif;
-    font-size: clamp(1.6rem, 2.4vw, 2.2rem);
-    font-weight: 500;
-    color: var(--navy);
-    line-height: 1.1;
-  }
-
-  .slide.dark .card .value { color: var(--cream); }
-
-  .card .note {
-    font-size: 0.92rem;
-    color: var(--muted);
-    margin-top: 0.4rem;
-  }
-
-  .slide.dark .card .note { color: var(--cream-dark); }
-
-  /* Tables */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1.2rem;
-    font-size: clamp(0.85rem, 1.05vw, 1.05rem);
-  }
-
-  th {
-    text-align: left;
-    padding: 0.7rem 1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.72rem;
-    color: var(--teal);
-    border-bottom: 2px solid var(--teal);
-  }
-
-  td {
-    padding: 0.8rem 1rem;
-    border-bottom: 1px solid var(--line);
-    vertical-align: top;
-  }
-
-  tr:last-child td { border-bottom: none; }
-
-  td strong { color: var(--navy); font-weight: 600; }
-  .slide.dark td strong { color: var(--cream); }
-
-  /* Title slide */
-  .title-slide {
-    align-items: center;
-    text-align: center;
-    background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
-  }
-
-  .title-slide .logo-wrap {
-    width: 180px;
-    margin-bottom: 2.5rem;
-  }
-
-  .title-slide .logo-wrap img {
-    width: 100%;
-    height: auto;
-    display: block;
-    filter: drop-shadow(0 8px 24px rgba(31, 58, 95, 0.15));
-  }
-
-  .title-slide h1 {
-    font-size: clamp(4rem, 8vw, 7rem);
-    margin-bottom: 0.8rem;
-  }
-
-  .title-slide .tagline {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: clamp(1.2rem, 2vw, 1.8rem);
-    color: var(--teal);
-    font-weight: 400;
-    margin-bottom: 2.5rem;
-  }
-
-  .title-slide .meta {
-    font-size: 0.85rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* Closing slide */
-  .closing-slide {
-    text-align: center;
-    align-items: center;
-    background: var(--navy-dark);
-    color: var(--cream);
-  }
-
-  .closing-slide h1 {
-    color: var(--cream);
-    font-style: italic;
-    font-weight: 400;
-    max-width: 18ch;
-  }
-
-  .closing-slide .signoff {
-    margin-top: 2rem;
-    font-size: 1rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--teal-soft);
-  }
-
-  /* UI: logo watermark + nav */
-  .watermark {
-    position: fixed;
-    bottom: 2rem;
-    left: 2rem;
-    width: 38px;
-    opacity: 0.55;
-    z-index: 100;
-    pointer-events: none;
-  }
-
-  .watermark img { width: 100%; display: block; }
-
-  .nav {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    z-index: 100;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.78rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-  }
-
-  .slide.dark ~ .nav, .slide.dark ~ .nav * { color: var(--cream-dark); }
-
-  .nav button {
-    background: transparent;
-    border: 1px solid var(--line);
-    color: inherit;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
-  }
-
-  .nav button:hover {
-    background: rgba(31, 58, 95, 0.08);
-    border-color: var(--teal);
-  }
-
-  .progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: var(--teal);
-    z-index: 200;
-    transition: width 0.4s ease;
-  }
-
-  /* Language switcher */
-  .lang-switch {
-    position: fixed;
-    top: 1.5rem;
-    right: 2rem;
-    z-index: 200;
-    display: flex;
-    gap: 0;
-    background: rgba(244, 239, 224, 0.9);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 4px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
-
-  .lang-switch button {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    padding: 0.4rem 0.85rem;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    letter-spacing: inherit;
-  }
-
-  .lang-switch button:hover { color: var(--navy); }
-
-  .lang-switch button.active {
-    background: var(--navy);
-    color: var(--cream);
-  }
-
-  /* Hint */
-  .hint {
-    position: fixed;
-    bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted);
-    opacity: 0;
-    animation: fadeHint 4s ease 1s forwards;
-    z-index: 100;
-  }
-
-  @keyframes fadeHint {
-    0% { opacity: 0; }
-    20% { opacity: 0.6; }
-    80% { opacity: 0.6; }
-    100% { opacity: 0; }
-  }
-
-  /* Slide-specific helpers */
-  .big-num {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    font-size: clamp(3rem, 7vw, 6rem);
-    color: var(--teal);
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }
-
-  .small-cap {
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.78rem;
-    color: var(--teal);
-    font-weight: 600;
-  }
-
-  .pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-top: 2rem;
-  }
-
-  .price-tier {
-    background: white;
-    border: 1px solid var(--line);
-    padding: 1.6rem;
-    border-radius: 6px;
-  }
-
-  .price-tier.featured {
-    background: var(--navy);
-    color: var(--cream);
-    border-color: var(--navy);
-  }
-
-  .price-tier h4 {
-    font-family: 'Fraunces', serif;
-    font-size: 1.4rem;
-    font-weight: 500;
-    margin-bottom: 0.3rem;
-  }
-
-  .price-tier .price {
-    font-family: 'Fraunces', serif;
-    font-size: 2.4rem;
-    font-weight: 500;
-    color: var(--teal);
-    margin: 0.6rem 0 1rem;
-  }
-
-  .price-tier.featured .price { color: var(--teal-soft); }
-
-  .price-tier ul li {
-    font-size: 0.92rem;
-    line-height: 1.5;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .price-tier.featured ul li {
-    border-bottom-color: rgba(244, 239, 224, 0.15);
-  }
-
-  .price-tier ul li:last-child { border-bottom: none; }
-
-  /* Section header slides */
-  .section-slide {
-    background: var(--navy);
-    color: var(--cream);
-    align-items: flex-start;
-    justify-content: center;
-  }
-
-  .section-slide .section-num {
-    font-family: 'Fraunces', serif;
-    font-size: clamp(4rem, 9vw, 8rem);
-    color: var(--teal-soft);
-    line-height: 1;
-    margin-bottom: 1rem;
-    opacity: 0.6;
-  }
-
-  .section-slide h1 { color: var(--cream); }
-
-  /* Responsive */
-  @media (max-width: 900px) {
-    .two-col, .three-col, .pricing-grid {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
-    .slide { padding: 6vh 6vw; }
-  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body { font-family:var(--font-body); color:var(--body); background:var(--page); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3 { font-family:var(--font-display); color:var(--ink); line-height:1.12; letter-spacing:-.015em; }
+  a { color:inherit; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 24px; }
+  .eyebrow { font-family:var(--font-display); font-weight:700; font-size:.74rem; letter-spacing:.16em; text-transform:uppercase; color:var(--teal-700); }
+
+  .btn { font-family:var(--font-display); font-weight:700; font-size:.96rem; border:0; border-radius:999px; padding:14px 26px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:transform .08s, box-shadow .2s, background .15s; }
+  .btn:active { transform:translateY(1px); }
+  .btn-primary { background:var(--navy); color:#fff; box-shadow:0 10px 24px rgba(31,58,92,.26); }
+  .btn-primary:hover { background:var(--navy-800); }
+  .btn-ghost { background:transparent; color:var(--navy); border:1.5px solid var(--navy-200); }
+  .btn-ghost:hover { border-color:var(--navy); }
+  .btn-light { background:#fff; color:var(--navy); }
+
+  /* Navbar */
+  .nav { position:sticky; top:0; z-index:30; background:rgba(246,242,233,.85); backdrop-filter:blur(12px); border-bottom:1px solid var(--sand); }
+  .nav .inner { display:flex; align-items:center; gap:16px; height:68px; }
+  .nav img { width:38px; height:38px; border-radius:10px; box-shadow:var(--shadow-sm); }
+  .nav .brand { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:1.15rem; }
+  .nav .links { display:flex; gap:26px; margin-left:18px; }
+  .nav .links a { font-size:.9rem; font-weight:500; color:var(--navy); text-decoration:none; }
+  .nav .links a:hover { color:var(--teal-700); }
+  .nav .right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .nav .login { font-family:var(--font-display); font-weight:600; font-size:.9rem; color:var(--navy); text-decoration:none; }
+  .langwrap { position:relative; }
+  .langbtn { font-family:var(--font-display); font-weight:600; font-size:.84rem; color:var(--navy); background:var(--cream); border:1px solid var(--sand); padding:8px 13px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .langbtn .caret { font-size:.6rem; opacity:.8; transition:transform .15s; }
+  .langbtn.open .caret { transform:rotate(180deg); }
+  .langmenu { position:absolute; top:46px; right:0; background:#fff; border:1px solid var(--sand); border-radius:14px; box-shadow:var(--shadow); padding:6px; min-width:160px; display:none; z-index:50; }
+  .langmenu.open { display:block; }
+  .langmenu button { display:flex; width:100%; gap:10px; align-items:center; background:none; border:0; padding:10px 12px; border-radius:10px; font-family:var(--font-body); font-size:.9rem; color:var(--ink); cursor:pointer; text-align:left; }
+  .langmenu button:hover { background:var(--cream); }
+  .langmenu button.active { color:var(--navy); font-weight:700; }
+  @media (max-width:880px){ .nav .links{ display:none; } }
+  @media (max-width:560px){ .nav .login{ display:none; } }
+
+  /* Hero */
+  .hero { position:relative; overflow:hidden; padding:80px 0 90px;
+    background:
+      radial-gradient(1100px 520px at 85% -8%, rgba(78,130,122,.20), transparent 60%),
+      radial-gradient(900px 460px at -5% 5%, rgba(31,58,92,.12), transparent 55%); }
+  .hero .inner { display:grid; grid-template-columns:1.05fr .95fr; gap:54px; align-items:center; }
+  .hero h1 { font-size:clamp(2.5rem,5.2vw,3.9rem); font-weight:800; }
+  .hero h1 .accent { color:var(--teal); }
+  .hero p.sub { font-size:1.2rem; margin-top:20px; max-width:36ch; }
+  .hero .cta { margin-top:30px; display:flex; gap:14px; flex-wrap:wrap; }
+  .hero .trust { margin-top:22px; color:var(--muted); font-size:.9rem; }
+  @media (max-width:860px){ .hero .inner{ grid-template-columns:1fr; text-align:center; } .hero p.sub{ margin-left:auto; margin-right:auto; } .hero .cta{ justify-content:center; } #map{ order:-1; } }
+
+  #map { aspect-ratio:1/1; width:100%; height:auto; border-radius:var(--r-xl); border:1px solid var(--sand); box-shadow:var(--shadow); z-index:1; }
+  @media (max-width:680px){ #map{ aspect-ratio:4/3; } }
+  .kpin { background:transparent; border:0; }
+  .kpin .pin { position:relative; width:54px; cursor:pointer; }
+  .kpin .pin img { width:50px; height:50px; border-radius:50%; object-fit:cover; border:3px solid #fff; box-shadow:0 5px 14px rgba(0,0,0,.32); display:block; transition:transform .12s; }
+  .kpin .pin:hover img { transform:scale(1.08); }
+  .kpin .pin .ptag { position:absolute; left:50%; transform:translateX(-50%); bottom:-11px; white-space:nowrap; background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:700; font-size:.66rem; padding:2px 8px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.28); }
+  .leaflet-popup-content-wrapper { border-radius:16px; box-shadow:var(--shadow); padding:0; overflow:hidden; }
+  .leaflet-popup-content { margin:0; width:240px !important; font-family:var(--font-body); }
+  .pop img { width:100%; height:120px; object-fit:cover; display:block; }
+  .pop .pb { padding:12px 14px 14px; }
+  .pop .pt { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:1rem; }
+  .pop .pm { color:var(--muted); font-size:.8rem; margin-top:2px; }
+  .pop .ps { color:var(--body); font-size:.78rem; margin:8px 0 10px; }
+  .pop .prow { display:flex; align-items:center; justify-content:space-between; }
+  .pop .pp { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:1.05rem; }
+  .pop .pbtn { background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:700; font-size:.78rem; padding:8px 14px; border-radius:999px; text-decoration:none; }
+
+  section.block { padding:78px 0; }
+  .head { text-align:center; max-width:680px; margin:0 auto 50px; }
+  .head h2 { font-size:clamp(1.9rem,3.6vw,2.6rem); font-weight:800; }
+  .head p { margin-top:14px; font-size:1.12rem; }
+
+  /* Homes */
+  .homes { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .home { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
+  .home:hover { transform:translateY(-4px); box-shadow:var(--shadow); }
+  .photo { position:relative; height:188px; overflow:hidden; }
+  .photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .photo::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.28), transparent 40%, transparent 75%, rgba(0,0,0,.12)); }
+  .photo .loc { position:absolute; top:14px; left:14px; z-index:2; font-family:var(--font-display); font-weight:600; font-size:.74rem; color:#fff; background:rgba(0,0,0,.22); backdrop-filter:blur(4px); padding:5px 11px; border-radius:999px; }
+  .photo .price { position:absolute; top:14px; right:14px; z-index:2; font-family:var(--font-display); font-weight:800; font-size:1rem; color:var(--navy); background:#fff; padding:6px 12px; border-radius:999px; box-shadow:var(--shadow-sm); }
+  .photo .price small { font-weight:600; color:var(--muted); font-size:.7rem; }
+  .hbody { padding:20px; }
+  .hbody h3 { font-size:1.12rem; }
+  .hbody .hmeta { color:var(--muted); font-size:.86rem; margin-top:4px; }
+  .hbody .specs { display:flex; gap:14px; margin:14px 0 16px; color:var(--body); font-size:.84rem; }
+  .hbody .btn { width:100%; justify-content:center; }
+  @media (max-width:820px){ .homes{ grid-template-columns:1fr; max-width:430px; margin:0 auto; } }
+
+  .band { background:var(--navy); color:#C7D4E3; }
+  .band .row { display:flex; flex-wrap:wrap; justify-content:center; gap:14px 40px; padding:26px 0; text-align:center; }
+  .band .row b { color:#fff; font-family:var(--font-display); }
+
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .step { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:30px; box-shadow:var(--shadow-sm); }
+  .step .n { width:42px; height:42px; border-radius:12px; background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:800; display:grid; place-items:center; margin-bottom:16px; }
+  .step h3 { font-size:1.12rem; margin-bottom:8px; }
+  @media (max-width:760px){ .steps{ grid-template-columns:1fr; } }
+
+  .feat { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .fcard { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:26px; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
+  .fcard:hover { transform:translateY(-3px); box-shadow:var(--shadow); }
+  .fcard .ic { width:46px; height:46px; border-radius:13px; display:grid; place-items:center; font-size:1.2rem; background:var(--teal-100); color:var(--teal-700); margin-bottom:16px; }
+  .fcard.amber .ic { background:var(--amber-100); color:var(--amber); }
+  .fcard h3 { font-size:1.1rem; margin-bottom:8px; }
+  .fcard p { font-size:.95rem; }
+  @media (max-width:820px){ .feat{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .feat{ grid-template-columns:1fr; } }
+
+  .xl { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+  .xl .chat { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+  .bub { max-width:85%; padding:11px 15px; border-radius:16px; font-size:.92rem; }
+  .bub.out { align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:5px; }
+  .bub.in { align-self:flex-start; background:var(--cream); color:var(--ink); border-bottom-left-radius:5px; }
+  .bub .tr { display:block; font-size:.76rem; opacity:.7; font-style:italic; margin-top:4px; }
+  @media (max-width:820px){ .xl{ grid-template-columns:1fr; } }
+
+  .svc { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .schip { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r); padding:18px; text-align:center; box-shadow:var(--shadow-sm); }
+  .schip .e { font-size:1.5rem; }
+  .schip .t { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:.9rem; margin-top:8px; }
+  .schip .soon { font-size:.66rem; color:var(--muted); }
+  @media (max-width:760px){ .svc{ grid-template-columns:1fr 1fr; } }
+
+  .quote { max-width:760px; margin:0 auto; text-align:center; }
+  .quote blockquote { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.3rem,2.6vw,1.7rem); line-height:1.4; }
+  .quote .who { margin-top:20px; color:var(--muted); font-size:.95rem; }
+
+  .cta-band { background:linear-gradient(160deg,#23426A,#1F3A5C 55%,#15273F); color:#fff; border-radius:var(--r-xl); padding:56px; text-align:center; }
+  .cta-band h2 { color:#fff; font-size:clamp(1.8rem,3.4vw,2.4rem); }
+  .cta-band p { color:#C3D0E1; margin-top:12px; font-size:1.1rem; }
+  .cta-band .form { margin-top:26px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .cta-band input { border:0; border-radius:999px; padding:14px 20px; font-family:var(--font-body); font-size:.95rem; min-width:280px; }
+
+  /* Home detail modal */
+  .modal { position:fixed; inset:0; z-index:1000; display:none; }
+  .modal.open { display:block; }
+  .modal-bg { position:absolute; inset:0; background:rgba(19,35,58,.55); backdrop-filter:blur(4px); }
+  .modal-card { position:relative; max-width:640px; width:calc(100% - 32px); max-height:calc(100vh - 48px); overflow:auto; margin:24px auto; background:var(--paper); border-radius:var(--r-lg); box-shadow:0 30px 80px rgba(0,0,0,.42); }
+  .modal-x { position:absolute; top:14px; right:14px; z-index:3; width:36px; height:36px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:var(--ink); font-size:1.3rem; line-height:1; cursor:pointer; box-shadow:var(--shadow-sm); }
+  .gallery { position:relative; }
+  .gallery #gMain { width:100%; height:340px; object-fit:cover; display:block; background:var(--cream); }
+  .gnav { position:absolute; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:var(--ink); font-size:1.4rem; cursor:pointer; box-shadow:var(--shadow-sm); display:grid; place-items:center; }
+  .gprev { left:12px; } .gnext { right:12px; }
+  .gcount { position:absolute; bottom:12px; right:12px; background:rgba(19,35,58,.72); color:#fff; font-family:var(--font-display); font-weight:600; font-size:.78rem; padding:4px 10px; border-radius:999px; }
+  .thumbs { display:flex; gap:8px; padding:12px 16px 0; overflow-x:auto; }
+  .thumbs img { width:74px; height:54px; object-fit:cover; border-radius:9px; cursor:pointer; opacity:.55; border:2px solid transparent; flex:0 0 auto; transition:opacity .12s; }
+  .thumbs img.active { opacity:1; border-color:var(--navy); }
+  .mbody { padding:18px 22px 24px; }
+  .mhead { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+  .mhead h3 { font-size:1.4rem; }
+  .mloc { color:var(--muted); font-size:.9rem; margin-top:3px; }
+  .mspecs { color:var(--body); font-size:.82rem; text-align:right; white-space:nowrap; }
+  .mdesc { margin-top:14px; font-size:.98rem; }
+  .mprices { display:flex; gap:12px; margin-top:18px; }
+  .pcell { flex:1; background:var(--cream); border:1px solid var(--sand); border-radius:var(--r); padding:14px 16px; }
+  .pcell .pl { display:block; color:var(--muted); font-size:.78rem; }
+  .pcell .pv { font-family:var(--font-display); font-weight:800; color:var(--ink); font-size:1.18rem; margin-top:3px; display:block; }
+  .mcta { margin-top:20px; padding-top:18px; border-top:1px solid var(--sand); text-align:center; }
+  .mctatext { font-family:var(--font-display); font-weight:600; color:var(--ink); margin-bottom:12px; }
+  .mcta .btn { width:100%; justify-content:center; }
+  @media (max-width:560px){ .gallery #gMain{ height:240px; } .mhead{ flex-direction:column; } .mspecs{ text-align:left; } }
+
+  footer { padding:46px 0; border-top:1px solid var(--sand); margin-top:78px; }
+  footer .inner { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  footer img { width:34px; height:34px; border-radius:9px; }
+  footer .brand { font-family:var(--font-display); font-weight:800; color:var(--navy); }
+  footer .links { display:flex; gap:22px; margin-left:auto; font-size:.88rem; }
+  footer .links a { color:var(--body); text-decoration:none; }
+  footer .copy { width:100%; color:var(--muted); font-size:.82rem; margin-top:18px; }
 </style>
 </head>
 <body>
 
-<div class="progress" id="progress"></div>
+<!-- NAV -->
+<header class="nav">
+  <div class="wrap inner">
+    <img src="./brand/kluch-icon.png" alt="Kluch">
+    <span class="brand">Kluch</span>
+    <div class="links">
+      <a href="#homes" data-i18n="nav.homes">Homes</a>
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#services" data-i18n="nav.services">Services</a>
+    </div>
+    <div class="right">
+      <a href="./brand/login.html" class="login" data-i18n="nav.login">Log in</a>
+      <div class="langwrap">
+        <button class="langbtn" id="langBtn"><span id="langLabel">🇬🇧 EN</span><span class="caret">▾</span></button>
+        <div class="langmenu" id="langMenu">
+          <button data-code="en">🇬🇧 English</button>
+          <button data-code="sr">🇷🇸 Srpski</button>
+          <button data-code="ru">🇷🇺 Русский</button>
+          <button data-code="tr">🇹🇷 Türkçe</button>
+        </div>
+      </div>
+      <a href="./brand/login.html#register" class="btn btn-primary" data-i18n="nav.getstarted">Get started</a>
+    </div>
+  </div>
+</header>
 
-<div class="lang-switch" id="langSwitch">
-  <button data-lang="en" class="active">EN</button>
-  <button data-lang="sr">SR</button>
-  <button data-lang="ru">RU</button>
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap inner">
+    <div>
+      <div class="eyebrow" data-i18n="hero.eyebrow">For foreigners living in Montenegro</div>
+      <h1 style="margin-top:14px;" data-i18n="hero.h1">Your <span class="accent">keys</span> to Montenegro.</h1>
+      <p class="sub" data-i18n="hero.sub">Rent, bills, repairs, paperwork, and translation — handled by one trusted operator, all in a single app. Settle in without the stress.</p>
+      <div class="cta">
+        <a href="./brand/login.html#register" class="btn btn-primary" data-i18n="hero.cta1">Get started</a>
+        <a href="#how" class="btn btn-ghost" data-i18n="hero.cta2">See how it works</a>
+      </div>
+      <div class="trust" data-i18n="hero.trust">🔑 Onboard once — we handle the rest, in your language.</div>
+    </div>
+    <!-- Square Montenegro map -->
+    <div id="map"></div>
+  </div>
+</section>
+
+<!-- FEATURED HOMES -->
+<section class="block" id="homes">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow" data-i18n="homes.eyebrow">Homes available now</div>
+      <h2 data-i18n="homes.h2">Sea, mountains, or the capital — find your place</h2>
+      <p data-i18n="homes.p">A taste of what Kluch can set you up in. Every home comes fully managed: rent, bills, repairs, and translation handled from day one.</p>
+    </div>
+    <div class="homes">
+
+      <article class="home">
+        <div class="photo">
+          <img src="./brand/img/kotor.jpg" alt="Kotor Bay and old town, Montenegro">
+          <span class="loc" data-i18n="home0.tag">🌊 Sea</span>
+          <span class="price">€620<small>/mo</small></span>
+        </div>
+        <div class="hbody">
+          <h3 data-i18n="home0.name">Bay-view one-bed</h3>
+          <div class="hmeta" data-i18n="home0.town">Kotor · Adriatic coast</div>
+          <div class="specs"><span>🛏 1</span><span>🛁 1</span><span>📐 48 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="0" data-i18n="viewhome">View home</a>
+        </div>
+      </article>
+
+      <article class="home">
+        <div class="photo">
+          <img src="./brand/img/durmitor.jpg" alt="Durmitor mountains near Žabljak, Montenegro">
+          <span class="loc" data-i18n="home1.tag">⛰️ Mountains</span>
+          <span class="price">€480<small>/mo</small></span>
+        </div>
+        <div class="hbody">
+          <h3 data-i18n="home1.name">Pine chalet</h3>
+          <div class="hmeta" data-i18n="home1.town">Žabljak · Durmitor</div>
+          <div class="specs"><span>🛏 2</span><span>🛁 1</span><span>📐 70 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="1" data-i18n="viewhome">View home</a>
+        </div>
+      </article>
+
+      <article class="home">
+        <div class="photo">
+          <img src="./brand/img/podgorica.jpg" alt="Panorama of Podgorica, Montenegro">
+          <span class="loc" data-i18n="home2.tag">🏙️ Capital</span>
+          <span class="price">€550<small>/mo</small></span>
+        </div>
+        <div class="hbody">
+          <h3 data-i18n="home2.name">Modern flat</h3>
+          <div class="hmeta" data-i18n="home2.town">Podgorica · City centre</div>
+          <div class="specs"><span>🛏 2</span><span>🛁 1</span><span>📐 62 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="2" data-i18n="viewhome">View home</a>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAND -->
+<div class="band">
+  <div class="wrap row">
+    <span>🏠 <b data-i18n="band.rent">Renting made simple</b></span>
+    <span>💬 <b data-i18n="band.translated">Everything translated</b></span>
+    <span>🛠 <b data-i18n="band.operator">One operator, not ten</b></span>
+    <span>🪪 <b data-i18n="band.paperwork">Paperwork, sorted</b></span>
+  </div>
 </div>
 
-<div class="watermark" id="watermark">
-  <img src="logo.png" alt="Kluch">
+<!-- PROBLEM -->
+<section class="block">
+  <div class="wrap head">
+    <div class="eyebrow" data-i18n="why.eyebrow">Why Kluch</div>
+    <h2 data-i18n="why.h2">Moving to Montenegro is hard. Living here shouldn't be.</h2>
+    <p data-i18n="why.p">Foreigners and landlords don't speak the same language — literally. Rent, utility bills, a broken boiler, a residence permit: every little thing becomes a phone-call marathon in a language you don't speak. Kluch sits in the middle and just handles it.</p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="block" id="how" style="background:var(--cream);">
+  <div class="wrap">
+    <div class="head"><div class="eyebrow" data-i18n="how.eyebrow">How it works</div><h2 data-i18n="how.h2">Three steps to settled</h2></div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3 data-i18n="step1.t">Onboard once</h3><p data-i18n="step1.p">Link your home with a code from your landlord or agency, and pick your language.</p></div>
+      <div class="step"><div class="n">2</div><h3 data-i18n="step2.t">We handle the rest</h3><p data-i18n="step2.p">Rent reminders, bills, repairs, inspections, paperwork. Message us anytime and we reply in your language.</p></div>
+      <div class="step"><div class="n">3</div><h3 data-i18n="step3.t">Everything in one place</h3><p data-i18n="step3.p">No more chasing landlords or agencies. Your home, your documents, your services — one calm app.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="block" id="features">
+  <div class="wrap">
+    <div class="head"><div class="eyebrow" data-i18n="feat.eyebrow">What's inside</div><h2 data-i18n="feat.h2">Everything a foreigner needs</h2></div>
+    <div class="feat">
+      <div class="fcard"><div class="ic">💳</div><h3 data-i18n="f.rent.t">Rent & bills</h3><p data-i18n="f.rent.p">See what's due, pay in a tap, get instant receipts. Never miss a date in a language you don't read.</p></div>
+      <div class="fcard amber"><div class="ic">🛠</div><h3 data-i18n="f.report.t">Report a problem</h3><p data-i18n="f.report.p">Broken boiler? Send a photo. We dispatch the fix and keep you posted, start to finish.</p></div>
+      <div class="fcard"><div class="ic">💬</div><h3 data-i18n="f.msg.t">Messages, translated</h3><p data-i18n="f.msg.p">Write in your language, your landlord reads theirs. The barrier just disappears.</p></div>
+      <div class="fcard"><div class="ic">📄</div><h3 data-i18n="f.docs.t">Documents</h3><p data-i18n="f.docs.p">Lease, receipts, and permits — organised and always one tap away.</p></div>
+      <div class="fcard"><div class="ic">🪪</div><h3 data-i18n="f.paper.t">Paperwork</h3><p data-i18n="f.paper.p">Boravak, registrations, the bureaucratic maze — guided and handled for you.</p></div>
+      <div class="fcard"><div class="ic">🧭</div><h3 data-i18n="f.guide.t">Local guide</h3><p data-i18n="f.guide.p">Emergency numbers, how things work, the best of your neighbourhood — from people who know.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSLATION HIGHLIGHT -->
+<section class="block" style="background:var(--cream);">
+  <div class="wrap xl">
+    <div>
+      <div class="eyebrow" data-i18n="xl.eyebrow">The difference</div>
+      <h2 style="font-size:clamp(1.8rem,3.4vw,2.4rem); margin-top:10px;" data-i18n="xl.h2">The language barrier, gone.</h2>
+      <p style="margin-top:16px; font-size:1.1rem;" data-i18n="xl.p">Every message you send is translated for your landlord, and every reply comes back in your language. No apps to juggle, no awkward Google Translate — just a conversation that works.</p>
+    </div>
+    <div class="chat">
+      <div class="bub out">Voda u kupatilu ne radi.<span class="tr">→ The bathroom water isn't working.</span></div>
+      <div class="bub in">A plumber is booked for tomorrow at 10:00 ✅<span class="tr">→ Vodoinstalater dolazi sjutra u 10:00 ✅</span></div>
+      <div class="bub out">Hvala! 🙏</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="block" id="services">
+  <div class="wrap">
+    <div class="head"><div class="eyebrow" data-i18n="svc.eyebrow">Growing with you</div><h2 data-i18n="svc.h2">From a home to a whole life here</h2><p data-i18n="svc.p">Rental is just the start. Kluch is becoming the operating system for everything a foreigner needs in Montenegro.</p></div>
+    <div class="svc">
+      <div class="schip"><div class="e">🪪</div><div class="t" data-i18n="chip.permit">Residence permit</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">🧹</div><div class="t" data-i18n="chip.cleaning">Cleaning</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">📶</div><div class="t" data-i18n="chip.sim">SIM & internet</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">🚗</div><div class="t" data-i18n="chip.transport">Transport</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section class="block" style="background:var(--cream);">
+  <div class="wrap quote">
+    <div class="eyebrow" style="margin-bottom:18px;" data-i18n="quote.eyebrow">Built for people like you</div>
+    <blockquote data-i18n="quote.text">“I wish Kluch existed when I first arrived. It's exactly the calm, trusted hand every newcomer to Montenegro is looking for.”</blockquote>
+    <div class="who" data-i18n="quote.who">— A friend of Kluch · placeholder, ready for a real voice</div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="block" id="get">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2 data-i18n="cta.h2">Get the keys to your new life in Montenegro.</h2>
+      <p data-i18n="cta.p">Join the early list — we'll reach out as we open up in your city.</p>
+      <div class="form">
+        <input type="email" placeholder="your@email.com" data-i18n-ph="cta.ph">
+        <button class="btn btn-light" data-i18n="cta.btn">Join the list</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap inner">
+    <img src="./brand/kluch-icon.png" alt="Kluch">
+    <span class="brand">Kluch</span>
+    <span style="color:var(--muted);" data-i18n="footer.tag">· Your keys to Montenegro</span>
+    <div class="links">
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="./brand/login.html#register" data-i18n="nav.getstarted">Get started</a>
+    </div>
+    <div class="copy" data-i18n="footer.copy">kluch.me · © 2026 Kluch · Made for foreigners living in Montenegro 🇲🇪</div>
+  </div>
+</footer>
+
+<!-- HOME DETAIL MODAL -->
+<div class="modal" id="homeModal" aria-hidden="true">
+  <div class="modal-bg" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <button class="modal-x" data-close aria-label="Close">×</button>
+    <div class="gallery">
+      <img id="gMain" src="" alt="Apartment photo">
+      <button class="gnav gprev" id="gPrev" aria-label="Previous photo">‹</button>
+      <button class="gnav gnext" id="gNext" aria-label="Next photo">›</button>
+      <div class="gcount"><span id="gIdx">1</span> / <span id="gTot">5</span></div>
+    </div>
+    <div class="thumbs" id="gThumbs"></div>
+    <div class="mbody">
+      <div class="mhead">
+        <div><h3 id="mTitle"></h3><div class="mloc" id="mLoc"></div></div>
+        <div class="mspecs" id="mSpecs"></div>
+      </div>
+      <p class="mdesc" id="mDesc"></p>
+      <div class="mprices">
+        <div class="pcell"><span class="pl" id="mRentL">Rent</span><span class="pv" id="mRent"></span></div>
+        <div class="pcell"><span class="pl" id="mUtilL">Utilities (est.)</span><span class="pv" id="mUtil"></span></div>
+      </div>
+      <div class="mcta">
+        <p class="mctatext" id="mCtaText">Register an account to schedule a tour</p>
+        <button class="btn btn-primary" id="mBook">Create account &amp; book a tour</button>
+      </div>
+    </div>
+  </div>
 </div>
-
-<div class="deck" id="deck">
-
-  <!-- 1. Title -->
-  <section class="slide title-slide active">
-    <div class="logo-wrap">
-      <img src="logo.png" alt="Kluch logo">
-    </div>
-    <h1>Kluch</h1>
-    <div class="tagline" data-i18n="title.tagline">Your keys to Montenegro.</div>
-    <div class="meta" data-i18n="title.meta">Business plan · v0.2 · June 2026</div>
-  </section>
-
-  <!-- 2. Problem -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s2.eyebrow">The Problem</div>
-    <h1 data-i18n="s2.h1">Foreigners and landlords<br>don't speak the same language.</h1>
-    <div class="two-col" style="margin-top: 2.5rem;">
-      <div>
-        <h3 data-i18n="s2.landlords.h3">For landlords</h3>
-        <ul class="bullets">
-          <li data-i18n="s2.landlords.l1">Calls at midnight about a leaking tap.</li>
-          <li data-i18n="s2.landlords.l2">Foreign tenants paying late, in cash, with no audit trail.</li>
-          <li data-i18n="s2.landlords.l3">Traditional agencies take 15–25% of rent.</li>
-        </ul>
-      </div>
-      <div>
-        <h3 data-i18n="s2.occupants.h3">For occupants</h3>
-        <ul class="bullets">
-          <li data-i18n="s2.occupants.l1">No one to call who speaks English (or Russian, German, Turkish).</li>
-          <li data-i18n="s2.occupants.l2">Bills, residency, taxes — fragmented across dozens of small offices.</li>
-          <li data-i18n="s2.occupants.l3">No trusted operator for the rest of life logistics.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3. Solution -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s3.eyebrow">The Solution</div>
-    <h1 data-i18n="s3.h1">One Telegram bot.<br>One trusted operator.</h1>
-    <p class="lede" data-i18n="s3.lede" style="margin-top: 1rem;">Kluch sits between every landlord and every occupant. Onboard once — we handle the rest. Rent, bills, inspections, maintenance, translation, and eventually every other service a foreigner needs in Montenegro.</p>
-    <div class="two-col" style="margin-top: 2.5rem;">
-      <div class="card">
-        <div class="label" data-i18n="s3.card1.label">Landlord side</div>
-        <div class="value" data-i18n="s3.card1.text" style="font-size: 1.15rem; line-height: 1.4;">List once. Receive a monthly statement and a rent payout. Never touch it again.</div>
-      </div>
-      <div class="card">
-        <div class="label" data-i18n="s3.card2.label">Occupant side</div>
-        <div class="value" data-i18n="s3.card2.text" style="font-size: 1.15rem; line-height: 1.4;">Pay rent and bills in your language. Report issues with a photo. Discover perks across Montenegro.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. The Brand -->
-  <section class="slide">
-    <div class="two-col" style="align-items: center;">
-      <div>
-        <div class="eyebrow" data-i18n="s4.eyebrow">The Brand</div>
-        <h1>Kluch.</h1>
-        <p class="lede" data-i18n="s4.lede" style="margin-top: 1rem;"><em>Ključ / ключ</em> — "key" in the languages of 80% of our customers. In English it reads as <em>clutch</em>: dependable, comes through when it matters.</p>
-        <p data-i18n="s4.p1" style="margin-top: 1.2rem;">Every product line maps onto the metaphor: <strong>Rent Key. Residency Key. Tax Key. Company Key.</strong></p>
-        <p data-i18n="s4.p2" style="margin-top: 0.8rem; color: var(--muted);">Domain: <strong style="color: var(--navy);">kluch.me</strong> &nbsp;·&nbsp; .me is Montenegro's country code. The brand is the URL.</p>
-      </div>
-      <div style="display: flex; justify-content: center;">
-        <img src="logo.png" alt="Kluch logo" style="width: 280px; max-width: 100%; filter: drop-shadow(0 12px 32px rgba(31,58,95,0.18));">
-      </div>
-    </div>
-  </section>
-
-  <!-- 5. Market -->
-  <section class="slide dark">
-    <div class="eyebrow" data-i18n="s5.eyebrow">Market</div>
-    <h1 data-i18n="s5.h1">The customer base is here. Now.</h1>
-    <div class="three-col" style="margin-top: 2rem;">
-      <div class="card">
-        <div class="label" data-i18n="s5.c1.label">Foreign-resident density</div>
-        <div class="value">1 in 6</div>
-        <div class="note" data-i18n="s5.c1.note">Residents of Montenegro are now Russian or Ukrainian — highest per-capita in Europe</div>
-      </div>
-      <div class="card">
-        <div class="label" data-i18n="s5.c2.label">Ukrainian residents</div>
-        <div class="value">60,000+</div>
-        <div class="note" data-i18n="s5.c2.note">Registered, plus 5,000 on temporary protection</div>
-      </div>
-      <div class="card">
-        <div class="label" data-i18n="s5.c3.label">Short-term inventory</div>
-        <div class="value">10,000+</div>
-        <div class="note" data-i18n="s5.c3.note">Active listings on the coast alone — proxy for total rentable stock</div>
-      </div>
-    </div>
-    <p class="lede" data-i18n="s5.foot" style="margin-top: 2rem; max-width: 90ch;">Average long-term rents: <strong style="color: var(--cream);">€500–900</strong> country-wide, <strong style="color: var(--cream);">€750+</strong> Budva, up to <strong style="color: var(--cream);">€1,500</strong> prime Tivat.</p>
-  </section>
-
-  <!-- 6. TAM SAM SOM -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s6.eyebrow">Market Sizing</div>
-    <h2 data-i18n="s6.h2">Realistic, not unicorn.</h2>
-    <table>
-      <thead>
-        <tr>
-          <th data-i18n="s6.th1">Tier</th>
-          <th data-i18n="s6.th2">Units</th>
-          <th data-i18n="s6.th3">Subscription ARR</th>
-          <th data-i18n="s6.th4">+ transactions & services</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td data-i18n="s6.r1c1"><strong>TAM</strong> — all foreign-rented apartments in MNE</td>
-          <td>30,000–50,000</td>
-          <td>€9M–€15M</td>
-          <td>€15M–€25M</td>
-        </tr>
-        <tr>
-          <td data-i18n="s6.r2c1"><strong>SAM</strong> — Podgorica + coast, year-round</td>
-          <td>15,000–25,000</td>
-          <td>€4.5M–€7.5M</td>
-          <td>€7M–€12M</td>
-        </tr>
-        <tr>
-          <td data-i18n="s6.r3c1"><strong>SOM</strong> — 3-year capture as focused local operator</td>
-          <td>200–400</td>
-          <td>€60k–€120k</td>
-          <td data-i18n="s6.r3c4"><strong>€280k–€380k total ARR</strong></td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="lede" data-i18n="s6.foot" style="margin-top: 2rem;">A €500k–€1.5M ARR business at maturity. 40–60% EBITDA margin. Profitable for two founders.</p>
-  </section>
-
-  <!-- 7. Competition -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s7.eyebrow">Competition</div>
-    <h1 data-i18n="s7.h1">In Montenegro: no one.</h1>
-    <p class="lede" data-i18n="s7.lede">International landlord SaaS doesn't translate, doesn't dispatch handymen, has no MNE presence. Local agencies do it manually. The lane is empty.</p>
-    <div style="margin-top: 2rem;">
-      <h3 data-i18n="s7.h3">The playbook is proven elsewhere</h3>
-      <table>
-        <tbody>
-          <tr><td><strong>Emerhub</strong></td><td>Bali / Indonesia / Vietnam / Philippines</td><td data-i18n="s7.emerhub">Foreigner services — visas, company formation, accommodation, banking, EOR. Multi-million revenue.</td></tr>
-          <tr><td><strong>FRESH Portugal</strong></td><td>Portugal</td><td data-i18n="s7.fresh">Tax, immigration, real estate, corporate, estate planning for expats. Largest in PT.</td></tr>
-          <tr><td><strong>Lexidy</strong></td><td>Spain / Portugal / Italy</td><td data-i18n="s7.lexidy">Expat-focused legal tech, cross-border.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p data-i18n="s7.foot" style="margin-top: 1.6rem; color: var(--muted);">Our twist: we start with <strong style="color: var(--navy);">recurring rental relationships</strong> and layer services on top. They started with transactions. Our wedge is stickier.</p>
-  </section>
-
-  <!-- 8. Pricing -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s8.eyebrow">Pricing</div>
-    <h1 data-i18n="s8.h1">Tiered. Anchored below agencies.</h1>
-    <div class="pricing-grid">
-      <div class="price-tier">
-        <h4 data-i18n="s8.t1.name">Basic</h4>
-        <div class="price">€5<span style="font-size: 1rem; color: var(--muted);" data-i18n="s8.permo">/mo</span></div>
-        <ul>
-          <li data-i18n="s8.t1.l1">Tenant chat in EN/RU/DE/TR</li>
-          <li data-i18n="s8.t1.l2">Rent collection</li>
-          <li data-i18n="s8.t1.l3">Bill reminders</li>
-          <li data-i18n="s8.t1.l4">Monthly statement</li>
-        </ul>
-      </div>
-      <div class="price-tier featured">
-        <h4 data-i18n="s8.t2.name">Standard</h4>
-        <div class="price">€25<span style="font-size: 1rem; opacity: 0.7;" data-i18n="s8.permo2">/mo</span></div>
-        <ul>
-          <li data-i18n="s8.t2.l1">Everything in Basic</li>
-          <li data-i18n="s8.t2.l2">Bill autopay</li>
-          <li data-i18n="s8.t2.l3">Quarterly photo inspection</li>
-          <li data-i18n="s8.t2.l4">Issue triage</li>
-        </ul>
-      </div>
-      <div class="price-tier">
-        <h4 data-i18n="s8.t3.name">Full Service</h4>
-        <div class="price">€60–80<span style="font-size: 1rem; color: var(--muted);" data-i18n="s8.permo3">/mo</span></div>
-        <ul>
-          <li data-i18n="s8.t3.l1">Everything in Standard</li>
-          <li data-i18n="s8.t3.l2">Monthly inspection</li>
-          <li data-i18n="s8.t3.l3">Handyman dispatch</li>
-          <li data-i18n="s8.t3.l4">Onboarding & deep clean</li>
-        </ul>
-      </div>
-    </div>
-    <p data-i18n="s8.foot" style="margin-top: 2rem; color: var(--muted); text-align: center;">Traditional agencies: <strong style="color: var(--navy);">15–25% of rent.</strong> &nbsp;Our top tier: <strong style="color: var(--navy);">~8%.</strong></p>
-  </section>
-
-  <!-- 9. Revenue streams -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s9.eyebrow">Revenue Streams</div>
-    <h2 data-i18n="s9.h2">Seven lines. Built to compound.</h2>
-    <div class="two-col" style="margin-top: 2rem;">
-      <ul class="bullets">
-        <li data-i18n="s9.l1"><strong>Subscription</strong> — €5–€80/unit/month</li>
-        <li data-i18n="s9.l2"><strong>Transaction take</strong> — 1–2% on rent & bills</li>
-        <li data-i18n="s9.l3"><strong>Handyman markup</strong> — 20–30% on labor</li>
-        <li data-i18n="s9.l4"><strong>Marketplace</strong> — partner promotions</li>
-      </ul>
-      <ul class="bullets">
-        <li data-i18n="s9.l5"><strong>Cross-property</strong> — coastal weekend stays</li>
-        <li data-i18n="s9.l6"><strong>In-app advertising</strong> — at 1,000+ occupants</li>
-        <li data-i18n="s9.l7"><strong>Foreigner services</strong> — the real margin</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- 10. Section divider: services -->
-  <section class="slide section-slide">
-    <div class="section-num">02</div>
-    <div class="eyebrow" data-i18n="s10.eyebrow" style="color: var(--teal-soft);">The Real Business</div>
-    <h1 data-i18n="s10.h1">Rental is the wedge.<br>Services is the business.</h1>
-    <p class="lede" data-i18n="s10.lede" style="margin-top: 1.5rem; color: var(--cream-dark); max-width: 70ch;">Once we sit inside every foreigner's monthly life, we earn the right to handle everything else.</p>
-  </section>
-
-  <!-- 11. Services layer -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s11.eyebrow">Foreigner Services Layer</div>
-    <h2 data-i18n="s11.h2">The operating system for foreigners in Montenegro.</h2>
-    <table>
-      <thead><tr>
-        <th data-i18n="s11.th1">Service</th>
-        <th data-i18n="s11.th2">Avg ticket</th>
-        <th data-i18n="s11.th3">Notes</th>
-      </tr></thead>
-      <tbody>
-        <tr><td data-i18n="s11.s1n"><strong>Residency permit (boravak)</strong></td><td>€200–500</td><td data-i18n="s11.s1d">Annual renewal — universal need</td></tr>
-        <tr><td data-i18n="s11.s2n"><strong>Company formation (d.o.o.)</strong></td><td>€500–1,500</td><td data-i18n="s11.s2d">Digital nomads, RU/TR entrepreneurs</td></tr>
-        <tr><td data-i18n="s11.s3n"><strong>Tax & accounting</strong></td><td>€50–200/mo</td><td data-i18n="s11.s3d">Recurring, highest margin</td></tr>
-        <tr><td data-i18n="s11.s4n"><strong>Driver's license conversion</strong></td><td>€100–300</td><td data-i18n="s11.s4d">One-off, universal</td></tr>
-        <tr><td data-i18n="s11.s5n"><strong>Bank introductions</strong></td><td>€100–300 + bank fee</td><td data-i18n="s11.s5d">Banks pay per intro</td></tr>
-        <tr><td data-i18n="s11.s6n"><strong>Real estate concierge</strong></td><td>0.5–1% of deal</td><td data-i18n="s11.s6d">One deal pays for months</td></tr>
-      </tbody>
-    </table>
-    <p class="lede" data-i18n="s11.foot" style="margin-top: 1.5rem;">If 300 occupants buy <strong>one service per year at €300</strong> avg → <strong style="color: var(--teal);">+€90k</strong> at near-pure margin.</p>
-  </section>
-
-  <!-- 12. Why now -->
-  <section class="slide dark">
-    <div class="eyebrow" data-i18n="s12.eyebrow">Why Now</div>
-    <h1 data-i18n="s12.h1">The conditions just came together.</h1>
-    <div class="two-col" style="margin-top: 2.5rem;">
-      <ul class="bullets">
-        <li data-i18n="s12.l1"><strong>Cofounder runs the agency.</strong> Instant inventory, landlord trust, ops know-how.</li>
-        <li data-i18n="s12.l2"><strong>Telegram is the dominant chat.</strong> Russian, Ukrainian, Serbian, Turkish renters live in it. Zero install friction.</li>
-      </ul>
-      <ul class="bullets">
-        <li data-i18n="s12.l3"><strong>AI translation is finally good enough.</strong> Real-time, near-zero cost. The language barrier dissolves.</li>
-        <li data-i18n="s12.l4"><strong>The customer base is at record highs.</strong> No incumbent is doing this end-to-end. The lane is empty.</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- 13. Roadmap -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s13.eyebrow">12-Month Roadmap</div>
-    <h2 data-i18n="s13.h2">Pilot → Grant → Scale.</h2>
-    <table>
-      <thead><tr>
-        <th data-i18n="s13.th1">Quarter</th>
-        <th data-i18n="s13.th2">Milestone</th>
-      </tr></thead>
-      <tbody>
-        <tr><td><strong>Q3 2026</strong></td><td data-i18n="s13.q1">d.o.o. registered, shareholders' agreement signed, MVP bot live, 20 apartments from cofounder's book</td></tr>
-        <tr><td><strong>Q4 2026</strong></td><td data-i18n="s13.q2">Inspections + handyman dispatch live, 75 apartments, first paying Standard/Full tier, Innovation Fund grant submitted</td></tr>
-        <tr><td><strong>Q1 2027</strong></td><td data-i18n="s13.q3">Occupant marketplace v1, 150 apartments, first foreigner-services pilot (residency permits)</td></tr>
-        <tr><td><strong>Q2 2027</strong></td><td data-i18n="s13.q4">Cross-property weekend discounts, expand to Budva + Tivat, 300 apartments, services live across 3–4 verticals</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- 14. Year 3 economics -->
-  <section class="slide dark">
-    <div class="eyebrow" data-i18n="s14.eyebrow">Year 3 Economics</div>
-    <h1 data-i18n="s14.h1">Profitable. Boring on purpose.</h1>
-    <div class="three-col" style="margin-top: 2.5rem;">
-      <div class="card">
-        <div class="label" data-i18n="s14.c1.label">Subscription</div>
-        <div class="value">€90k</div>
-        <div class="note" data-i18n="s14.c1.note">300 units × €25 × 12</div>
-      </div>
-      <div class="card">
-        <div class="label" data-i18n="s14.c2.label">Transactions + handyman</div>
-        <div class="value">€40k</div>
-        <div class="note" data-i18n="s14.c2.note">Payment take + 20–30% labor markup</div>
-      </div>
-      <div class="card">
-        <div class="label" data-i18n="s14.c3.label">Foreigner services</div>
-        <div class="value">€150–250k</div>
-        <div class="note" data-i18n="s14.c3.note">Residency, tax, formation, referrals</div>
-      </div>
-    </div>
-    <div style="margin-top: 3rem; text-align: center;">
-      <div class="small-cap" data-i18n="s14.year3" style="color: var(--teal-soft);">Year-3 ARR</div>
-      <div class="big-num" style="color: var(--cream); margin-top: 0.5rem;">€280k–€380k</div>
-      <p data-i18n="s14.foot" style="color: var(--cream-dark); margin-top: 0.8rem;">50–60% gross margin · break-even month 14–18 · Y5 ceiling €1M–€2M ARR</p>
-    </div>
-  </section>
-
-  <!-- 15. Funding -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s15.eyebrow">Funding Strategy</div>
-    <h2 data-i18n="s15.h2">Grant-first. Bootstrap if it misses.</h2>
-    <div class="two-col" style="margin-top: 2rem;">
-      <div>
-        <h3 data-i18n="s15.primary">Primary target</h3>
-        <p data-i18n="s15.fund" style="font-size: 1.3rem; font-family: 'Fraunces', serif; color: var(--navy); margin-bottom: 0.5rem;">Innovation Fund of Montenegro</p>
-        <p data-i18n="s15.prog" style="margin-bottom: 0.6rem;">Early-Stage Startup Support program.</p>
-        <ul class="bullets" style="margin-top: 0.8rem;">
-          <li data-i18n="s15.l1"><strong>Up to €30,000 grant</strong> · covers 90% of project costs</li>
-          <li data-i18n="s15.l2">Eligibility: MNE d.o.o. &lt; 2 years, founder-owned, MVP/pilot</li>
-          <li data-i18n="s15.l3"><strong>No user-count threshold.</strong> 5 paying landlords = strong applicant</li>
-        </ul>
-      </div>
-      <div>
-        <h3 data-i18n="s15.stack">Stackable</h3>
-        <ul class="bullets">
-          <li data-i18n="s15.s1">Innovation Vouchers — up to €8k for R&D partnership</li>
-          <li data-i18n="s15.s2">Investment & Development Fund (IRF) — working-capital loans later</li>
-          <li data-i18n="s15.s3">EU IPA / Western Balkans funds — revisit at €500k ARR</li>
-        </ul>
-        <h3 data-i18n="s15.boot" style="margin-top: 2rem;">Bootstrap path</h3>
-        <p data-i18n="s15.bootp">Founders unpaid, ops lead ~€800/mo, burn ~€20–30k/yr — covered by early subscription + cofounder's existing book.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 16. Risks -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s16.eyebrow">Risks</div>
-    <h2 data-i18n="s16.h2">What could go wrong — and our answer.</h2>
-    <table style="margin-top: 1.5rem;">
-      <tbody>
-        <tr><td style="width: 35%;" data-i18n="s16.r1n"><strong>Trust</strong> — landlords cede control</td><td data-i18n="s16.r1a">Cofounder's existing relationships; transparent statements; rent escrow.</td></tr>
-        <tr><td data-i18n="s16.r2n"><strong>Regulatory</strong> — payments + foreigner-services licensing</td><td data-i18n="s16.r2a">Licensed PSP; partner with licensed lawyers/accountants for regulated work.</td></tr>
-        <tr><td data-i18n="s16.r3n"><strong>Handyman quality</strong></td><td data-i18n="s16.r3a">Small vetted pool; ratings after every job; photo proof.</td></tr>
-        <tr><td data-i18n="s16.r4n"><strong>Foreign resident volatility</strong></td><td data-i18n="s16.r4a">Diversify across RU/UA/SR/TR/DE so one geopolitical shift doesn't kill the base.</td></tr>
-        <tr><td data-i18n="s16.r5n"><strong>50/50 founder deadlock</strong></td><td data-i18n="s16.r5a">Shareholders' Agreement with split decision domains, shotgun clause, reserved matters.</td></tr>
-        <tr><td data-i18n="s16.r6n"><strong>Digital nomad visa expires end-2026</strong></td><td data-i18n="s16.r6a">Offset by long-term residents and family relocations — broader base than nomads alone.</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- 17. Next steps -->
-  <section class="slide">
-    <div class="eyebrow" data-i18n="s17.eyebrow">Next 30 Days</div>
-    <h2 data-i18n="s17.h2">The to-do list.</h2>
-    <div class="two-col" style="margin-top: 2rem;">
-      <ul class="bullets">
-        <li data-i18n="s17.l1">Buy <strong>kluch.me</strong> (5–10 year registration) + defensive handles</li>
-        <li data-i18n="s17.l2">Register the <strong>d.o.o.</strong> with a Montenegrin corporate lawyer</li>
-        <li data-i18n="s17.l3">Sign the <strong>Shareholders' Agreement</strong></li>
-        <li data-i18n="s17.l4">Lock the first <strong>20 apartments</strong> from cofounder's book</li>
-      </ul>
-      <ul class="bullets">
-        <li data-i18n="s17.l5">Build MVP Telegram bot — rent, bills, auto-translation, monthly statement</li>
-        <li data-i18n="s17.l6">Sign 1–2 <strong>handymen</strong> on retainer</li>
-        <li data-i18n="s17.l7">Confirm next <strong>Innovation Fund</strong> call (info@fondzainovacije.me)</li>
-        <li data-i18n="s17.l8">Final logo + brand kit (~€50–150)</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- 18. Closing -->
-  <section class="slide closing-slide">
-    <img src="logo.png" alt="Kluch" style="width: 110px; margin-bottom: 2rem; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.3));">
-    <h1 data-i18n="s18.h1">Your keys to Montenegro.</h1>
-    <div class="signoff">Kluch · kluch.me · 2026</div>
-  </section>
-
-</div>
-
-<div class="nav">
-  <button id="prev" aria-label="Previous slide">‹</button>
-  <span id="counter">1 / 18</span>
-  <button id="next" aria-label="Next slide">›</button>
-</div>
-
-<div class="hint" data-i18n="hint">Use ← → or space to navigate</div>
 
 <script>
-  /* ------------------ Translations ------------------ */
-  const T = {
+  /* ============ i18n ============ */
+  const LANGS = [
+    { code:"en", label:"🇬🇧 EN" }, { code:"sr", label:"🇷🇸 SR" },
+    { code:"ru", label:"🇷🇺 RU" }, { code:"tr", label:"🇹🇷 TR" },
+  ];
+
+  const I18N = {
     en: {
-      'title.tagline': 'Your keys to Montenegro.',
-      'title.meta': 'Business plan · v0.2 · June 2026',
-
-      's2.eyebrow': 'The Problem',
-      's2.h1': "Foreigners and landlords<br>don't speak the same language.",
-      's2.landlords.h3': 'For landlords',
-      's2.landlords.l1': 'Calls at midnight about a leaking tap.',
-      's2.landlords.l2': 'Foreign tenants paying late, in cash, with no audit trail.',
-      's2.landlords.l3': 'Traditional agencies take 15–25% of rent.',
-      's2.occupants.h3': 'For occupants',
-      's2.occupants.l1': 'No one to call who speaks English (or Russian, German, Turkish).',
-      's2.occupants.l2': 'Bills, residency, taxes — fragmented across dozens of small offices.',
-      's2.occupants.l3': 'No trusted operator for the rest of life logistics.',
-
-      's3.eyebrow': 'The Solution',
-      's3.h1': 'One Telegram bot.<br>One trusted operator.',
-      's3.lede': 'Kluch sits between every landlord and every occupant. Onboard once — we handle the rest. Rent, bills, inspections, maintenance, translation, and eventually every other service a foreigner needs in Montenegro.',
-      's3.card1.label': 'Landlord side',
-      's3.card1.text': 'List once. Receive a monthly statement and a rent payout. Never touch it again.',
-      's3.card2.label': 'Occupant side',
-      's3.card2.text': 'Pay rent and bills in your language. Report issues with a photo. Discover perks across Montenegro.',
-
-      's4.eyebrow': 'The Brand',
-      's4.lede': '<em>Ključ / ключ</em> — "key" in the languages of 80% of our customers. In English it reads as <em>clutch</em>: dependable, comes through when it matters.',
-      's4.p1': 'Every product line maps onto the metaphor: <strong>Rent Key. Residency Key. Tax Key. Company Key.</strong>',
-      's4.p2': 'Domain: <strong style="color: var(--navy);">kluch.me</strong> &nbsp;·&nbsp; .me is Montenegro\'s country code. The brand is the URL.',
-
-      's5.eyebrow': 'Market',
-      's5.h1': 'The customer base is here. Now.',
-      's5.c1.label': 'Foreign-resident density',
-      's5.c1.note': 'Residents of Montenegro are now Russian or Ukrainian — highest per-capita in Europe',
-      's5.c2.label': 'Ukrainian residents',
-      's5.c2.note': 'Registered, plus 5,000 on temporary protection',
-      's5.c3.label': 'Short-term inventory',
-      's5.c3.note': 'Active listings on the coast alone — proxy for total rentable stock',
-      's5.foot': 'Average long-term rents: <strong style="color: var(--cream);">€500–900</strong> country-wide, <strong style="color: var(--cream);">€750+</strong> Budva, up to <strong style="color: var(--cream);">€1,500</strong> prime Tivat.',
-
-      's6.eyebrow': 'Market Sizing',
-      's6.h2': 'Realistic, not unicorn.',
-      's6.th1': 'Tier',
-      's6.th2': 'Units',
-      's6.th3': 'Subscription ARR',
-      's6.th4': '+ transactions & services',
-      's6.r1c1': '<strong>TAM</strong> — all foreign-rented apartments in MNE',
-      's6.r2c1': '<strong>SAM</strong> — Podgorica + coast, year-round',
-      's6.r3c1': '<strong>SOM</strong> — 3-year capture as focused local operator',
-      's6.r3c4': '<strong>€280k–€380k total ARR</strong>',
-      's6.foot': 'A €500k–€1.5M ARR business at maturity. 40–60% EBITDA margin. Profitable for two founders.',
-
-      's7.eyebrow': 'Competition',
-      's7.h1': 'In Montenegro: no one.',
-      's7.lede': "International landlord SaaS doesn't translate, doesn't dispatch handymen, has no MNE presence. Local agencies do it manually. The lane is empty.",
-      's7.h3': 'The playbook is proven elsewhere',
-      's7.emerhub': 'Foreigner services — visas, company formation, accommodation, banking, EOR. Multi-million revenue.',
-      's7.fresh': 'Tax, immigration, real estate, corporate, estate planning for expats. Largest in PT.',
-      's7.lexidy': 'Expat-focused legal tech, cross-border.',
-      's7.foot': 'Our twist: we start with <strong style="color: var(--navy);">recurring rental relationships</strong> and layer services on top. They started with transactions. Our wedge is stickier.',
-
-      's8.eyebrow': 'Pricing',
-      's8.h1': 'Tiered. Anchored below agencies.',
-      's8.t1.name': 'Basic', 's8.t2.name': 'Standard', 's8.t3.name': 'Full Service',
-      's8.permo': '/mo', 's8.permo2': '/mo', 's8.permo3': '/mo',
-      's8.t1.l1': 'Tenant chat in EN/RU/DE/TR',
-      's8.t1.l2': 'Rent collection',
-      's8.t1.l3': 'Bill reminders',
-      's8.t1.l4': 'Monthly statement',
-      's8.t2.l1': 'Everything in Basic',
-      's8.t2.l2': 'Bill autopay',
-      's8.t2.l3': 'Quarterly photo inspection',
-      's8.t2.l4': 'Issue triage',
-      's8.t3.l1': 'Everything in Standard',
-      's8.t3.l2': 'Monthly inspection',
-      's8.t3.l3': 'Handyman dispatch',
-      's8.t3.l4': 'Onboarding & deep clean',
-      's8.foot': 'Traditional agencies: <strong style="color: var(--navy);">15–25% of rent.</strong> &nbsp;Our top tier: <strong style="color: var(--navy);">~8%.</strong>',
-
-      's9.eyebrow': 'Revenue Streams',
-      's9.h2': 'Seven lines. Built to compound.',
-      's9.l1': '<strong>Subscription</strong> — €5–€80/unit/month',
-      's9.l2': '<strong>Transaction take</strong> — 1–2% on rent & bills',
-      's9.l3': '<strong>Handyman markup</strong> — 20–30% on labor',
-      's9.l4': '<strong>Marketplace</strong> — partner promotions',
-      's9.l5': '<strong>Cross-property</strong> — coastal weekend stays',
-      's9.l6': '<strong>In-app advertising</strong> — at 1,000+ occupants',
-      's9.l7': '<strong>Foreigner services</strong> — the real margin',
-
-      's10.eyebrow': 'The Real Business',
-      's10.h1': 'Rental is the wedge.<br>Services is the business.',
-      's10.lede': "Once we sit inside every foreigner's monthly life, we earn the right to handle everything else.",
-
-      's11.eyebrow': 'Foreigner Services Layer',
-      's11.h2': 'The operating system for foreigners in Montenegro.',
-      's11.th1': 'Service', 's11.th2': 'Avg ticket', 's11.th3': 'Notes',
-      's11.s1n': '<strong>Residency permit (boravak)</strong>',
-      's11.s1d': 'Annual renewal — universal need',
-      's11.s2n': '<strong>Company formation (d.o.o.)</strong>',
-      's11.s2d': 'Digital nomads, RU/TR entrepreneurs',
-      's11.s3n': '<strong>Tax & accounting</strong>',
-      's11.s3d': 'Recurring, highest margin',
-      's11.s4n': "<strong>Driver's license conversion</strong>",
-      's11.s4d': 'One-off, universal',
-      's11.s5n': '<strong>Bank introductions</strong>',
-      's11.s5d': 'Banks pay per intro',
-      's11.s6n': '<strong>Real estate concierge</strong>',
-      's11.s6d': 'One deal pays for months',
-      's11.foot': 'If 300 occupants buy <strong>one service per year at €300</strong> avg → <strong style="color: var(--teal);">+€90k</strong> at near-pure margin.',
-
-      's12.eyebrow': 'Why Now',
-      's12.h1': 'The conditions just came together.',
-      's12.l1': '<strong>Cofounder runs the agency.</strong> Instant inventory, landlord trust, ops know-how.',
-      's12.l2': '<strong>Telegram is the dominant chat.</strong> Russian, Ukrainian, Serbian, Turkish renters live in it. Zero install friction.',
-      's12.l3': '<strong>AI translation is finally good enough.</strong> Real-time, near-zero cost. The language barrier dissolves.',
-      's12.l4': '<strong>The customer base is at record highs.</strong> No incumbent is doing this end-to-end. The lane is empty.',
-
-      's13.eyebrow': '12-Month Roadmap',
-      's13.h2': 'Pilot → Grant → Scale.',
-      's13.th1': 'Quarter', 's13.th2': 'Milestone',
-      's13.q1': "d.o.o. registered, shareholders' agreement signed, MVP bot live, 20 apartments from cofounder's book",
-      's13.q2': 'Inspections + handyman dispatch live, 75 apartments, first paying Standard/Full tier, Innovation Fund grant submitted',
-      's13.q3': 'Occupant marketplace v1, 150 apartments, first foreigner-services pilot (residency permits)',
-      's13.q4': 'Cross-property weekend discounts, expand to Budva + Tivat, 300 apartments, services live across 3–4 verticals',
-
-      's14.eyebrow': 'Year 3 Economics',
-      's14.h1': 'Profitable. Boring on purpose.',
-      's14.c1.label': 'Subscription',
-      's14.c1.note': '300 units × €25 × 12',
-      's14.c2.label': 'Transactions + handyman',
-      's14.c2.note': 'Payment take + 20–30% labor markup',
-      's14.c3.label': 'Foreigner services',
-      's14.c3.note': 'Residency, tax, formation, referrals',
-      's14.year3': 'Year-3 ARR',
-      's14.foot': '50–60% gross margin · break-even month 14–18 · Y5 ceiling €1M–€2M ARR',
-
-      's15.eyebrow': 'Funding Strategy',
-      's15.h2': 'Grant-first. Bootstrap if it misses.',
-      's15.primary': 'Primary target',
-      's15.fund': 'Innovation Fund of Montenegro',
-      's15.prog': 'Early-Stage Startup Support program.',
-      's15.l1': '<strong>Up to €30,000 grant</strong> · covers 90% of project costs',
-      's15.l2': 'Eligibility: MNE d.o.o. &lt; 2 years, founder-owned, MVP/pilot',
-      's15.l3': '<strong>No user-count threshold.</strong> 5 paying landlords = strong applicant',
-      's15.stack': 'Stackable',
-      's15.s1': 'Innovation Vouchers — up to €8k for R&D partnership',
-      's15.s2': 'Investment & Development Fund (IRF) — working-capital loans later',
-      's15.s3': 'EU IPA / Western Balkans funds — revisit at €500k ARR',
-      's15.boot': 'Bootstrap path',
-      's15.bootp': "Founders unpaid, ops lead ~€800/mo, burn ~€20–30k/yr — covered by early subscription + cofounder's existing book.",
-
-      's16.eyebrow': 'Risks',
-      's16.h2': 'What could go wrong — and our answer.',
-      's16.r1n': '<strong>Trust</strong> — landlords cede control',
-      's16.r1a': "Cofounder's existing relationships; transparent statements; rent escrow.",
-      's16.r2n': '<strong>Regulatory</strong> — payments + foreigner-services licensing',
-      's16.r2a': 'Licensed PSP; partner with licensed lawyers/accountants for regulated work.',
-      's16.r3n': '<strong>Handyman quality</strong>',
-      's16.r3a': 'Small vetted pool; ratings after every job; photo proof.',
-      's16.r4n': '<strong>Foreign resident volatility</strong>',
-      's16.r4a': "Diversify across RU/UA/SR/TR/DE so one geopolitical shift doesn't kill the base.",
-      's16.r5n': '<strong>50/50 founder deadlock</strong>',
-      's16.r5a': "Shareholders' Agreement with split decision domains, shotgun clause, reserved matters.",
-      's16.r6n': '<strong>Digital nomad visa expires end-2026</strong>',
-      's16.r6a': 'Offset by long-term residents and family relocations — broader base than nomads alone.',
-
-      's17.eyebrow': 'Next 30 Days',
-      's17.h2': 'The to-do list.',
-      's17.l1': 'Buy <strong>kluch.me</strong> (5–10 year registration) + defensive handles',
-      's17.l2': 'Register the <strong>d.o.o.</strong> with a Montenegrin corporate lawyer',
-      's17.l3': "Sign the <strong>Shareholders' Agreement</strong>",
-      's17.l4': 'Lock the first <strong>20 apartments</strong> from cofounder\'s book',
-      's17.l5': 'Build MVP Telegram bot — rent, bills, auto-translation, monthly statement',
-      's17.l6': 'Sign 1–2 <strong>handymen</strong> on retainer',
-      's17.l7': 'Confirm next <strong>Innovation Fund</strong> call (info@fondzainovacije.me)',
-      's17.l8': 'Final logo + brand kit (~€50–150)',
-
-      's18.h1': 'Your keys to Montenegro.',
-
-      'hint': 'Use ← → or space to navigate'
+      "nav.homes":"Homes","nav.how":"How it works","nav.features":"Features","nav.services":"Services","nav.login":"Log in","nav.getstarted":"Get started",
+      "hero.eyebrow":"For foreigners living in Montenegro",
+      "hero.h1":"Your <span class='accent'>keys</span> to Montenegro.",
+      "hero.sub":"Rent, bills, repairs, paperwork, and translation — handled by one trusted operator, all in a single app. Settle in without the stress.",
+      "hero.cta1":"Get started","hero.cta2":"See how it works",
+      "hero.trust":"🔑 Onboard once — we handle the rest, in your language.",
+      "homes.eyebrow":"Homes available now","homes.h2":"Sea, mountains, or the capital — find your place",
+      "homes.p":"A taste of what Kluch can set you up in. Every home comes fully managed: rent, bills, repairs, and translation handled from day one.",
+      "home0.tag":"🌊 Sea","home0.name":"Bay-view one-bed","home0.town":"Kotor · Adriatic coast",
+      "home1.tag":"⛰️ Mountains","home1.name":"Pine chalet","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Capital","home2.name":"Modern flat","home2.town":"Podgorica · City centre",
+      "home0.desc":"A bright one-bedroom with postcard views over the Bay of Kotor. Steps from the Old Town, cafés and the waterfront — fully furnished and move-in ready.",
+      "home1.desc":"A warm two-bedroom chalet on the edge of Durmitor National Park. Cosy interiors, a fireplace, and hiking and skiing right on your doorstep.",
+      "home2.desc":"A modern two-bedroom flat in the heart of the capital. Walk to offices, restaurants and the river — ideal for working professionals and families.",
+      "viewhome":"View home","modal.rent":"Rent","modal.util":"Utilities (est.)",
+      "modal.ctatext":"Register an account to schedule a tour","modal.book":"Create account & book a tour",
+      "band.rent":"Renting made simple","band.translated":"Everything translated","band.operator":"One operator, not ten","band.paperwork":"Paperwork, sorted",
+      "why.eyebrow":"Why Kluch","why.h2":"Moving to Montenegro is hard. Living here shouldn't be.",
+      "why.p":"Foreigners and landlords don't speak the same language — literally. Rent, utility bills, a broken boiler, a residence permit: every little thing becomes a phone-call marathon in a language you don't speak. Kluch sits in the middle and just handles it.",
+      "how.eyebrow":"How it works","how.h2":"Three steps to settled",
+      "step1.t":"Onboard once","step1.p":"Link your home with a code from your landlord or agency, and pick your language.",
+      "step2.t":"We handle the rest","step2.p":"Rent reminders, bills, repairs, inspections, paperwork. Message us anytime and we reply in your language.",
+      "step3.t":"Everything in one place","step3.p":"No more chasing landlords or agencies. Your home, your documents, your services — one calm app.",
+      "feat.eyebrow":"What's inside","feat.h2":"Everything a foreigner needs",
+      "f.rent.t":"Rent & bills","f.rent.p":"See what's due, pay in a tap, get instant receipts. Never miss a date in a language you don't read.",
+      "f.report.t":"Report a problem","f.report.p":"Broken boiler? Send a photo. We dispatch the fix and keep you posted, start to finish.",
+      "f.msg.t":"Messages, translated","f.msg.p":"Write in your language, your landlord reads theirs. The barrier just disappears.",
+      "f.docs.t":"Documents","f.docs.p":"Lease, receipts, and permits — organised and always one tap away.",
+      "f.paper.t":"Paperwork","f.paper.p":"Boravak, registrations, the bureaucratic maze — guided and handled for you.",
+      "f.guide.t":"Local guide","f.guide.p":"Emergency numbers, how things work, the best of your neighbourhood — from people who know.",
+      "xl.eyebrow":"The difference","xl.h2":"The language barrier, gone.",
+      "xl.p":"Every message you send is translated for your landlord, and every reply comes back in your language. No apps to juggle, no awkward Google Translate — just a conversation that works.",
+      "svc.eyebrow":"Growing with you","svc.h2":"From a home to a whole life here",
+      "svc.p":"Rental is just the start. Kluch is becoming the operating system for everything a foreigner needs in Montenegro.",
+      "chip.permit":"Residence permit","chip.cleaning":"Cleaning","chip.sim":"SIM & internet","chip.transport":"Transport","soon":"Coming soon",
+      "quote.eyebrow":"Built for people like you",
+      "quote.text":"“I wish Kluch existed when I first arrived. It's exactly the calm, trusted hand every newcomer to Montenegro is looking for.”",
+      "quote.who":"— A friend of Kluch · placeholder, ready for a real voice",
+      "cta.h2":"Get the keys to your new life in Montenegro.","cta.p":"Join the early list — we'll reach out as we open up in your city.",
+      "cta.ph":"your@email.com","cta.btn":"Join the list",
+      "footer.tag":"· Your keys to Montenegro","footer.copy":"kluch.me · © 2026 Kluch · Made for foreigners living in Montenegro 🇲🇪",
     },
-
     sr: {
-      'title.tagline': 'Vaši ključevi za Crnu Goru.',
-      'title.meta': 'Biznis plan · v0.2 · jun 2026',
-
-      's2.eyebrow': 'Problem',
-      's2.h1': 'Stranci i stanodavci<br>ne govore istim jezikom.',
-      's2.landlords.h3': 'Za stanodavce',
-      's2.landlords.l1': 'Pozivi u ponoć zbog česme koja curi.',
-      's2.landlords.l2': 'Stranci plaćaju kasno, u kešu, bez ikakvog traga.',
-      's2.landlords.l3': 'Tradicionalne agencije uzimaju 15–25% od kirije.',
-      's2.occupants.h3': 'Za stanare',
-      's2.occupants.l1': 'Nema kome da se obrate na engleskom (ili ruskom, njemačkom, turskom).',
-      's2.occupants.l2': 'Računi, boravak, porezi — razbacano po desetinama malih kancelarija.',
-      's2.occupants.l3': 'Nema pouzdanog partnera za ostalu životnu logistiku.',
-
-      's3.eyebrow': 'Rješenje',
-      's3.h1': 'Jedan Telegram bot.<br>Jedan pouzdan operator.',
-      's3.lede': 'Kluch sjedi između svakog stanodavca i svakog stanara. Unos jednom — sve ostalo radimo mi. Kirija, računi, inspekcije, održavanje, prevod, i vremenom svaka druga usluga koja je strancu potrebna u Crnoj Gori.',
-      's3.card1.label': 'Strana stanodavca',
-      's3.card1.text': 'Unesi jednom. Dobij mjesečni izvještaj i isplatu kirije. Nikad više ne moraš da brineš.',
-      's3.card2.label': 'Strana stanara',
-      's3.card2.text': 'Plati kiriju i račune na svom jeziku. Prijavi problem fotografijom. Otkrij pogodnosti širom Crne Gore.',
-
-      's4.eyebrow': 'Brend',
-      's4.lede': '<em>Ključ / ключ</em> — riječ koju razumije 80% naših korisnika. Na engleskom zvuči kao <em>clutch</em>: pouzdan, dolazi u pravom trenutku.',
-      's4.p1': 'Svaka linija proizvoda se uklapa u istu metaforu: <strong>Kirija. Boravak. Porez. Firma.</strong>',
-      's4.p2': 'Domen: <strong style="color: var(--navy);">kluch.me</strong> &nbsp;·&nbsp; .me je domen Crne Gore. Brend i URL su jedno.',
-
-      's5.eyebrow': 'Tržište',
-      's5.h1': 'Klijenti su već ovdje. Sada.',
-      's5.c1.label': 'Udio stranaca',
-      's5.c1.note': 'Svaki šesti stanovnik Crne Gore je Rus ili Ukrajinac — najveći udio per capita u Evropi',
-      's5.c2.label': 'Ukrajinski rezidenti',
-      's5.c2.note': 'Registrovani, plus 5.000 pod privremenom zaštitom',
-      's5.c3.label': 'Kratkoročni smještaj',
-      's5.c3.note': 'Aktivnih oglasa samo na primorju — pokazatelj ukupnog fonda za izdavanje',
-      's5.foot': 'Prosječne dugoročne kirije: <strong style="color: var(--cream);">€500–900</strong> na nivou države, <strong style="color: var(--cream);">€750+</strong> Budva, do <strong style="color: var(--cream);">€1.500</strong> Tivat.',
-
-      's6.eyebrow': 'Veličina tržišta',
-      's6.h2': 'Realno, ne jednorog.',
-      's6.th1': 'Nivo',
-      's6.th2': 'Jedinica',
-      's6.th3': 'ARR od pretplate',
-      's6.th4': '+ transakcije i usluge',
-      's6.r1c1': '<strong>TAM</strong> — svi stanovi koje stranci iznajmljuju u CG',
-      's6.r2c1': '<strong>SAM</strong> — Podgorica + primorje, cjelogodišnje',
-      's6.r3c1': '<strong>SOM</strong> — realan tržišni udio kao lokalni operator za 3 godine',
-      's6.r3c4': '<strong>€280k–€380k ukupan ARR</strong>',
-      's6.foot': 'Biznis od €500k–€1,5M ARR u zrelosti. 40–60% EBITDA marža. Profitabilno za dva osnivača.',
-
-      's7.eyebrow': 'Konkurencija',
-      's7.h1': 'U Crnoj Gori: niko.',
-      's7.lede': 'Međunarodni softver za stanodavce ne prevodi, ne šalje majstore, nema prisustvo u CG. Lokalne agencije rade sve ručno. Traka je prazna.',
-      's7.h3': 'Model je dokazan u drugim tržištima',
-      's7.emerhub': 'Servisi za strance — vize, osnivanje firmi, smještaj, banke, EOR. Višemilionski prihod.',
-      's7.fresh': 'Porezi, imigracija, nekretnine, korporativno, planiranje nasljedstva za strance. Najveći u PT.',
-      's7.lexidy': 'Pravna tehnologija za strance, prekogranično.',
-      's7.foot': 'Naša razlika: krećemo od <strong style="color: var(--navy);">redovnih mjesečnih odnosa kroz kiriju</strong>, a usluge dodajemo na vrh. Oni su krenuli od transakcija. Naš ulaz je trajniji.',
-
-      's8.eyebrow': 'Cijene',
-      's8.h1': 'Tri nivoa. Daleko ispod agencija.',
-      's8.t1.name': 'Osnovni', 's8.t2.name': 'Standard', 's8.t3.name': 'Pun servis',
-      's8.permo': '/mj', 's8.permo2': '/mj', 's8.permo3': '/mj',
-      's8.t1.l1': 'Chat sa stanarom na EN/RU/DE/TR',
-      's8.t1.l2': 'Naplata kirije',
-      's8.t1.l3': 'Podsjetnici za račune',
-      's8.t1.l4': 'Mjesečni izvještaj',
-      's8.t2.l1': 'Sve iz Osnovnog',
-      's8.t2.l2': 'Automatsko plaćanje računa',
-      's8.t2.l3': 'Tromjesečna foto-inspekcija',
-      's8.t2.l4': 'Trijaža problema',
-      's8.t3.l1': 'Sve iz Standarda',
-      's8.t3.l2': 'Mjesečna inspekcija',
-      's8.t3.l3': 'Slanje majstora',
-      's8.t3.l4': 'Useljenje i temeljno čišćenje',
-      's8.foot': 'Tradicionalne agencije: <strong style="color: var(--navy);">15–25% kirije.</strong> &nbsp;Naš najviši nivo: <strong style="color: var(--navy);">~8%.</strong>',
-
-      's9.eyebrow': 'Izvori prihoda',
-      's9.h2': 'Sedam linija. Grade se jedna na drugu.',
-      's9.l1': '<strong>Pretplata</strong> — €5–€80 po stanu mjesečno',
-      's9.l2': '<strong>Transakciona naknada</strong> — 1–2% na kiriju i račune',
-      's9.l3': '<strong>Naknada na majstore</strong> — 20–30% na rad',
-      's9.l4': '<strong>Tržište partnera</strong> — promocije i popusti',
-      's9.l5': '<strong>Među-stanovi</strong> — vikend boravak na primorju',
-      's9.l6': '<strong>Reklamiranje u aplikaciji</strong> — od 1.000+ stanara',
-      's9.l7': '<strong>Usluge za strance</strong> — glavna marža',
-
-      's10.eyebrow': 'Pravi biznis',
-      's10.h1': 'Kirija je samo ulaz.<br>Usluge su pravi biznis.',
-      's10.lede': 'Kada uđemo u svakodnevicu svakog stranca u Crnoj Gori, zaradili smo pravo da rješavamo i sve ostalo.',
-
-      's11.eyebrow': 'Sloj usluga za strance',
-      's11.h2': 'Operativni sistem za strance u Crnoj Gori.',
-      's11.th1': 'Usluga', 's11.th2': 'Prosj. cijena', 's11.th3': 'Napomena',
-      's11.s1n': '<strong>Boravak</strong>',
-      's11.s1d': 'Godišnje obnavljanje — gotovo svi imaju potrebu',
-      's11.s2n': '<strong>Osnivanje d.o.o.</strong>',
-      's11.s2d': 'Digitalni nomadi, preduzetnici iz RU/TR',
-      's11.s3n': '<strong>Porez i računovodstvo</strong>',
-      's11.s3d': 'Mjesečno, najbolja marža',
-      's11.s4n': '<strong>Prevod vozačke dozvole</strong>',
-      's11.s4d': 'Jednokratno, univerzalno',
-      's11.s5n': '<strong>Otvaranje bankovnog računa</strong>',
-      's11.s5d': 'Banke plaćaju po klijentu',
-      's11.s6n': '<strong>Kupovina nekretnina</strong>',
-      's11.s6d': 'Jedna transakcija pokriva mjesece',
-      's11.foot': 'Ako 300 stanara kupi <strong>jednu uslugu godišnje po €300</strong> u prosjeku → <strong style="color: var(--teal);">+€90k</strong> sa skoro čistom maržom.',
-
-      's12.eyebrow': 'Zašto sada',
-      's12.h1': 'Sve karte su se poklopile.',
-      's12.l1': '<strong>Kosnivač vodi agenciju.</strong> Trenutni stanovi, povjerenje stanodavaca, operativno znanje.',
-      's12.l2': '<strong>Telegram je dominantan chat.</strong> Ruski, ukrajinski, srpski i turski stanari žive u njemu. Bez instalacije.',
-      's12.l3': '<strong>AI prevod je konačno dovoljno dobar.</strong> U realnom vremenu, skoro besplatno. Jezička barijera nestaje.',
-      's12.l4': '<strong>Klijentska baza je na rekordnim brojevima.</strong> Niko u CG ne radi ovo od početka do kraja. Traka je prazna.',
-
-      's13.eyebrow': 'Plan za 12 mjeseci',
-      's13.h2': 'Pilot → Grant → Skaliranje.',
-      's13.th1': 'Kvartal', 's13.th2': 'Cilj',
-      's13.q1': 'd.o.o. osnovan, ugovor osnivača potpisan, MVP bot u radu, 20 stanova iz agencije kosnivača',
-      's13.q2': 'Inspekcije + majstori uživo, 75 stanova, prvi plaćeni Standard/Pun servis, prijava za Fond za inovacije',
-      's13.q3': 'Tržište partnera v1, 150 stanova, prvi pilot usluga za strance (boravak)',
-      's13.q4': 'Vikend popusti među stanovima, širenje na Budvu + Tivat, 300 stanova, usluge na 3–4 vertikale',
-
-      's14.eyebrow': 'Ekonomija 3. godine',
-      's14.h1': 'Profitabilno. Namjerno bez drame.',
-      's14.c1.label': 'Pretplata',
-      's14.c1.note': '300 jedinica × €25 × 12',
-      's14.c2.label': 'Transakcije + majstori',
-      's14.c2.note': 'Naknada na plaćanja + 20–30% na rad',
-      's14.c3.label': 'Usluge za strance',
-      's14.c3.note': 'Boravak, porez, osnivanje firmi, preporuke',
-      's14.year3': 'ARR u 3. godini',
-      's14.foot': '50–60% bruto marža · break-even u 14–18. mjesecu · krov u 5. godini €1M–€2M ARR',
-
-      's15.eyebrow': 'Strategija finansiranja',
-      's15.h2': 'Prvo grant. Bootstrap ako ne uspije.',
-      's15.primary': 'Primarni cilj',
-      's15.fund': 'Fond za inovacije Crne Gore',
-      's15.prog': 'Program podrške ranoj fazi startupa.',
-      's15.l1': '<strong>Do €30.000 granta</strong> · pokriva 90% troškova projekta',
-      's15.l2': 'Uslovi: d.o.o. registrovan u CG &lt; 2 godine, vlasništvo osnivača, MVP/pilot',
-      's15.l3': '<strong>Nema praga broja korisnika.</strong> 5 plaćenih stanodavaca = jaka prijava',
-      's15.stack': 'Mogu se kombinovati',
-      's15.s1': 'Inovacioni vaučeri — do €8k za R&D partnerstvo',
-      's15.s2': 'Investiciono-razvojni fond (IRF) — kasnije za radni kapital',
-      's15.s3': 'EU IPA / Zapadni Balkan fondovi — kasnije, na €500k ARR',
-      's15.boot': 'Bootstrap put',
-      's15.bootp': 'Osnivači bez plate, operativni vođa ~€800/mj, troškovi ~€20–30k/god — pokriveno ranom pretplatom + postojećom knjigom kosnivača.',
-
-      's16.eyebrow': 'Rizici',
-      's16.h2': 'Što može poći po zlu — i naš odgovor.',
-      's16.r1n': '<strong>Povjerenje</strong> — stanodavci predaju kontrolu',
-      's16.r1a': 'Postojeći odnosi kosnivača; transparentni izvještaji; escrow za kiriju.',
-      's16.r2n': '<strong>Regulativa</strong> — plaćanja + licenciranje usluga za strance',
-      's16.r2a': 'Licencirani PSP; partnerstvo sa licenciranim advokatima i računovođama za regulisane poslove.',
-      's16.r3n': '<strong>Kvalitet majstora</strong>',
-      's16.r3a': 'Mali, provjereni tim; ocjene poslije svakog posla; foto-dokaz.',
-      's16.r4n': '<strong>Promjenljivost broja stranaca</strong>',
-      's16.r4a': 'Diverzifikacija po RU/UA/SR/TR/DE — jedna geopolitička promjena ne ruši bazu.',
-      's16.r5n': '<strong>Zastoj 50/50 osnivača</strong>',
-      's16.r5a': 'Ugovor osnivača sa razdvojenim domenima odlučivanja, shotgun klauzulom i rezervisanim pitanjima.',
-      's16.r6n': '<strong>Viza za digitalne nomade ističe krajem 2026.</strong>',
-      's16.r6a': 'Nadomještava se dugoročnim rezidentima i porodičnim selidbama — baza je šira od samih nomada.',
-
-      's17.eyebrow': 'Sljedećih 30 dana',
-      's17.h2': 'To-do lista.',
-      's17.l1': 'Kupi <strong>kluch.me</strong> (5–10 godina) + defanzivne nalog/handle',
-      's17.l2': 'Registruj <strong>d.o.o.</strong> kod crnogorskog korporativnog advokata',
-      's17.l3': 'Potpiši <strong>Ugovor osnivača</strong>',
-      's17.l4': 'Zaključi prvih <strong>20 stanova</strong> iz knjige kosnivača',
-      's17.l5': 'Napravi MVP Telegram bota — kirija, računi, automatski prevod, izvještaj',
-      's17.l6': 'Zaključi 1–2 <strong>majstora</strong> na honoraru',
-      's17.l7': 'Potvrdi sljedeći <strong>Fond za inovacije</strong> poziv (info@fondzainovacije.me)',
-      's17.l8': 'Finalni logo + brend (~€50–150)',
-
-      's18.h1': 'Vaši ključevi za Crnu Goru.',
-
-      'hint': 'Strelice ← → ili razmaknica za navigaciju'
+      "nav.homes":"Domovi","nav.how":"Kako funkcioniše","nav.features":"Mogućnosti","nav.services":"Usluge","nav.login":"Prijava","nav.getstarted":"Započni",
+      "hero.eyebrow":"Za strance koji žive u Crnoj Gori",
+      "hero.h1":"Vaši <span class='accent'>ključevi</span> za Crnu Goru.",
+      "hero.sub":"Kirija, računi, popravke, papirologija i prevod — sve rješava jedan pouzdan operater, u jednoj aplikaciji. Smjestite se bez stresa.",
+      "hero.cta1":"Započni","hero.cta2":"Pogledaj kako radi",
+      "hero.trust":"🔑 Prijavite se jednom — ostalo radimo mi, na vašem jeziku.",
+      "homes.eyebrow":"Dostupni domovi","homes.h2":"More, planine ili glavni grad — pronađite svoje mjesto",
+      "homes.p":"Mali uvid u ono što vam Kluch može srediti. Svaki dom dolazi potpuno upravljan: kirija, računi, popravke i prevod od prvog dana.",
+      "home0.tag":"🌊 More","home0.name":"Stan s pogledom na zaliv","home0.town":"Kotor · Jadranska obala",
+      "home1.tag":"⛰️ Planine","home1.name":"Planinska kuća","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Glavni grad","home2.name":"Moderan stan","home2.town":"Podgorica · Centar grada",
+      "home0.desc":"Svijetao jednosoban stan s pogledom kao s razglednice na Bokokotorski zaliv. Na korak od Starog grada, kafića i obale — potpuno namješten i spreman za useljenje.",
+      "home1.desc":"Topla dvosobna planinska kuća na rubu Nacionalnog parka Durmitor. Ugodan enterijer, kamin, a planinarenje i skijanje su vam pred vratima.",
+      "home2.desc":"Moderan dvosoban stan u srcu glavnog grada. Pješke do kancelarija, restorana i rijeke — idealno za zaposlene i porodice.",
+      "viewhome":"Pogledaj dom","modal.rent":"Kirija","modal.util":"Režije (procjena)",
+      "modal.ctatext":"Registrujte se da zakažete obilazak","modal.book":"Napravi nalog i zakaži obilazak",
+      "band.rent":"Iznajmljivanje bez muke","band.translated":"Sve prevedeno","band.operator":"Jedan operater, ne deset","band.paperwork":"Papirologija riješena",
+      "why.eyebrow":"Zašto Kluch","why.h2":"Selidba u Crnu Goru je teška. Život ovdje ne mora biti.",
+      "why.p":"Stranci i stanodavci ne govore isti jezik — doslovno. Kirija, računi za režije, pokvaren bojler, boravišna dozvola: svaka sitnica postane maraton telefonskih poziva na jeziku koji ne govorite. Kluch stoji u sredini i jednostavno to riješi.",
+      "how.eyebrow":"Kako funkcioniše","how.h2":"Tri koraka do doma",
+      "step1.t":"Prijavite se jednom","step1.p":"Povežite svoj dom kodom od stanodavca ili agencije i izaberite svoj jezik.",
+      "step2.t":"Ostalo radimo mi","step2.p":"Podsjetnici za kiriju, računi, popravke, inspekcije, papirologija. Pišite nam bilo kada i odgovaramo na vašem jeziku.",
+      "step3.t":"Sve na jednom mjestu","step3.p":"Nema više jurnjave za stanodavcima ili agencijama. Vaš dom, vaši dokumenti, vaše usluge — jedna mirna aplikacija.",
+      "feat.eyebrow":"Šta je unutra","feat.h2":"Sve što je strancu potrebno",
+      "f.rent.t":"Kirija i računi","f.rent.p":"Vidite šta dospijeva, platite jednim dodirom, dobijte trenutne potvrde. Nikad ne propustite rok na jeziku koji ne čitate.",
+      "f.report.t":"Prijavi problem","f.report.p":"Pokvaren bojler? Pošaljite fotografiju. Mi šaljemo majstora i obavještavamo vas do kraja.",
+      "f.msg.t":"Poruke, prevedene","f.msg.p":"Pišite na svom jeziku, stanodavac čita na svom. Barijera jednostavno nestaje.",
+      "f.docs.t":"Dokumenti","f.docs.p":"Ugovor, potvrde i dozvole — sređeni i uvijek na dodir.",
+      "f.paper.t":"Papirologija","f.paper.p":"Boravak, prijave, birokratski lavirint — vođeni i riješeni za vas.",
+      "f.guide.t":"Lokalni vodič","f.guide.p":"Hitni brojevi, kako stvari funkcionišu, najbolje iz vašeg kraja — od ljudi koji znaju.",
+      "xl.eyebrow":"Razlika","xl.h2":"Jezička barijera — nestala.",
+      "xl.p":"Svaka poruka koju pošaljete prevodi se za vašeg stanodavca, a svaki odgovor stiže na vašem jeziku. Bez žongliranja aplikacijama, bez nezgodnog Google prevodioca — samo razgovor koji funkcioniše.",
+      "svc.eyebrow":"Rastemo s vama","svc.h2":"Od doma do cijelog života ovdje",
+      "svc.p":"Iznajmljivanje je tek početak. Kluch postaje operativni sistem za sve što je strancu potrebno u Crnoj Gori.",
+      "chip.permit":"Boravišna dozvola","chip.cleaning":"Čišćenje","chip.sim":"SIM i internet","chip.transport":"Prevoz","soon":"Uskoro",
+      "quote.eyebrow":"Napravljeno za ljude poput vas",
+      "quote.text":"„Volio bih da je Kluch postojao kad sam tek stigao. To je upravo ona mirna, pouzdana ruka koju traži svaki novajlija u Crnoj Gori.”",
+      "quote.who":"— Prijatelj Kluch-a · rezervisano za pravi glas",
+      "cta.h2":"Uzmite ključeve svog novog života u Crnoj Gori.","cta.p":"Pridružite se ranoj listi — javljamo se kada se otvorimo u vašem gradu.",
+      "cta.ph":"vas@email.com","cta.btn":"Pridruži se listi",
+      "footer.tag":"· Vaši ključevi za Crnu Goru","footer.copy":"kluch.me · © 2026 Kluch · Napravljeno za strance koji žive u Crnoj Gori 🇲🇪",
     },
-
     ru: {
-      'title.tagline': 'Ваши ключи к Черногории.',
-      'title.meta': 'Бизнес-план · v0.2 · июнь 2026',
-
-      's2.eyebrow': 'Проблема',
-      's2.h1': 'Иностранцы и арендодатели<br>говорят на разных языках.',
-      's2.landlords.h3': 'Для арендодателей',
-      's2.landlords.l1': 'Звонки в полночь о протекающем кране.',
-      's2.landlords.l2': 'Иностранные жильцы платят с задержкой, наличными, без следа.',
-      's2.landlords.l3': 'Традиционные агентства берут 15–25% от аренды.',
-      's2.occupants.h3': 'Для арендаторов',
-      's2.occupants.l1': 'Некому позвонить на английском (или русском, немецком, турецком).',
-      's2.occupants.l2': 'Счета, ВНЖ, налоги — разбросаны по десяткам мелких офисов.',
-      's2.occupants.l3': 'Нет надёжного партнёра для всей жизненной логистики.',
-
-      's3.eyebrow': 'Решение',
-      's3.h1': 'Один Telegram-бот.<br>Один надёжный оператор.',
-      's3.lede': 'Kluch сидит между каждым арендодателем и каждым жильцом. Зарегистрируйтесь один раз — остальное на нас. Аренда, счета, осмотры, обслуживание, перевод, и со временем любая другая услуга, которая нужна иностранцу в Черногории.',
-      's3.card1.label': 'Со стороны арендодателя',
-      's3.card1.text': 'Один раз внесите квартиру. Получайте ежемесячный отчёт и выплату аренды. Больше ничего делать не нужно.',
-      's3.card2.label': 'Со стороны жильца',
-      's3.card2.text': 'Платите аренду и счета на своём языке. Сообщайте о проблемах фото. Открывайте бонусы по всей Черногории.',
-
-      's4.eyebrow': 'Бренд',
-      's4.lede': '<em>Ключ / Ključ</em> — слово, знакомое 80% наших клиентов. По-английски звучит как <em>clutch</em>: надёжный, приходит на помощь в нужный момент.',
-      's4.p1': 'Каждая линия продукта вписывается в эту метафору: <strong>Ключ к аренде. Ключ к ВНЖ. Ключ к налогам. Ключ к компании.</strong>',
-      's4.p2': 'Домен: <strong style="color: var(--navy);">kluch.me</strong> &nbsp;·&nbsp; .me — национальный домен Черногории. Бренд и URL — одно.',
-
-      's5.eyebrow': 'Рынок',
-      's5.h1': 'Клиентская база уже здесь. Сейчас.',
-      's5.c1.label': 'Доля иностранцев',
-      's5.c1.note': 'Каждый шестой житель Черногории — русский или украинец, рекорд по Европе на душу населения',
-      's5.c2.label': 'Украинских резидентов',
-      's5.c2.note': 'Зарегистрировано, плюс 5 000 под временной защитой',
-      's5.c3.label': 'Краткосрочные объекты',
-      's5.c3.note': 'Активных объявлений только на побережье — показатель общего фонда сдачи',
-      's5.foot': 'Средняя долгосрочная аренда: <strong style="color: var(--cream);">€500–900</strong> по стране, <strong style="color: var(--cream);">€750+</strong> Будва, до <strong style="color: var(--cream);">€1 500</strong> в Тивате.',
-
-      's6.eyebrow': 'Объём рынка',
-      's6.h2': 'Реалистично, без иллюзий.',
-      's6.th1': 'Уровень',
-      's6.th2': 'Объектов',
-      's6.th3': 'ARR по подписке',
-      's6.th4': '+ транзакции и услуги',
-      's6.r1c1': '<strong>TAM</strong> — все квартиры в ЧГ, сдаваемые иностранцам',
-      's6.r2c1': '<strong>SAM</strong> — Подгорица + побережье, круглый год',
-      's6.r3c1': '<strong>SOM</strong> — реалистичная доля локального оператора за 3 года',
-      's6.r3c4': '<strong>€280k–€380k общий ARR</strong>',
-      's6.foot': 'Бизнес на €500k–€1,5M ARR в зрелости. EBITDA-маржа 40–60%. Прибыльно для двух основателей.',
-
-      's7.eyebrow': 'Конкуренция',
-      's7.h1': 'В Черногории: никого.',
-      's7.lede': 'Международные SaaS для арендодателей не переводят, не вызывают мастеров, не присутствуют в ЧГ. Местные агентства всё делают вручную. Полоса свободна.',
-      's7.h3': 'Модель доказана в других рынках',
-      's7.emerhub': 'Услуги для иностранцев — визы, открытие компаний, жильё, банки, EOR. Многомиллионная выручка.',
-      's7.fresh': 'Налоги, иммиграция, недвижимость, корпоративные и наследственные вопросы. Крупнейший в PT.',
-      's7.lexidy': 'Юридический LegalTech для иностранцев, межстрановой.',
-      's7.foot': 'Наш поворот: мы начинаем с <strong style="color: var(--navy);">постоянных арендных отношений</strong> и наслаиваем услуги сверху. Они начинали с разовых сделок. Наш вход прочнее.',
-
-      's8.eyebrow': 'Тарифы',
-      's8.h1': 'Три уровня. Дешевле агентств.',
-      's8.t1.name': 'Базовый', 's8.t2.name': 'Стандарт', 's8.t3.name': 'Полный сервис',
-      's8.permo': '/мес', 's8.permo2': '/мес', 's8.permo3': '/мес',
-      's8.t1.l1': 'Чат с жильцом на EN/RU/DE/TR',
-      's8.t1.l2': 'Сбор аренды',
-      's8.t1.l3': 'Напоминания о счетах',
-      's8.t1.l4': 'Ежемесячный отчёт',
-      's8.t2.l1': 'Всё из Базового',
-      's8.t2.l2': 'Автоплатёж по счетам',
-      's8.t2.l3': 'Квартальная фото-инспекция',
-      's8.t2.l4': 'Сортировка обращений',
-      's8.t3.l1': 'Всё из Стандарта',
-      's8.t3.l2': 'Ежемесячная инспекция',
-      's8.t3.l3': 'Вызов мастера',
-      's8.t3.l4': 'Заезд и генеральная уборка',
-      's8.foot': 'Традиционные агентства: <strong style="color: var(--navy);">15–25% аренды.</strong> &nbsp;Наш верхний тариф: <strong style="color: var(--navy);">~8%.</strong>',
-
-      's9.eyebrow': 'Источники дохода',
-      's9.h2': 'Семь линий. Накапливаются.',
-      's9.l1': '<strong>Подписка</strong> — €5–€80 за объект в месяц',
-      's9.l2': '<strong>Транзакционная комиссия</strong> — 1–2% с аренды и счетов',
-      's9.l3': '<strong>Наценка на мастеров</strong> — 20–30% к работе',
-      's9.l4': '<strong>Маркетплейс</strong> — партнёрские промо',
-      's9.l5': '<strong>Перекрёстная аренда</strong> — выходные на побережье',
-      's9.l6': '<strong>Реклама в приложении</strong> — после 1 000+ жильцов',
-      's9.l7': '<strong>Услуги для иностранцев</strong> — основная маржа',
-
-      's10.eyebrow': 'Настоящий бизнес',
-      's10.h1': 'Аренда — это вход.<br>Услуги — это бизнес.',
-      's10.lede': 'Как только мы оказываемся внутри ежемесячной жизни каждого иностранца, мы зарабатываем право заниматься всем остальным.',
-
-      's11.eyebrow': 'Слой услуг для иностранцев',
-      's11.h2': 'Операционная система для иностранцев в Черногории.',
-      's11.th1': 'Услуга', 's11.th2': 'Средний чек', 's11.th3': 'Комментарий',
-      's11.s1n': '<strong>ВНЖ (boravak)</strong>',
-      's11.s1d': 'Ежегодное продление — нужно почти всем',
-      's11.s2n': '<strong>Открытие компании (d.o.o.)</strong>',
-      's11.s2d': 'Цифровые кочевники, предприниматели из RU/TR',
-      's11.s3n': '<strong>Налоги и бухгалтерия</strong>',
-      's11.s3d': 'Регулярно, лучшая маржа',
-      's11.s4n': '<strong>Обмен водительского удостоверения</strong>',
-      's11.s4d': 'Разово, нужно всем',
-      's11.s5n': '<strong>Открытие банковского счёта</strong>',
-      's11.s5d': 'Банки платят за приведённого клиента',
-      's11.s6n': '<strong>Покупка недвижимости</strong>',
-      's11.s6d': 'Одна сделка покрывает месяцы',
-      's11.foot': 'Если 300 жильцов купят <strong>одну услугу в год по €300</strong> в среднем → <strong style="color: var(--teal);">+€90k</strong> почти с чистой маржой.',
-
-      's12.eyebrow': 'Почему сейчас',
-      's12.h1': 'Все условия совпали.',
-      's12.l1': '<strong>Соучредитель ведёт агентство.</strong> Готовые квартиры, доверие арендодателей, операционный опыт.',
-      's12.l2': '<strong>Telegram — главный мессенджер.</strong> Русские, украинцы, сербы, турки живут в нём. Без установок.',
-      's12.l3': '<strong>AI-перевод наконец достаточно хорош.</strong> В реальном времени, почти бесплатно. Языковой барьер исчезает.',
-      's12.l4': '<strong>Клиентская база на рекорде.</strong> Никто в ЧГ не делает это под ключ. Полоса свободна.',
-
-      's13.eyebrow': 'План на 12 месяцев',
-      's13.h2': 'Пилот → Грант → Масштаб.',
-      's13.th1': 'Квартал', 's13.th2': 'Цель',
-      's13.q1': 'd.o.o. зарегистрирован, договор учредителей подписан, MVP-бот запущен, 20 квартир из книги соучредителя',
-      's13.q2': 'Инспекции + вызов мастера, 75 квартир, первые платящие Стандарт/Полный сервис, заявка в Фонд инноваций',
-      's13.q3': 'Маркетплейс v1, 150 квартир, первый пилот услуг для иностранцев (ВНЖ)',
-      's13.q4': 'Выходные между квартирами, рост в Будву и Тиват, 300 квартир, услуги в 3–4 вертикалях',
-
-      's14.eyebrow': 'Экономика 3-го года',
-      's14.h1': 'Прибыльно. Скучно по плану.',
-      's14.c1.label': 'Подписка',
-      's14.c1.note': '300 объектов × €25 × 12',
-      's14.c2.label': 'Транзакции + мастера',
-      's14.c2.note': 'Комиссия + 20–30% к работе',
-      's14.c3.label': 'Услуги для иностранцев',
-      's14.c3.note': 'ВНЖ, налоги, компании, рекомендации',
-      's14.year3': 'ARR в 3-м году',
-      's14.foot': 'Валовая маржа 50–60% · окупаемость в 14–18 мес · потолок 5-го года €1M–€2M ARR',
-
-      's15.eyebrow': 'Стратегия финансирования',
-      's15.h2': 'Сначала грант. Bootstrap если не получится.',
-      's15.primary': 'Основная цель',
-      's15.fund': 'Фонд инноваций Черногории',
-      's15.prog': 'Программа поддержки стартапов на ранней стадии.',
-      's15.l1': '<strong>До €30 000 гранта</strong> · покрывает 90% расходов',
-      's15.l2': 'Условия: d.o.o. в ЧГ &lt; 2 лет, владение основателями, MVP/пилот',
-      's15.l3': '<strong>Нет порога по числу пользователей.</strong> 5 платящих арендодателей = сильная заявка',
-      's15.stack': 'Дополнительно',
-      's15.s1': 'Инновационные ваучеры — до €8k за R&D-партнёрство',
-      's15.s2': 'Инвестиционно-развивающий фонд (IRF) — оборотные кредиты позже',
-      's15.s3': 'Фонды ЕС IPA / Западные Балканы — после €500k ARR',
-      's15.boot': 'Bootstrap-путь',
-      's15.bootp': 'Основатели без зарплаты, операционный лид ~€800/мес, burn ~€20–30k/год — покрывается ранней подпиской и книгой соучредителя.',
-
-      's16.eyebrow': 'Риски',
-      's16.h2': 'Что может пойти не так — и наш ответ.',
-      's16.r1n': '<strong>Доверие</strong> — арендодатели отдают контроль',
-      's16.r1a': 'Существующие отношения соучредителя; прозрачные отчёты; эскроу для аренды.',
-      's16.r2n': '<strong>Регулирование</strong> — платежи + лицензии на услуги',
-      's16.r2a': 'Лицензированный PSP; партнёрство с лицензированными юристами и бухгалтерами для регулируемых работ.',
-      's16.r3n': '<strong>Качество мастеров</strong>',
-      's16.r3a': 'Малая проверенная команда; оценки после каждой работы; фото-доказательства.',
-      's16.r4n': '<strong>Волатильность числа иностранцев</strong>',
-      's16.r4a': 'Диверсификация по RU/UA/SR/TR/DE — один геополитический сдвиг не убьёт базу.',
-      's16.r5n': '<strong>Тупик основателей 50/50</strong>',
-      's16.r5a': 'Договор учредителей с разделением зон ответственности, shotgun-клаузой и зарезервированными вопросами.',
-      's16.r6n': '<strong>Виза цифровых кочевников истекает в конце 2026</strong>',
-      's16.r6a': 'Компенсируется долгосрочными резидентами и семейными переездами — база шире, чем сами кочевники.',
-
-      's17.eyebrow': 'Ближайшие 30 дней',
-      's17.h2': 'Список дел.',
-      's17.l1': 'Купить <strong>kluch.me</strong> (на 5–10 лет) + защитные хэндлы',
-      's17.l2': 'Зарегистрировать <strong>d.o.o.</strong> с черногорским корпоративным юристом',
-      's17.l3': 'Подписать <strong>Договор учредителей</strong>',
-      's17.l4': 'Закрепить первые <strong>20 квартир</strong> из книги соучредителя',
-      's17.l5': 'Собрать MVP Telegram-бота — аренда, счета, авто-перевод, отчёт',
-      's17.l6': 'Заключить 1–2 <strong>мастеров</strong> на гонорар',
-      's17.l7': 'Подтвердить следующий <strong>конкурс Фонда инноваций</strong> (info@fondzainovacije.me)',
-      's17.l8': 'Финальный логотип + бренд (~€50–150)',
-
-      's18.h1': 'Ваши ключи к Черногории.',
-
-      'hint': 'Стрелки ← → или пробел для навигации'
-    }
+      "nav.homes":"Жильё","nav.how":"Как это работает","nav.features":"Возможности","nav.services":"Услуги","nav.login":"Войти","nav.getstarted":"Начать",
+      "hero.eyebrow":"Для иностранцев, живущих в Черногории",
+      "hero.h1":"Ваши <span class='accent'>ключи</span> к Черногории.",
+      "hero.sub":"Аренда, счета, ремонт, документы и перевод — всё решает один надёжный оператор в одном приложении. Обживайтесь без стресса.",
+      "hero.cta1":"Начать","hero.cta2":"Как это работает",
+      "hero.trust":"🔑 Регистрация один раз — остальное берём на себя, на вашем языке.",
+      "homes.eyebrow":"Доступное жильё","homes.h2":"Море, горы или столица — найдите своё место",
+      "homes.p":"Небольшой пример того, что Kluch может для вас устроить. Каждое жильё под полным управлением: аренда, счета, ремонт и перевод с первого дня.",
+      "home0.tag":"🌊 Море","home0.name":"Квартира с видом на залив","home0.town":"Котор · Адриатическое побережье",
+      "home1.tag":"⛰️ Горы","home1.name":"Шале среди сосен","home1.town":"Жабляк · Дурмитор",
+      "home2.tag":"🏙️ Столица","home2.name":"Современная квартира","home2.town":"Подгорица · Центр города",
+      "home0.desc":"Светлая квартира с открыточным видом на Которский залив. В двух шагах от Старого города, кафе и набережной — полностью меблирована и готова к заселению.",
+      "home1.desc":"Тёплое шале с двумя спальнями на краю национального парка Дурмитор. Уютный интерьер, камин, а походы и лыжи — прямо у порога.",
+      "home2.desc":"Современная двухкомнатная квартира в самом центре столицы. Пешком до офисов, ресторанов и реки — идеально для специалистов и семей.",
+      "viewhome":"Смотреть жильё","modal.rent":"Аренда","modal.util":"Коммунальные (прибл.)",
+      "modal.ctatext":"Зарегистрируйтесь, чтобы записаться на просмотр","modal.book":"Создать аккаунт и записаться",
+      "band.rent":"Аренда без хлопот","band.translated":"Всё переведено","band.operator":"Один оператор, а не десять","band.paperwork":"Документы под контролем",
+      "why.eyebrow":"Почему Kluch","why.h2":"Переехать в Черногорию сложно. Жить здесь — не должно быть.",
+      "why.p":"Иностранцы и арендодатели не говорят на одном языке — буквально. Аренда, счета, сломанный бойлер, вид на жительство: каждая мелочь превращается в марафон звонков на языке, которого вы не знаете. Kluch стоит посередине и просто всё решает.",
+      "how.eyebrow":"Как это работает","how.h2":"Три шага до новоселья",
+      "step1.t":"Регистрация один раз","step1.p":"Привяжите жильё по коду от арендодателя или агентства и выберите язык.",
+      "step2.t":"Остальное берём на себя","step2.p":"Напоминания об аренде, счета, ремонт, осмотры, документы. Пишите нам в любое время — отвечаем на вашем языке.",
+      "step3.t":"Всё в одном месте","step3.p":"Больше не нужно гоняться за арендодателями и агентствами. Ваше жильё, ваши документы, ваши услуги — одно спокойное приложение.",
+      "feat.eyebrow":"Что внутри","feat.h2":"Всё, что нужно иностранцу",
+      "f.rent.t":"Аренда и счета","f.rent.p":"Смотрите, что к оплате, платите одним касанием, получайте мгновенные квитанции. Никогда не пропустите срок на языке, который не читаете.",
+      "f.report.t":"Сообщить о проблеме","f.report.p":"Сломался бойлер? Пришлите фото. Мы направим мастера и держим вас в курсе до конца.",
+      "f.msg.t":"Сообщения с переводом","f.msg.p":"Пишите на своём языке, арендодатель читает на своём. Барьер просто исчезает.",
+      "f.docs.t":"Документы","f.docs.p":"Договор, квитанции и разрешения — упорядочены и всегда под рукой.",
+      "f.paper.t":"Бюрократия","f.paper.p":"ВНЖ, регистрации, бюрократический лабиринт — с сопровождением и под ключ.",
+      "f.guide.t":"Локальный гид","f.guide.p":"Экстренные номера, как всё устроено, лучшее в вашем районе — от тех, кто знает.",
+      "xl.eyebrow":"Отличие","xl.h2":"Языковой барьер исчез.",
+      "xl.p":"Каждое ваше сообщение переводится для арендодателя, а каждый ответ приходит на вашем языке. Никаких лишних приложений, никакого неуклюжего Google Переводчика — просто разговор, который работает.",
+      "svc.eyebrow":"Растём вместе с вами","svc.h2":"От жилья до целой жизни здесь",
+      "svc.p":"Аренда — это только начало. Kluch становится операционной системой для всего, что нужно иностранцу в Черногории.",
+      "chip.permit":"Вид на жительство","chip.cleaning":"Уборка","chip.sim":"SIM и интернет","chip.transport":"Транспорт","soon":"Скоро",
+      "quote.eyebrow":"Создано для таких, как вы",
+      "quote.text":"«Жаль, что Kluch не было, когда я только приехал. Это именно та спокойная, надёжная рука, которую ищет каждый новичок в Черногории.»",
+      "quote.who":"— Друг Kluch · место для реального отзыва",
+      "cta.h2":"Получите ключи к новой жизни в Черногории.","cta.p":"Запишитесь в ранний список — мы свяжемся, когда откроемся в вашем городе.",
+      "cta.ph":"vash@email.com","cta.btn":"Записаться",
+      "footer.tag":"· Ваши ключи к Черногории","footer.copy":"kluch.me · © 2026 Kluch · Сделано для иностранцев, живущих в Черногории 🇲🇪",
+    },
+    tr: {
+      "nav.homes":"Evler","nav.how":"Nasıl çalışır","nav.features":"Özellikler","nav.services":"Hizmetler","nav.login":"Giriş","nav.getstarted":"Başla",
+      "hero.eyebrow":"Karadağ'da yaşayan yabancılar için",
+      "hero.h1":"Karadağ'a <span class='accent'>anahtarınız</span>.",
+      "hero.sub":"Kira, faturalar, tamirat, evrak işleri ve çeviri — tek güvenilir operatör, tek uygulama. Stres yaşamadan yerleşin.",
+      "hero.cta1":"Başla","hero.cta2":"Nasıl çalıştığını gör",
+      "hero.trust":"🔑 Bir kez kaydolun — gerisini biz hallederiz, kendi dilinizde.",
+      "homes.eyebrow":"Şu an müsait evler","homes.h2":"Deniz, dağlar ya da başkent — yerinizi bulun",
+      "homes.p":"Kluch'un sizin için ayarlayabileceklerine bir bakış. Her ev tam yönetimli gelir: kira, faturalar, tamirat ve çeviri ilk günden itibaren.",
+      "home0.tag":"🌊 Deniz","home0.name":"Körfez manzaralı daire","home0.town":"Kotor · Adriyatik kıyısı",
+      "home1.tag":"⛰️ Dağlar","home1.name":"Çam evi","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Başkent","home2.name":"Modern daire","home2.town":"Podgorica · Şehir merkezi",
+      "home0.desc":"Kotor Körfezi'ne kartpostal gibi manzarası olan ferah, tek yatak odalı daire. Eski Şehir'e, kafelere ve sahile birkaç adım — tam döşeli ve hemen taşınmaya hazır.",
+      "home1.desc":"Durmitor Milli Parkı'nın kıyısında sıcak, iki yatak odalı dağ evi. Şömineli, rahat iç mekân; yürüyüş ve kayak tam kapınızın önünde.",
+      "home2.desc":"Başkentin kalbinde modern, iki yatak odalı daire. Ofislere, restoranlara ve nehre yürüme mesafesi — çalışanlar ve aileler için ideal.",
+      "viewhome":"Evi gör","modal.rent":"Kira","modal.util":"Aidat (tahmini)",
+      "modal.ctatext":"Tur planlamak için hesap oluşturun","modal.book":"Hesap aç ve tur ayarla",
+      "band.rent":"Kiralamak çok kolay","band.translated":"Her şey çevrili","band.operator":"On değil, tek operatör","band.paperwork":"Evrak işleri halledildi",
+      "why.eyebrow":"Neden Kluch","why.h2":"Karadağ'a taşınmak zor. Burada yaşamak zor olmamalı.",
+      "why.p":"Yabancılar ve ev sahipleri aynı dili konuşmuyor — kelimenin tam anlamıyla. Kira, faturalar, bozulan bir kombi, oturma izni: her küçük şey bilmediğiniz bir dilde telefon maratonuna dönüşüyor. Kluch araya girer ve halleder.",
+      "how.eyebrow":"Nasıl çalışır","how.h2":"Yerleşmek için üç adım",
+      "step1.t":"Bir kez kaydolun","step1.p":"Ev sahibinizden veya acentenizden aldığınız kodla evinizi bağlayın ve dilinizi seçin.",
+      "step2.t":"Gerisini biz hallederiz","step2.p":"Kira hatırlatmaları, faturalar, tamirat, denetimler, evrak işleri. Bize istediğiniz zaman yazın, kendi dilinizde yanıt verelim.",
+      "step3.t":"Hepsi tek yerde","step3.p":"Artık ev sahibi ya da acente peşinde koşmak yok. Eviniz, belgeleriniz, hizmetleriniz — sakin bir uygulama.",
+      "feat.eyebrow":"İçinde ne var","feat.h2":"Bir yabancının ihtiyacı olan her şey",
+      "f.rent.t":"Kira ve faturalar","f.rent.p":"Ödenecekleri görün, tek dokunuşla ödeyin, anında makbuz alın. Okuyamadığınız bir dilde hiçbir tarihi kaçırmayın.",
+      "f.report.t":"Sorun bildir","f.report.p":"Kombi mi bozuldu? Bir fotoğraf gönderin. Tamiri biz ayarlar, baştan sona haberdar ederiz.",
+      "f.msg.t":"Mesajlar, çevrili","f.msg.p":"Siz kendi dilinizde yazın, ev sahibi kendi dilinde okusun. Engel ortadan kalkar.",
+      "f.docs.t":"Belgeler","f.docs.p":"Kira sözleşmesi, makbuzlar ve izinler — düzenli ve her zaman tek dokunuş uzakta.",
+      "f.paper.t":"Evrak işleri","f.paper.p":"Oturma izni, kayıtlar, bürokrasi labirenti — rehberlikle ve sizin için halledilir.",
+      "f.guide.t":"Yerel rehber","f.guide.p":"Acil numaralar, işlerin nasıl yürüdüğü, mahallenizin en iyileri — bilen insanlardan.",
+      "xl.eyebrow":"Fark","xl.h2":"Dil engeli ortadan kalktı.",
+      "xl.p":"Gönderdiğiniz her mesaj ev sahibiniz için çevrilir, her yanıt size kendi dilinizde gelir. Uygulamalarla uğraşmak yok, garip Google Çeviri yok — sadece işe yarayan bir sohbet.",
+      "svc.eyebrow":"Sizinle büyüyor","svc.h2":"Bir evden burada koca bir hayata",
+      "svc.p":"Kiralama sadece başlangıç. Kluch, bir yabancının Karadağ'da ihtiyaç duyduğu her şey için işletim sistemi hâline geliyor.",
+      "chip.permit":"Oturma izni","chip.cleaning":"Temizlik","chip.sim":"SIM ve internet","chip.transport":"Ulaşım","soon":"Yakında",
+      "quote.eyebrow":"Sizin gibiler için yapıldı",
+      "quote.text":"“Keşke ilk geldiğimde Kluch olsaydı. Karadağ'a yeni gelen herkesin aradığı o sakin, güvenilir el tam olarak bu.”",
+      "quote.who":"— Bir Kluch dostu · gerçek bir ses için yer ayrıldı",
+      "cta.h2":"Karadağ'daki yeni hayatınızın anahtarını alın.","cta.p":"Erken listeye katılın — şehrinizde açıldığımızda size ulaşırız.",
+      "cta.ph":"siz@email.com","cta.btn":"Listeye katıl",
+      "footer.tag":"· Karadağ'a anahtarınız","footer.copy":"kluch.me · © 2026 Kluch · Karadağ'da yaşayan yabancılar için yapıldı 🇲🇪",
+    },
   };
 
-  /* ------------------ Deck navigation ------------------ */
-  const slides = document.querySelectorAll('.slide');
-  const progress = document.getElementById('progress');
-  const counter = document.getElementById('counter');
-  const prevBtn = document.getElementById('prev');
-  const nextBtn = document.getElementById('next');
-  let current = 0;
+  let LANG = "en";
+  function t(key) { return (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key; }
 
-  function go(idx) {
-    if (idx < 0 || idx >= slides.length) return;
-    slides[current].classList.remove('active');
-    current = idx;
-    slides[current].classList.add('active');
-    progress.style.width = ((current + 1) / slides.length * 100) + '%';
-    counter.textContent = (current + 1) + ' / ' + slides.length;
-    document.body.style.background = slides[current].classList.contains('dark') || slides[current].classList.contains('section-slide')
-      ? 'var(--navy-dark)'
-      : 'var(--cream)';
+  function applyLang() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const v = t(el.getAttribute("data-i18n"));
+      if (v.indexOf("<") >= 0) el.innerHTML = v; else el.textContent = v;
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+      el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph")));
+    });
+    document.documentElement.lang = LANG;
+    const meta = LANGS.find((l) => l.code === LANG) || LANGS[0];
+    document.getElementById("langLabel").textContent = meta.label;
+    document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-      e.preventDefault();
-      go(current + 1);
-    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-      e.preventDefault();
-      go(current - 1);
-    } else if (e.key === 'Home') {
-      go(0);
-    } else if (e.key === 'End') {
-      go(slides.length - 1);
-    }
-  });
-
-  prevBtn.addEventListener('click', () => go(current - 1));
-  nextBtn.addEventListener('click', () => go(current + 1));
-
-  /* ------------------ Language switcher ------------------ */
-  const langSwitch = document.getElementById('langSwitch');
-
-  function applyLang(lang) {
-    const dict = T[lang] || T.en;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
-      if (dict[key] !== undefined) {
-        el.innerHTML = dict[key];
-      }
-    });
-    document.documentElement.setAttribute('lang', lang);
-    langSwitch.querySelectorAll('button').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-lang') === lang);
-    });
-    try { localStorage.setItem('kluch.lang', lang); } catch (e) {}
+  function setLang(code) {
+    LANG = code;
+    try { localStorage.setItem("kluch-lang", code); } catch (e) {}
+    applyLang();
+    if (window.__map) { window.__rebuildPins(); }
+    if (document.getElementById("homeModal").classList.contains("open")) openHome(window.__curHome);
   }
 
-  langSwitch.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-lang]');
-    if (!btn) return;
-    applyLang(btn.getAttribute('data-lang'));
-  });
+  /* language dropdown */
+  const langBtn = document.getElementById("langBtn");
+  const langMenu = document.getElementById("langMenu");
+  function closeLang() { langMenu.classList.remove("open"); langBtn.classList.remove("open"); }
+  langBtn.addEventListener("click", (e) => { e.stopPropagation(); const o = langMenu.classList.toggle("open"); langBtn.classList.toggle("open", o); });
+  document.addEventListener("click", closeLang);
+  langMenu.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setLang(b.dataset.code); closeLang(); }));
 
-  /* ------------------ Initialize ------------------ */
-  let savedLang = 'en';
-  try { savedLang = localStorage.getItem('kluch.lang') || 'en'; } catch (e) {}
-  applyLang(savedLang);
-  go(0);
+  /* ============ listings ============ */
+  const INT = ["./brand/img/int-living.jpg", "./brand/img/int-bedroom.jpg", "./brand/img/int-kitchen.jpg", "./brand/img/int-bathroom.jpg"];
+  const KHOMES = [
+    { i:0, price:"€620/mo", rent:"€620 / month", util:"≈ €85 / month", specs:"🛏 1 · 🛁 1 · 📐 48 m²", img:"./brand/img/kotor.jpg", ll:[42.4247, 18.7712], photos:["./brand/img/kotor.jpg", ...INT] },
+    { i:1, price:"€480/mo", rent:"€480 / month", util:"≈ €110 / month", specs:"🛏 2 · 🛁 1 · 📐 70 m²", img:"./brand/img/durmitor.jpg", ll:[43.1547, 19.1226], photos:["./brand/img/durmitor.jpg", ...INT] },
+    { i:2, price:"€550/mo", rent:"€550 / month", util:"≈ €95 / month", specs:"🛏 2 · 🛁 1 · 📐 62 m²", img:"./brand/img/podgorica.jpg", ll:[42.4304, 19.2594], photos:["./brand/img/podgorica.jpg", ...INT] },
+  ];
+
+  /* ============ map ============ */
+  function pinIcon(h) {
+    return L.divIcon({ className:"kpin", html:`<div class="pin"><img src="${h.img}" alt=""><span class="ptag">${h.price}</span></div>`, iconSize:[54,54], iconAnchor:[27,54], popupAnchor:[0,-52] });
+  }
+  function popupHtml(h) {
+    return `<div class="pop"><img src="${h.img}" alt=""><div class="pb">
+      <div class="pt">${t("home"+h.i+".name")}</div>
+      <div class="pm">${t("home"+h.i+".tag")} · ${t("home"+h.i+".town")}</div>
+      <div class="ps">${h.specs}</div>
+      <div class="prow"><span class="pp">${h.price}</span><a class="pbtn" href="#" onclick="openHome(${h.i});return false;">${t("viewhome")}</a></div>
+    </div></div>`;
+  }
+
+  const map = L.map("map", { scrollWheelZoom:false }).setView([42.78, 19.05], 8);
+  window.__map = map;
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom:19, attribution:"&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
+  let markers = [];
+  function buildPins() {
+    markers.forEach((m) => map.removeLayer(m));
+    markers = KHOMES.map((h) => L.marker(h.ll, { icon: pinIcon(h) }).addTo(map).bindPopup(popupHtml(h), { maxWidth:260 }));
+  }
+  window.__rebuildPins = buildPins;
+  buildPins();
+  const grp = L.featureGroup(markers);
+  function frameHomes() { map.invalidateSize(); map.fitBounds(L.featureGroup(markers).getBounds().pad(0.30)); }
+  frameHomes();
+  setTimeout(frameHomes, 250);
+  window.addEventListener("resize", frameHomes);
+
+  /* ============ modal ============ */
+  const modal = document.getElementById("homeModal");
+  const gMain = document.getElementById("gMain");
+  const gThumbs = document.getElementById("gThumbs");
+  let curPhoto = 0;
+  window.__curHome = 0;
+
+  function showPhoto(idx) {
+    const photos = KHOMES[window.__curHome].photos;
+    curPhoto = (idx + photos.length) % photos.length;
+    gMain.src = photos[curPhoto];
+    document.getElementById("gIdx").textContent = curPhoto + 1;
+    [...gThumbs.children].forEach((tn, i) => tn.classList.toggle("active", i === curPhoto));
+  }
+  function openHome(i) {
+    window.__curHome = i;
+    const h = KHOMES[i];
+    document.getElementById("mTitle").textContent = t("home"+i+".name");
+    document.getElementById("mLoc").textContent = t("home"+i+".tag") + " · " + t("home"+i+".town");
+    document.getElementById("mSpecs").textContent = h.specs;
+    document.getElementById("mDesc").textContent = t("home"+i+".desc");
+    document.getElementById("mRent").textContent = h.rent;
+    document.getElementById("mUtil").textContent = h.util;
+    document.getElementById("mRentL").textContent = t("modal.rent");
+    document.getElementById("mUtilL").textContent = t("modal.util");
+    document.getElementById("mCtaText").textContent = t("modal.ctatext");
+    document.getElementById("mBook").textContent = t("modal.book");
+    document.getElementById("gTot").textContent = h.photos.length;
+    gThumbs.innerHTML = "";
+    h.photos.forEach((src, idx) => { const tn = document.createElement("img"); tn.src = src; tn.alt = ""; tn.addEventListener("click", () => showPhoto(idx)); gThumbs.appendChild(tn); });
+    showPhoto(0);
+    modal.classList.add("open"); modal.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
+  }
+  function closeHome() { modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+  window.openHome = openHome;
+
+  document.getElementById("gPrev").addEventListener("click", () => showPhoto(curPhoto - 1));
+  document.getElementById("gNext").addEventListener("click", () => showPhoto(curPhoto + 1));
+  modal.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", closeHome));
+  document.addEventListener("keydown", (e) => {
+    if (!modal.classList.contains("open")) return;
+    if (e.key === "Escape") closeHome();
+    if (e.key === "ArrowLeft") showPhoto(curPhoto - 1);
+    if (e.key === "ArrowRight") showPhoto(curPhoto + 1);
+  });
+  document.querySelectorAll("[data-home]").forEach((btn) => btn.addEventListener("click", (e) => { e.preventDefault(); openHome(Number(btn.getAttribute("data-home"))); }));
+  document.getElementById("mBook").addEventListener("click", () => { location.href = "./brand/login.html#register"; });
+
+  /* init language */
+  let saved = "en";
+  try { saved = localStorage.getItem("kluch-lang") || "en"; } catch (e) {}
+  setLang(saved);
 </script>
-
 </body>
 </html>
