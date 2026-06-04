@@ -48,7 +48,17 @@
   .nav .links a:hover { color:var(--teal-700); }
   .nav .right { margin-left:auto; display:flex; align-items:center; gap:12px; }
   .nav .login { font-family:var(--font-display); font-weight:600; font-size:.9rem; color:var(--navy); text-decoration:none; }
-  @media (max-width:780px){ .nav .links{ display:none; } }
+  .langwrap { position:relative; }
+  .langbtn { font-family:var(--font-display); font-weight:600; font-size:.84rem; color:var(--navy); background:var(--cream); border:1px solid var(--sand); padding:8px 13px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .langbtn .caret { font-size:.6rem; opacity:.8; transition:transform .15s; }
+  .langbtn.open .caret { transform:rotate(180deg); }
+  .langmenu { position:absolute; top:46px; right:0; background:#fff; border:1px solid var(--sand); border-radius:14px; box-shadow:var(--shadow); padding:6px; min-width:160px; display:none; z-index:50; }
+  .langmenu.open { display:block; }
+  .langmenu button { display:flex; width:100%; gap:10px; align-items:center; background:none; border:0; padding:10px 12px; border-radius:10px; font-family:var(--font-body); font-size:.9rem; color:var(--ink); cursor:pointer; text-align:left; }
+  .langmenu button:hover { background:var(--cream); }
+  .langmenu button.active { color:var(--navy); font-weight:700; }
+  @media (max-width:880px){ .nav .links{ display:none; } }
+  @media (max-width:560px){ .nav .login{ display:none; } }
 
   /* Hero */
   .hero { position:relative; overflow:hidden; padding:80px 0 90px;
@@ -58,96 +68,11 @@
   .hero .inner { display:grid; grid-template-columns:1.05fr .95fr; gap:54px; align-items:center; }
   .hero h1 { font-size:clamp(2.5rem,5.2vw,3.9rem); font-weight:800; }
   .hero h1 .accent { color:var(--teal); }
-  .hero p.sub { font-size:1.2rem; margin-top:20px; max-width:34ch; }
+  .hero p.sub { font-size:1.2rem; margin-top:20px; max-width:36ch; }
   .hero .cta { margin-top:30px; display:flex; gap:14px; flex-wrap:wrap; }
-  .hero .trust { margin-top:22px; color:var(--muted); font-size:.9rem; display:flex; align-items:center; gap:8px; }
-  .hero .trust b { color:var(--navy); font-weight:600; }
-  @media (max-width:860px){ .hero .inner{ grid-template-columns:1fr; text-align:center; } .hero p.sub{ margin-left:auto; margin-right:auto; } .hero .cta,.hero .trust{ justify-content:center; } .preview{ order:-1; } }
+  .hero .trust { margin-top:22px; color:var(--muted); font-size:.9rem; }
+  @media (max-width:860px){ .hero .inner{ grid-template-columns:1fr; text-align:center; } .hero p.sub{ margin-left:auto; margin-right:auto; } .hero .cta{ justify-content:center; } #map{ order:-1; } }
 
-  /* App preview (browser frame) */
-  .preview { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); box-shadow:var(--shadow); overflow:hidden; }
-  .preview .bar { height:42px; background:var(--cream); border-bottom:1px solid var(--sand); display:flex; align-items:center; gap:7px; padding:0 16px; }
-  .preview .bar i { width:11px; height:11px; border-radius:50%; background:#D8CFBC; display:block; }
-  .preview .screen { padding:16px; display:grid; grid-template-columns:1.3fr 1fr; gap:12px; }
-  .ptile { border-radius:16px; padding:14px; border:1px solid var(--sand); background:#fff; }
-  .ptile .h { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.82rem; }
-  .ptile .s { color:var(--muted); font-size:.7rem; }
-  .ptile.rent { grid-row:span 2; background:linear-gradient(155deg,#264A75,#1F3A5C 60%,#15273F); color:#fff; border:0; display:flex; flex-direction:column; }
-  .ptile.rent .h { color:#fff; }
-  .ptile.rent .amt { font-family:var(--font-display); font-weight:800; font-size:1.9rem; margin-top:auto; }
-  .ptile.rent .due { color:#C3D0E1; font-size:.66rem; margin-top:3px; }
-  .ptile.rent .b { margin-top:10px; background:#fff; color:var(--navy); font-family:var(--font-display); font-weight:700; font-size:.7rem; text-align:center; padding:7px; border-radius:999px; }
-  .ptag { display:inline-block; font-family:var(--font-display); font-weight:600; font-size:.62rem; padding:3px 8px; border-radius:999px; margin-top:8px; }
-  .ptag.amber { background:var(--amber-100); color:var(--amber); }
-  .ptag.teal { background:var(--teal-100); color:var(--teal-700); }
-
-  /* Section scaffolding */
-  section.block { padding:78px 0; }
-  .head { text-align:center; max-width:680px; margin:0 auto 50px; }
-  .head h2 { font-size:clamp(1.9rem,3.6vw,2.6rem); font-weight:800; }
-  .head p { margin-top:14px; font-size:1.12rem; }
-
-  .band { background:var(--navy); color:#C7D4E3; }
-  .band .row { display:flex; flex-wrap:wrap; justify-content:center; gap:14px 40px; padding:26px 0; text-align:center; }
-  .band .row b { color:#fff; font-family:var(--font-display); }
-
-  /* Steps */
-  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
-  .step { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:30px; box-shadow:var(--shadow-sm); }
-  .step .n { width:42px; height:42px; border-radius:12px; background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:800; display:grid; place-items:center; margin-bottom:16px; }
-  .step h3 { font-size:1.12rem; margin-bottom:8px; }
-  @media (max-width:760px){ .steps{ grid-template-columns:1fr; } }
-
-  /* Features bento */
-  .feat { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
-  .fcard { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:26px; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
-  .fcard:hover { transform:translateY(-3px); box-shadow:var(--shadow); }
-  .fcard .ic { width:46px; height:46px; border-radius:13px; display:grid; place-items:center; font-size:1.2rem; background:var(--teal-100); color:var(--teal-700); margin-bottom:16px; }
-  .fcard.amber .ic { background:var(--amber-100); color:var(--amber); }
-  .fcard h3 { font-size:1.1rem; margin-bottom:8px; }
-  .fcard p { font-size:.95rem; }
-  @media (max-width:820px){ .feat{ grid-template-columns:1fr 1fr; } }
-  @media (max-width:560px){ .feat{ grid-template-columns:1fr; } }
-
-  /* Translation highlight */
-  .xl { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
-  .xl .chat { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
-  .bub { max-width:85%; padding:11px 15px; border-radius:16px; font-size:.92rem; }
-  .bub.out { align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:5px; }
-  .bub.in { align-self:flex-start; background:var(--cream); color:var(--ink); border-bottom-left-radius:5px; }
-  .bub .tr { display:block; font-size:.76rem; opacity:.7; font-style:italic; margin-top:4px; }
-  @media (max-width:820px){ .xl{ grid-template-columns:1fr; } }
-
-  /* Services teaser */
-  .svc { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-  .schip { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r); padding:18px; text-align:center; box-shadow:var(--shadow-sm); }
-  .schip .e { font-size:1.5rem; }
-  .schip .t { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:.9rem; margin-top:8px; }
-  .schip .soon { font-size:.66rem; color:var(--muted); }
-  @media (max-width:760px){ .svc{ grid-template-columns:1fr 1fr; } }
-
-  /* Featured homes */
-  .homes { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
-  .home { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
-  .home:hover { transform:translateY(-4px); box-shadow:var(--shadow); }
-  .photo { position:relative; height:188px; overflow:hidden; }
-  .photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .photo::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.28), transparent 40%, transparent 75%, rgba(0,0,0,.12)); }
-  .photo .loc { position:absolute; top:14px; left:14px; z-index:2; font-family:var(--font-display); font-weight:600; font-size:.74rem; color:#fff; background:rgba(0,0,0,.22); backdrop-filter:blur(4px); padding:5px 11px; border-radius:999px; }
-  .photo .price { position:absolute; top:14px; right:14px; z-index:2; font-family:var(--font-display); font-weight:800; font-size:1rem; color:var(--navy); background:#fff; padding:6px 12px; border-radius:999px; box-shadow:var(--shadow-sm); }
-  .photo .price small { font-weight:600; color:var(--muted); font-size:.7rem; }
-  .photo.sea { background:linear-gradient(160deg,#5FA6B8,#2F6E83); }
-  .photo.mtn { background:linear-gradient(160deg,#3E6E84,#1F3A5C); }
-  .photo.cap { background:linear-gradient(160deg,#46566B,#1A2E47); }
-  .hbody { padding:20px; }
-  .hbody h3 { font-size:1.12rem; }
-  .hbody .hmeta { color:var(--muted); font-size:.86rem; margin-top:4px; }
-  .hbody .specs { display:flex; gap:14px; margin:14px 0 16px; color:var(--body); font-size:.84rem; }
-  .hbody .btn { width:100%; justify-content:center; }
-  @media (max-width:820px){ .homes{ grid-template-columns:1fr; max-width:430px; margin:0 auto; } }
-
-  /* Map */
-  .map-cue { text-align:center; color:var(--muted); margin:34px 0 16px; font-family:var(--font-display); font-weight:600; font-size:.95rem; }
   #map { aspect-ratio:1/1; width:100%; height:auto; border-radius:var(--r-xl); border:1px solid var(--sand); box-shadow:var(--shadow); z-index:1; }
   @media (max-width:680px){ #map{ aspect-ratio:4/3; } }
   .kpin { background:transparent; border:0; }
@@ -166,12 +91,67 @@
   .pop .pp { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:1.05rem; }
   .pop .pbtn { background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:700; font-size:.78rem; padding:8px 14px; border-radius:999px; text-decoration:none; }
 
-  /* Testimonial */
+  section.block { padding:78px 0; }
+  .head { text-align:center; max-width:680px; margin:0 auto 50px; }
+  .head h2 { font-size:clamp(1.9rem,3.6vw,2.6rem); font-weight:800; }
+  .head p { margin-top:14px; font-size:1.12rem; }
+
+  /* Homes */
+  .homes { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .home { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
+  .home:hover { transform:translateY(-4px); box-shadow:var(--shadow); }
+  .photo { position:relative; height:188px; overflow:hidden; }
+  .photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .photo::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.28), transparent 40%, transparent 75%, rgba(0,0,0,.12)); }
+  .photo .loc { position:absolute; top:14px; left:14px; z-index:2; font-family:var(--font-display); font-weight:600; font-size:.74rem; color:#fff; background:rgba(0,0,0,.22); backdrop-filter:blur(4px); padding:5px 11px; border-radius:999px; }
+  .photo .price { position:absolute; top:14px; right:14px; z-index:2; font-family:var(--font-display); font-weight:800; font-size:1rem; color:var(--navy); background:#fff; padding:6px 12px; border-radius:999px; box-shadow:var(--shadow-sm); }
+  .photo .price small { font-weight:600; color:var(--muted); font-size:.7rem; }
+  .hbody { padding:20px; }
+  .hbody h3 { font-size:1.12rem; }
+  .hbody .hmeta { color:var(--muted); font-size:.86rem; margin-top:4px; }
+  .hbody .specs { display:flex; gap:14px; margin:14px 0 16px; color:var(--body); font-size:.84rem; }
+  .hbody .btn { width:100%; justify-content:center; }
+  @media (max-width:820px){ .homes{ grid-template-columns:1fr; max-width:430px; margin:0 auto; } }
+
+  .band { background:var(--navy); color:#C7D4E3; }
+  .band .row { display:flex; flex-wrap:wrap; justify-content:center; gap:14px 40px; padding:26px 0; text-align:center; }
+  .band .row b { color:#fff; font-family:var(--font-display); }
+
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .step { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:30px; box-shadow:var(--shadow-sm); }
+  .step .n { width:42px; height:42px; border-radius:12px; background:var(--navy); color:#fff; font-family:var(--font-display); font-weight:800; display:grid; place-items:center; margin-bottom:16px; }
+  .step h3 { font-size:1.12rem; margin-bottom:8px; }
+  @media (max-width:760px){ .steps{ grid-template-columns:1fr; } }
+
+  .feat { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .fcard { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:26px; box-shadow:var(--shadow-sm); transition:transform .14s, box-shadow .2s; }
+  .fcard:hover { transform:translateY(-3px); box-shadow:var(--shadow); }
+  .fcard .ic { width:46px; height:46px; border-radius:13px; display:grid; place-items:center; font-size:1.2rem; background:var(--teal-100); color:var(--teal-700); margin-bottom:16px; }
+  .fcard.amber .ic { background:var(--amber-100); color:var(--amber); }
+  .fcard h3 { font-size:1.1rem; margin-bottom:8px; }
+  .fcard p { font-size:.95rem; }
+  @media (max-width:820px){ .feat{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .feat{ grid-template-columns:1fr; } }
+
+  .xl { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+  .xl .chat { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); padding:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+  .bub { max-width:85%; padding:11px 15px; border-radius:16px; font-size:.92rem; }
+  .bub.out { align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:5px; }
+  .bub.in { align-self:flex-start; background:var(--cream); color:var(--ink); border-bottom-left-radius:5px; }
+  .bub .tr { display:block; font-size:.76rem; opacity:.7; font-style:italic; margin-top:4px; }
+  @media (max-width:820px){ .xl{ grid-template-columns:1fr; } }
+
+  .svc { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .schip { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r); padding:18px; text-align:center; box-shadow:var(--shadow-sm); }
+  .schip .e { font-size:1.5rem; }
+  .schip .t { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:.9rem; margin-top:8px; }
+  .schip .soon { font-size:.66rem; color:var(--muted); }
+  @media (max-width:760px){ .svc{ grid-template-columns:1fr 1fr; } }
+
   .quote { max-width:760px; margin:0 auto; text-align:center; }
   .quote blockquote { font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.3rem,2.6vw,1.7rem); line-height:1.4; }
   .quote .who { margin-top:20px; color:var(--muted); font-size:.95rem; }
 
-  /* CTA band */
   .cta-band { background:linear-gradient(160deg,#23426A,#1F3A5C 55%,#15273F); color:#fff; border-radius:var(--r-xl); padding:56px; text-align:center; }
   .cta-band h2 { color:#fff; font-size:clamp(1.8rem,3.4vw,2.4rem); }
   .cta-band p { color:#C3D0E1; margin-top:12px; font-size:1.1rem; }
@@ -224,14 +204,23 @@
     <img src="./kluch-icon.png" alt="Kluch">
     <span class="brand">Kluch</span>
     <div class="links">
-      <a href="#homes">Homes</a>
-      <a href="#how">How it works</a>
-      <a href="#features">Features</a>
-      <a href="#services">Services</a>
+      <a href="#homes" data-i18n="nav.homes">Homes</a>
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#services" data-i18n="nav.services">Services</a>
     </div>
     <div class="right">
-      <a href="#" class="login">Log in</a>
-      <a href="#get" class="btn btn-primary">Get started</a>
+      <a href="./login.html" class="login" data-i18n="nav.login">Log in</a>
+      <div class="langwrap">
+        <button class="langbtn" id="langBtn"><span id="langLabel">🇬🇧 EN</span><span class="caret">▾</span></button>
+        <div class="langmenu" id="langMenu">
+          <button data-code="en">🇬🇧 English</button>
+          <button data-code="sr">🇷🇸 Srpski</button>
+          <button data-code="ru">🇷🇺 Русский</button>
+          <button data-code="tr">🇹🇷 Türkçe</button>
+        </div>
+      </div>
+      <a href="./login.html#register" class="btn btn-primary" data-i18n="nav.getstarted">Get started</a>
     </div>
   </div>
 </header>
@@ -240,16 +229,15 @@
 <section class="hero">
   <div class="wrap inner">
     <div>
-      <div class="eyebrow">For foreigners living in Montenegro</div>
-      <h1 style="margin-top:14px;">Your <span class="accent">keys</span> to Montenegro.</h1>
-      <p class="sub">Rent, bills, repairs, paperwork, and translation — handled by one trusted operator, all in a single app. Settle in without the stress.</p>
+      <div class="eyebrow" data-i18n="hero.eyebrow">For foreigners living in Montenegro</div>
+      <h1 style="margin-top:14px;" data-i18n="hero.h1">Your <span class="accent">keys</span> to Montenegro.</h1>
+      <p class="sub" data-i18n="hero.sub">Rent, bills, repairs, paperwork, and translation — handled by one trusted operator, all in a single app. Settle in without the stress.</p>
       <div class="cta">
-        <a href="#get" class="btn btn-primary">Get started</a>
-        <a href="#how" class="btn btn-ghost">See how it works</a>
+        <a href="./login.html#register" class="btn btn-primary" data-i18n="hero.cta1">Get started</a>
+        <a href="#how" class="btn btn-ghost" data-i18n="hero.cta2">See how it works</a>
       </div>
-      <div class="trust">🔑 Onboard once — <b>we handle the rest</b>, in your language.</div>
+      <div class="trust" data-i18n="hero.trust">🔑 Onboard once — we handle the rest, in your language.</div>
     </div>
-
     <!-- Square Montenegro map -->
     <div id="map"></div>
   </div>
@@ -259,54 +247,51 @@
 <section class="block" id="homes">
   <div class="wrap">
     <div class="head">
-      <div class="eyebrow">Homes available now</div>
-      <h2>Sea, mountains, or the capital — find your place</h2>
-      <p>A taste of what Kluch can set you up in. Every home comes fully managed: rent, bills, repairs, and translation handled from day one.</p>
+      <div class="eyebrow" data-i18n="homes.eyebrow">Homes available now</div>
+      <h2 data-i18n="homes.h2">Sea, mountains, or the capital — find your place</h2>
+      <p data-i18n="homes.p">A taste of what Kluch can set you up in. Every home comes fully managed: rent, bills, repairs, and translation handled from day one.</p>
     </div>
     <div class="homes">
 
-      <!-- Sea -->
       <article class="home">
-        <div class="photo sea">
+        <div class="photo">
           <img src="./img/kotor.jpg" alt="Kotor Bay and old town, Montenegro">
-          <span class="loc">🌊 Sea</span>
+          <span class="loc" data-i18n="home0.tag">🌊 Sea</span>
           <span class="price">€620<small>/mo</small></span>
         </div>
         <div class="hbody">
-          <h3>Bay-view one-bed, Kotor</h3>
-          <div class="hmeta">Kotor · Adriatic coast</div>
-          <div class="specs"><span>🛏 1 bed</span><span>🛁 1 bath</span><span>📐 48 m²</span></div>
-          <a href="#" class="btn btn-ghost" data-home="0">View home</a>
+          <h3 data-i18n="home0.name">Bay-view one-bed</h3>
+          <div class="hmeta" data-i18n="home0.town">Kotor · Adriatic coast</div>
+          <div class="specs"><span>🛏 1</span><span>🛁 1</span><span>📐 48 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="0" data-i18n="viewhome">View home</a>
         </div>
       </article>
 
-      <!-- Mountains -->
       <article class="home">
-        <div class="photo mtn">
+        <div class="photo">
           <img src="./img/durmitor.jpg" alt="Durmitor mountains near Žabljak, Montenegro">
-          <span class="loc">⛰️ Mountains</span>
+          <span class="loc" data-i18n="home1.tag">⛰️ Mountains</span>
           <span class="price">€480<small>/mo</small></span>
         </div>
         <div class="hbody">
-          <h3>Pine chalet, Žabljak</h3>
-          <div class="hmeta">Žabljak · Durmitor</div>
-          <div class="specs"><span>🛏 2 bed</span><span>🛁 1 bath</span><span>📐 70 m²</span></div>
-          <a href="#" class="btn btn-ghost" data-home="1">View home</a>
+          <h3 data-i18n="home1.name">Pine chalet</h3>
+          <div class="hmeta" data-i18n="home1.town">Žabljak · Durmitor</div>
+          <div class="specs"><span>🛏 2</span><span>🛁 1</span><span>📐 70 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="1" data-i18n="viewhome">View home</a>
         </div>
       </article>
 
-      <!-- Capital -->
       <article class="home">
-        <div class="photo cap">
+        <div class="photo">
           <img src="./img/podgorica.jpg" alt="Panorama of Podgorica, Montenegro">
-          <span class="loc">🏙️ Capital</span>
+          <span class="loc" data-i18n="home2.tag">🏙️ Capital</span>
           <span class="price">€550<small>/mo</small></span>
         </div>
         <div class="hbody">
-          <h3>Modern flat, Podgorica</h3>
-          <div class="hmeta">Podgorica · City centre</div>
-          <div class="specs"><span>🛏 2 bed</span><span>🛁 1 bath</span><span>📐 62 m²</span></div>
-          <a href="#" class="btn btn-ghost" data-home="2">View home</a>
+          <h3 data-i18n="home2.name">Modern flat</h3>
+          <div class="hmeta" data-i18n="home2.town">Podgorica · City centre</div>
+          <div class="specs"><span>🛏 2</span><span>🛁 1</span><span>📐 62 m²</span></div>
+          <a href="#" class="btn btn-ghost" data-home="2" data-i18n="viewhome">View home</a>
         </div>
       </article>
 
@@ -317,30 +302,30 @@
 <!-- TRUST BAND -->
 <div class="band">
   <div class="wrap row">
-    <span>🏠 <b>Renting made simple</b></span>
-    <span>💬 <b>Everything translated</b></span>
-    <span>🛠 <b>One operator, not ten</b></span>
-    <span>🪪 <b>Paperwork, sorted</b></span>
+    <span>🏠 <b data-i18n="band.rent">Renting made simple</b></span>
+    <span>💬 <b data-i18n="band.translated">Everything translated</b></span>
+    <span>🛠 <b data-i18n="band.operator">One operator, not ten</b></span>
+    <span>🪪 <b data-i18n="band.paperwork">Paperwork, sorted</b></span>
   </div>
 </div>
 
 <!-- PROBLEM -->
 <section class="block">
   <div class="wrap head">
-    <div class="eyebrow">Why Kluch</div>
-    <h2>Moving to Montenegro is hard. Living here shouldn't be.</h2>
-    <p>Foreigners and landlords don't speak the same language — literally. Rent, utility bills, a broken boiler, a residence permit: every little thing becomes a phone-call marathon in a language you don't speak. Kluch sits in the middle and just handles it.</p>
+    <div class="eyebrow" data-i18n="why.eyebrow">Why Kluch</div>
+    <h2 data-i18n="why.h2">Moving to Montenegro is hard. Living here shouldn't be.</h2>
+    <p data-i18n="why.p">Foreigners and landlords don't speak the same language — literally. Rent, utility bills, a broken boiler, a residence permit: every little thing becomes a phone-call marathon in a language you don't speak. Kluch sits in the middle and just handles it.</p>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
 <section class="block" id="how" style="background:var(--cream);">
   <div class="wrap">
-    <div class="head"><div class="eyebrow">How it works</div><h2>Three steps to settled</h2></div>
+    <div class="head"><div class="eyebrow" data-i18n="how.eyebrow">How it works</div><h2 data-i18n="how.h2">Three steps to settled</h2></div>
     <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Onboard once</h3><p>Link your home with a code from your landlord or agency. Pick your language — English, Russian, or Montenegrin.</p></div>
-      <div class="step"><div class="n">2</div><h3>We handle the rest</h3><p>Rent reminders, bills, repairs, inspections, paperwork. Message us anytime and we reply in your language.</p></div>
-      <div class="step"><div class="n">3</div><h3>Everything in one place</h3><p>No more chasing landlords or agencies. Your home, your documents, your services — one calm app.</p></div>
+      <div class="step"><div class="n">1</div><h3 data-i18n="step1.t">Onboard once</h3><p data-i18n="step1.p">Link your home with a code from your landlord or agency, and pick your language.</p></div>
+      <div class="step"><div class="n">2</div><h3 data-i18n="step2.t">We handle the rest</h3><p data-i18n="step2.p">Rent reminders, bills, repairs, inspections, paperwork. Message us anytime and we reply in your language.</p></div>
+      <div class="step"><div class="n">3</div><h3 data-i18n="step3.t">Everything in one place</h3><p data-i18n="step3.p">No more chasing landlords or agencies. Your home, your documents, your services — one calm app.</p></div>
     </div>
   </div>
 </section>
@@ -348,14 +333,14 @@
 <!-- FEATURES -->
 <section class="block" id="features">
   <div class="wrap">
-    <div class="head"><div class="eyebrow">What's inside</div><h2>Everything a foreigner needs</h2></div>
+    <div class="head"><div class="eyebrow" data-i18n="feat.eyebrow">What's inside</div><h2 data-i18n="feat.h2">Everything a foreigner needs</h2></div>
     <div class="feat">
-      <div class="fcard"><div class="ic">💳</div><h3>Rent &amp; bills</h3><p>See what's due, pay in a tap, get instant receipts. Never miss a date in a language you don't read.</p></div>
-      <div class="fcard amber"><div class="ic">🛠</div><h3>Report a problem</h3><p>Broken boiler? Send a photo. We dispatch the fix and keep you posted, start to finish.</p></div>
-      <div class="fcard"><div class="ic">💬</div><h3>Messages, translated</h3><p>Write in your language, your landlord reads theirs. The barrier just disappears.</p></div>
-      <div class="fcard"><div class="ic">📄</div><h3>Documents</h3><p>Lease, receipts, and permits — organised and always one tap away.</p></div>
-      <div class="fcard"><div class="ic">🪪</div><h3>Paperwork</h3><p>Boravak, registrations, the bureaucratic maze — guided and handled for you.</p></div>
-      <div class="fcard"><div class="ic">🧭</div><h3>Local guide</h3><p>Emergency numbers, how things work, the best of your neighbourhood — from people who know.</p></div>
+      <div class="fcard"><div class="ic">💳</div><h3 data-i18n="f.rent.t">Rent & bills</h3><p data-i18n="f.rent.p">See what's due, pay in a tap, get instant receipts. Never miss a date in a language you don't read.</p></div>
+      <div class="fcard amber"><div class="ic">🛠</div><h3 data-i18n="f.report.t">Report a problem</h3><p data-i18n="f.report.p">Broken boiler? Send a photo. We dispatch the fix and keep you posted, start to finish.</p></div>
+      <div class="fcard"><div class="ic">💬</div><h3 data-i18n="f.msg.t">Messages, translated</h3><p data-i18n="f.msg.p">Write in your language, your landlord reads theirs. The barrier just disappears.</p></div>
+      <div class="fcard"><div class="ic">📄</div><h3 data-i18n="f.docs.t">Documents</h3><p data-i18n="f.docs.p">Lease, receipts, and permits — organised and always one tap away.</p></div>
+      <div class="fcard"><div class="ic">🪪</div><h3 data-i18n="f.paper.t">Paperwork</h3><p data-i18n="f.paper.p">Boravak, registrations, the bureaucratic maze — guided and handled for you.</p></div>
+      <div class="fcard"><div class="ic">🧭</div><h3 data-i18n="f.guide.t">Local guide</h3><p data-i18n="f.guide.p">Emergency numbers, how things work, the best of your neighbourhood — from people who know.</p></div>
     </div>
   </div>
 </section>
@@ -364,9 +349,9 @@
 <section class="block" style="background:var(--cream);">
   <div class="wrap xl">
     <div>
-      <div class="eyebrow">The difference</div>
-      <h2 style="font-size:clamp(1.8rem,3.4vw,2.4rem); margin-top:10px;">The language barrier, gone.</h2>
-      <p style="margin-top:16px; font-size:1.1rem;">Every message you send is translated for your landlord, and every reply comes back in your language. No apps to juggle, no awkward Google Translate — just a conversation that works.</p>
+      <div class="eyebrow" data-i18n="xl.eyebrow">The difference</div>
+      <h2 style="font-size:clamp(1.8rem,3.4vw,2.4rem); margin-top:10px;" data-i18n="xl.h2">The language barrier, gone.</h2>
+      <p style="margin-top:16px; font-size:1.1rem;" data-i18n="xl.p">Every message you send is translated for your landlord, and every reply comes back in your language. No apps to juggle, no awkward Google Translate — just a conversation that works.</p>
     </div>
     <div class="chat">
       <div class="bub out">Voda u kupatilu ne radi.<span class="tr">→ The bathroom water isn't working.</span></div>
@@ -379,12 +364,12 @@
 <!-- SERVICES -->
 <section class="block" id="services">
   <div class="wrap">
-    <div class="head"><div class="eyebrow">Growing with you</div><h2>From a home to a whole life here</h2><p>Rental is just the start. Kluch is becoming the operating system for everything a foreigner needs in Montenegro.</p></div>
+    <div class="head"><div class="eyebrow" data-i18n="svc.eyebrow">Growing with you</div><h2 data-i18n="svc.h2">From a home to a whole life here</h2><p data-i18n="svc.p">Rental is just the start. Kluch is becoming the operating system for everything a foreigner needs in Montenegro.</p></div>
     <div class="svc">
-      <div class="schip"><div class="e">🪪</div><div class="t">Residence permit</div><div class="soon">Coming soon</div></div>
-      <div class="schip"><div class="e">🧹</div><div class="t">Cleaning</div><div class="soon">Coming soon</div></div>
-      <div class="schip"><div class="e">📶</div><div class="t">SIM &amp; internet</div><div class="soon">Coming soon</div></div>
-      <div class="schip"><div class="e">🚗</div><div class="t">Transport</div><div class="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">🪪</div><div class="t" data-i18n="chip.permit">Residence permit</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">🧹</div><div class="t" data-i18n="chip.cleaning">Cleaning</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">📶</div><div class="t" data-i18n="chip.sim">SIM & internet</div><div class="soon" data-i18n="soon">Coming soon</div></div>
+      <div class="schip"><div class="e">🚗</div><div class="t" data-i18n="chip.transport">Transport</div><div class="soon" data-i18n="soon">Coming soon</div></div>
     </div>
   </div>
 </section>
@@ -392,9 +377,9 @@
 <!-- TESTIMONIAL -->
 <section class="block" style="background:var(--cream);">
   <div class="wrap quote">
-    <div class="eyebrow" style="margin-bottom:18px;">Built for people like you</div>
-    <blockquote>“I wish Kluch existed when I first arrived. It's exactly the calm, trusted hand every newcomer to Montenegro is looking for.”</blockquote>
-    <div class="who">— A friend of Kluch · <em>placeholder, ready for a real voice</em></div>
+    <div class="eyebrow" style="margin-bottom:18px;" data-i18n="quote.eyebrow">Built for people like you</div>
+    <blockquote data-i18n="quote.text">“I wish Kluch existed when I first arrived. It's exactly the calm, trusted hand every newcomer to Montenegro is looking for.”</blockquote>
+    <div class="who" data-i18n="quote.who">— A friend of Kluch · placeholder, ready for a real voice</div>
   </div>
 </section>
 
@@ -402,11 +387,11 @@
 <section class="block" id="get">
   <div class="wrap">
     <div class="cta-band">
-      <h2>Get the keys to your new life in Montenegro.</h2>
-      <p>Join the early list — we'll reach out as we open up in your city.</p>
+      <h2 data-i18n="cta.h2">Get the keys to your new life in Montenegro.</h2>
+      <p data-i18n="cta.p">Join the early list — we'll reach out as we open up in your city.</p>
       <div class="form">
-        <input type="email" placeholder="your@email.com">
-        <button class="btn btn-light">Join the list</button>
+        <input type="email" placeholder="your@email.com" data-i18n-ph="cta.ph">
+        <button class="btn btn-light" data-i18n="cta.btn">Join the list</button>
       </div>
     </div>
   </div>
@@ -416,13 +401,13 @@
   <div class="wrap inner">
     <img src="./kluch-icon.png" alt="Kluch">
     <span class="brand">Kluch</span>
-    <span style="color:var(--muted);">· Your keys to Montenegro</span>
+    <span style="color:var(--muted);" data-i18n="footer.tag">· Your keys to Montenegro</span>
     <div class="links">
-      <a href="#how">How it works</a>
-      <a href="#features">Features</a>
-      <a href="#get">Get started</a>
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="./login.html#register" data-i18n="nav.getstarted">Get started</a>
     </div>
-    <div class="copy">kluch.me · © 2026 Kluch · Made for foreigners living in Montenegro 🇲🇪</div>
+    <div class="copy" data-i18n="footer.copy">kluch.me · © 2026 Kluch · Made for foreigners living in Montenegro 🇲🇪</div>
   </div>
 </footer>
 
@@ -445,11 +430,11 @@
       </div>
       <p class="mdesc" id="mDesc"></p>
       <div class="mprices">
-        <div class="pcell"><span class="pl">Rent</span><span class="pv" id="mRent"></span></div>
-        <div class="pcell"><span class="pl">Utilities (est.)</span><span class="pv" id="mUtil"></span></div>
+        <div class="pcell"><span class="pl" id="mRentL">Rent</span><span class="pv" id="mRent"></span></div>
+        <div class="pcell"><span class="pl" id="mUtilL">Utilities (est.)</span><span class="pv" id="mUtil"></span></div>
       </div>
       <div class="mcta">
-        <p class="mctatext">Register an account to schedule a tour</p>
+        <p class="mctatext" id="mCtaText">Register an account to schedule a tour</p>
         <button class="btn btn-primary" id="mBook">Create account &amp; book a tour</button>
       </div>
     </div>
@@ -457,107 +442,291 @@
 </div>
 
 <script>
-  const INT = ["./img/int-living.jpg", "./img/int-bedroom.jpg", "./img/int-kitchen.jpg", "./img/int-bathroom.jpg"];
-  const KHOMES = [
-    {
-      name:"Bay-view one-bed", tag:"🌊 Sea", town:"Kotor · Adriatic coast",
-      price:"€620/mo", rent:"€620 / month", util:"≈ €85 / month",
-      specs:"1 bed · 1 bath · 48 m²", img:"./img/kotor.jpg", ll:[42.4247, 18.7712],
-      desc:"A bright one-bedroom with postcard views over the Bay of Kotor. Steps from the Old Town, cafés and the waterfront — fully furnished and move-in ready.",
-      photos:["./img/kotor.jpg", ...INT],
-    },
-    {
-      name:"Pine chalet", tag:"⛰️ Mountains", town:"Žabljak · Durmitor",
-      price:"€480/mo", rent:"€480 / month", util:"≈ €110 / month",
-      specs:"2 bed · 1 bath · 70 m²", img:"./img/durmitor.jpg", ll:[43.1547, 19.1226],
-      desc:"A warm two-bedroom chalet on the edge of Durmitor National Park. Cosy interiors, a fireplace, and hiking and skiing right on your doorstep.",
-      photos:["./img/durmitor.jpg", ...INT],
-    },
-    {
-      name:"Modern flat", tag:"🏙️ Capital", town:"Podgorica · City centre",
-      price:"€550/mo", rent:"€550 / month", util:"≈ €95 / month",
-      specs:"2 bed · 1 bath · 62 m²", img:"./img/podgorica.jpg", ll:[42.4304, 19.2594],
-      desc:"A modern two-bedroom flat in the heart of the capital. Walk to offices, restaurants and the river — ideal for working professionals and families.",
-      photos:["./img/podgorica.jpg", ...INT],
-    },
+  /* ============ i18n ============ */
+  const LANGS = [
+    { code:"en", label:"🇬🇧 EN" }, { code:"sr", label:"🇷🇸 SR" },
+    { code:"ru", label:"🇷🇺 RU" }, { code:"tr", label:"🇹🇷 TR" },
   ];
 
-  function pinIcon(h) {
-    return L.divIcon({
-      className: "kpin",
-      html: `<div class="pin"><img src="${h.img}" alt=""><span class="ptag">${h.price}</span></div>`,
-      iconSize: [54, 54], iconAnchor: [27, 54], popupAnchor: [0, -52],
+  const I18N = {
+    en: {
+      "nav.homes":"Homes","nav.how":"How it works","nav.features":"Features","nav.services":"Services","nav.login":"Log in","nav.getstarted":"Get started",
+      "hero.eyebrow":"For foreigners living in Montenegro",
+      "hero.h1":"Your <span class='accent'>keys</span> to Montenegro.",
+      "hero.sub":"Rent, bills, repairs, paperwork, and translation — handled by one trusted operator, all in a single app. Settle in without the stress.",
+      "hero.cta1":"Get started","hero.cta2":"See how it works",
+      "hero.trust":"🔑 Onboard once — we handle the rest, in your language.",
+      "homes.eyebrow":"Homes available now","homes.h2":"Sea, mountains, or the capital — find your place",
+      "homes.p":"A taste of what Kluch can set you up in. Every home comes fully managed: rent, bills, repairs, and translation handled from day one.",
+      "home0.tag":"🌊 Sea","home0.name":"Bay-view one-bed","home0.town":"Kotor · Adriatic coast",
+      "home1.tag":"⛰️ Mountains","home1.name":"Pine chalet","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Capital","home2.name":"Modern flat","home2.town":"Podgorica · City centre",
+      "home0.desc":"A bright one-bedroom with postcard views over the Bay of Kotor. Steps from the Old Town, cafés and the waterfront — fully furnished and move-in ready.",
+      "home1.desc":"A warm two-bedroom chalet on the edge of Durmitor National Park. Cosy interiors, a fireplace, and hiking and skiing right on your doorstep.",
+      "home2.desc":"A modern two-bedroom flat in the heart of the capital. Walk to offices, restaurants and the river — ideal for working professionals and families.",
+      "viewhome":"View home","modal.rent":"Rent","modal.util":"Utilities (est.)",
+      "modal.ctatext":"Register an account to schedule a tour","modal.book":"Create account & book a tour",
+      "band.rent":"Renting made simple","band.translated":"Everything translated","band.operator":"One operator, not ten","band.paperwork":"Paperwork, sorted",
+      "why.eyebrow":"Why Kluch","why.h2":"Moving to Montenegro is hard. Living here shouldn't be.",
+      "why.p":"Foreigners and landlords don't speak the same language — literally. Rent, utility bills, a broken boiler, a residence permit: every little thing becomes a phone-call marathon in a language you don't speak. Kluch sits in the middle and just handles it.",
+      "how.eyebrow":"How it works","how.h2":"Three steps to settled",
+      "step1.t":"Onboard once","step1.p":"Link your home with a code from your landlord or agency, and pick your language.",
+      "step2.t":"We handle the rest","step2.p":"Rent reminders, bills, repairs, inspections, paperwork. Message us anytime and we reply in your language.",
+      "step3.t":"Everything in one place","step3.p":"No more chasing landlords or agencies. Your home, your documents, your services — one calm app.",
+      "feat.eyebrow":"What's inside","feat.h2":"Everything a foreigner needs",
+      "f.rent.t":"Rent & bills","f.rent.p":"See what's due, pay in a tap, get instant receipts. Never miss a date in a language you don't read.",
+      "f.report.t":"Report a problem","f.report.p":"Broken boiler? Send a photo. We dispatch the fix and keep you posted, start to finish.",
+      "f.msg.t":"Messages, translated","f.msg.p":"Write in your language, your landlord reads theirs. The barrier just disappears.",
+      "f.docs.t":"Documents","f.docs.p":"Lease, receipts, and permits — organised and always one tap away.",
+      "f.paper.t":"Paperwork","f.paper.p":"Boravak, registrations, the bureaucratic maze — guided and handled for you.",
+      "f.guide.t":"Local guide","f.guide.p":"Emergency numbers, how things work, the best of your neighbourhood — from people who know.",
+      "xl.eyebrow":"The difference","xl.h2":"The language barrier, gone.",
+      "xl.p":"Every message you send is translated for your landlord, and every reply comes back in your language. No apps to juggle, no awkward Google Translate — just a conversation that works.",
+      "svc.eyebrow":"Growing with you","svc.h2":"From a home to a whole life here",
+      "svc.p":"Rental is just the start. Kluch is becoming the operating system for everything a foreigner needs in Montenegro.",
+      "chip.permit":"Residence permit","chip.cleaning":"Cleaning","chip.sim":"SIM & internet","chip.transport":"Transport","soon":"Coming soon",
+      "quote.eyebrow":"Built for people like you",
+      "quote.text":"“I wish Kluch existed when I first arrived. It's exactly the calm, trusted hand every newcomer to Montenegro is looking for.”",
+      "quote.who":"— A friend of Kluch · placeholder, ready for a real voice",
+      "cta.h2":"Get the keys to your new life in Montenegro.","cta.p":"Join the early list — we'll reach out as we open up in your city.",
+      "cta.ph":"your@email.com","cta.btn":"Join the list",
+      "footer.tag":"· Your keys to Montenegro","footer.copy":"kluch.me · © 2026 Kluch · Made for foreigners living in Montenegro 🇲🇪",
+    },
+    sr: {
+      "nav.homes":"Domovi","nav.how":"Kako funkcioniše","nav.features":"Mogućnosti","nav.services":"Usluge","nav.login":"Prijava","nav.getstarted":"Započni",
+      "hero.eyebrow":"Za strance koji žive u Crnoj Gori",
+      "hero.h1":"Vaši <span class='accent'>ključevi</span> za Crnu Goru.",
+      "hero.sub":"Kirija, računi, popravke, papirologija i prevod — sve rješava jedan pouzdan operater, u jednoj aplikaciji. Smjestite se bez stresa.",
+      "hero.cta1":"Započni","hero.cta2":"Pogledaj kako radi",
+      "hero.trust":"🔑 Prijavite se jednom — ostalo radimo mi, na vašem jeziku.",
+      "homes.eyebrow":"Dostupni domovi","homes.h2":"More, planine ili glavni grad — pronađite svoje mjesto",
+      "homes.p":"Mali uvid u ono što vam Kluch može srediti. Svaki dom dolazi potpuno upravljan: kirija, računi, popravke i prevod od prvog dana.",
+      "home0.tag":"🌊 More","home0.name":"Stan s pogledom na zaliv","home0.town":"Kotor · Jadranska obala",
+      "home1.tag":"⛰️ Planine","home1.name":"Planinska kuća","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Glavni grad","home2.name":"Moderan stan","home2.town":"Podgorica · Centar grada",
+      "home0.desc":"Svijetao jednosoban stan s pogledom kao s razglednice na Bokokotorski zaliv. Na korak od Starog grada, kafića i obale — potpuno namješten i spreman za useljenje.",
+      "home1.desc":"Topla dvosobna planinska kuća na rubu Nacionalnog parka Durmitor. Ugodan enterijer, kamin, a planinarenje i skijanje su vam pred vratima.",
+      "home2.desc":"Moderan dvosoban stan u srcu glavnog grada. Pješke do kancelarija, restorana i rijeke — idealno za zaposlene i porodice.",
+      "viewhome":"Pogledaj dom","modal.rent":"Kirija","modal.util":"Režije (procjena)",
+      "modal.ctatext":"Registrujte se da zakažete obilazak","modal.book":"Napravi nalog i zakaži obilazak",
+      "band.rent":"Iznajmljivanje bez muke","band.translated":"Sve prevedeno","band.operator":"Jedan operater, ne deset","band.paperwork":"Papirologija riješena",
+      "why.eyebrow":"Zašto Kluch","why.h2":"Selidba u Crnu Goru je teška. Život ovdje ne mora biti.",
+      "why.p":"Stranci i stanodavci ne govore isti jezik — doslovno. Kirija, računi za režije, pokvaren bojler, boravišna dozvola: svaka sitnica postane maraton telefonskih poziva na jeziku koji ne govorite. Kluch stoji u sredini i jednostavno to riješi.",
+      "how.eyebrow":"Kako funkcioniše","how.h2":"Tri koraka do doma",
+      "step1.t":"Prijavite se jednom","step1.p":"Povežite svoj dom kodom od stanodavca ili agencije i izaberite svoj jezik.",
+      "step2.t":"Ostalo radimo mi","step2.p":"Podsjetnici za kiriju, računi, popravke, inspekcije, papirologija. Pišite nam bilo kada i odgovaramo na vašem jeziku.",
+      "step3.t":"Sve na jednom mjestu","step3.p":"Nema više jurnjave za stanodavcima ili agencijama. Vaš dom, vaši dokumenti, vaše usluge — jedna mirna aplikacija.",
+      "feat.eyebrow":"Šta je unutra","feat.h2":"Sve što je strancu potrebno",
+      "f.rent.t":"Kirija i računi","f.rent.p":"Vidite šta dospijeva, platite jednim dodirom, dobijte trenutne potvrde. Nikad ne propustite rok na jeziku koji ne čitate.",
+      "f.report.t":"Prijavi problem","f.report.p":"Pokvaren bojler? Pošaljite fotografiju. Mi šaljemo majstora i obavještavamo vas do kraja.",
+      "f.msg.t":"Poruke, prevedene","f.msg.p":"Pišite na svom jeziku, stanodavac čita na svom. Barijera jednostavno nestaje.",
+      "f.docs.t":"Dokumenti","f.docs.p":"Ugovor, potvrde i dozvole — sređeni i uvijek na dodir.",
+      "f.paper.t":"Papirologija","f.paper.p":"Boravak, prijave, birokratski lavirint — vođeni i riješeni za vas.",
+      "f.guide.t":"Lokalni vodič","f.guide.p":"Hitni brojevi, kako stvari funkcionišu, najbolje iz vašeg kraja — od ljudi koji znaju.",
+      "xl.eyebrow":"Razlika","xl.h2":"Jezička barijera — nestala.",
+      "xl.p":"Svaka poruka koju pošaljete prevodi se za vašeg stanodavca, a svaki odgovor stiže na vašem jeziku. Bez žongliranja aplikacijama, bez nezgodnog Google prevodioca — samo razgovor koji funkcioniše.",
+      "svc.eyebrow":"Rastemo s vama","svc.h2":"Od doma do cijelog života ovdje",
+      "svc.p":"Iznajmljivanje je tek početak. Kluch postaje operativni sistem za sve što je strancu potrebno u Crnoj Gori.",
+      "chip.permit":"Boravišna dozvola","chip.cleaning":"Čišćenje","chip.sim":"SIM i internet","chip.transport":"Prevoz","soon":"Uskoro",
+      "quote.eyebrow":"Napravljeno za ljude poput vas",
+      "quote.text":"„Volio bih da je Kluch postojao kad sam tek stigao. To je upravo ona mirna, pouzdana ruka koju traži svaki novajlija u Crnoj Gori.”",
+      "quote.who":"— Prijatelj Kluch-a · rezervisano za pravi glas",
+      "cta.h2":"Uzmite ključeve svog novog života u Crnoj Gori.","cta.p":"Pridružite se ranoj listi — javljamo se kada se otvorimo u vašem gradu.",
+      "cta.ph":"vas@email.com","cta.btn":"Pridruži se listi",
+      "footer.tag":"· Vaši ključevi za Crnu Goru","footer.copy":"kluch.me · © 2026 Kluch · Napravljeno za strance koji žive u Crnoj Gori 🇲🇪",
+    },
+    ru: {
+      "nav.homes":"Жильё","nav.how":"Как это работает","nav.features":"Возможности","nav.services":"Услуги","nav.login":"Войти","nav.getstarted":"Начать",
+      "hero.eyebrow":"Для иностранцев, живущих в Черногории",
+      "hero.h1":"Ваши <span class='accent'>ключи</span> к Черногории.",
+      "hero.sub":"Аренда, счета, ремонт, документы и перевод — всё решает один надёжный оператор в одном приложении. Обживайтесь без стресса.",
+      "hero.cta1":"Начать","hero.cta2":"Как это работает",
+      "hero.trust":"🔑 Регистрация один раз — остальное берём на себя, на вашем языке.",
+      "homes.eyebrow":"Доступное жильё","homes.h2":"Море, горы или столица — найдите своё место",
+      "homes.p":"Небольшой пример того, что Kluch может для вас устроить. Каждое жильё под полным управлением: аренда, счета, ремонт и перевод с первого дня.",
+      "home0.tag":"🌊 Море","home0.name":"Квартира с видом на залив","home0.town":"Котор · Адриатическое побережье",
+      "home1.tag":"⛰️ Горы","home1.name":"Шале среди сосен","home1.town":"Жабляк · Дурмитор",
+      "home2.tag":"🏙️ Столица","home2.name":"Современная квартира","home2.town":"Подгорица · Центр города",
+      "home0.desc":"Светлая квартира с открыточным видом на Которский залив. В двух шагах от Старого города, кафе и набережной — полностью меблирована и готова к заселению.",
+      "home1.desc":"Тёплое шале с двумя спальнями на краю национального парка Дурмитор. Уютный интерьер, камин, а походы и лыжи — прямо у порога.",
+      "home2.desc":"Современная двухкомнатная квартира в самом центре столицы. Пешком до офисов, ресторанов и реки — идеально для специалистов и семей.",
+      "viewhome":"Смотреть жильё","modal.rent":"Аренда","modal.util":"Коммунальные (прибл.)",
+      "modal.ctatext":"Зарегистрируйтесь, чтобы записаться на просмотр","modal.book":"Создать аккаунт и записаться",
+      "band.rent":"Аренда без хлопот","band.translated":"Всё переведено","band.operator":"Один оператор, а не десять","band.paperwork":"Документы под контролем",
+      "why.eyebrow":"Почему Kluch","why.h2":"Переехать в Черногорию сложно. Жить здесь — не должно быть.",
+      "why.p":"Иностранцы и арендодатели не говорят на одном языке — буквально. Аренда, счета, сломанный бойлер, вид на жительство: каждая мелочь превращается в марафон звонков на языке, которого вы не знаете. Kluch стоит посередине и просто всё решает.",
+      "how.eyebrow":"Как это работает","how.h2":"Три шага до новоселья",
+      "step1.t":"Регистрация один раз","step1.p":"Привяжите жильё по коду от арендодателя или агентства и выберите язык.",
+      "step2.t":"Остальное берём на себя","step2.p":"Напоминания об аренде, счета, ремонт, осмотры, документы. Пишите нам в любое время — отвечаем на вашем языке.",
+      "step3.t":"Всё в одном месте","step3.p":"Больше не нужно гоняться за арендодателями и агентствами. Ваше жильё, ваши документы, ваши услуги — одно спокойное приложение.",
+      "feat.eyebrow":"Что внутри","feat.h2":"Всё, что нужно иностранцу",
+      "f.rent.t":"Аренда и счета","f.rent.p":"Смотрите, что к оплате, платите одним касанием, получайте мгновенные квитанции. Никогда не пропустите срок на языке, который не читаете.",
+      "f.report.t":"Сообщить о проблеме","f.report.p":"Сломался бойлер? Пришлите фото. Мы направим мастера и держим вас в курсе до конца.",
+      "f.msg.t":"Сообщения с переводом","f.msg.p":"Пишите на своём языке, арендодатель читает на своём. Барьер просто исчезает.",
+      "f.docs.t":"Документы","f.docs.p":"Договор, квитанции и разрешения — упорядочены и всегда под рукой.",
+      "f.paper.t":"Бюрократия","f.paper.p":"ВНЖ, регистрации, бюрократический лабиринт — с сопровождением и под ключ.",
+      "f.guide.t":"Локальный гид","f.guide.p":"Экстренные номера, как всё устроено, лучшее в вашем районе — от тех, кто знает.",
+      "xl.eyebrow":"Отличие","xl.h2":"Языковой барьер исчез.",
+      "xl.p":"Каждое ваше сообщение переводится для арендодателя, а каждый ответ приходит на вашем языке. Никаких лишних приложений, никакого неуклюжего Google Переводчика — просто разговор, который работает.",
+      "svc.eyebrow":"Растём вместе с вами","svc.h2":"От жилья до целой жизни здесь",
+      "svc.p":"Аренда — это только начало. Kluch становится операционной системой для всего, что нужно иностранцу в Черногории.",
+      "chip.permit":"Вид на жительство","chip.cleaning":"Уборка","chip.sim":"SIM и интернет","chip.transport":"Транспорт","soon":"Скоро",
+      "quote.eyebrow":"Создано для таких, как вы",
+      "quote.text":"«Жаль, что Kluch не было, когда я только приехал. Это именно та спокойная, надёжная рука, которую ищет каждый новичок в Черногории.»",
+      "quote.who":"— Друг Kluch · место для реального отзыва",
+      "cta.h2":"Получите ключи к новой жизни в Черногории.","cta.p":"Запишитесь в ранний список — мы свяжемся, когда откроемся в вашем городе.",
+      "cta.ph":"vash@email.com","cta.btn":"Записаться",
+      "footer.tag":"· Ваши ключи к Черногории","footer.copy":"kluch.me · © 2026 Kluch · Сделано для иностранцев, живущих в Черногории 🇲🇪",
+    },
+    tr: {
+      "nav.homes":"Evler","nav.how":"Nasıl çalışır","nav.features":"Özellikler","nav.services":"Hizmetler","nav.login":"Giriş","nav.getstarted":"Başla",
+      "hero.eyebrow":"Karadağ'da yaşayan yabancılar için",
+      "hero.h1":"Karadağ'a <span class='accent'>anahtarınız</span>.",
+      "hero.sub":"Kira, faturalar, tamirat, evrak işleri ve çeviri — tek güvenilir operatör, tek uygulama. Stres yaşamadan yerleşin.",
+      "hero.cta1":"Başla","hero.cta2":"Nasıl çalıştığını gör",
+      "hero.trust":"🔑 Bir kez kaydolun — gerisini biz hallederiz, kendi dilinizde.",
+      "homes.eyebrow":"Şu an müsait evler","homes.h2":"Deniz, dağlar ya da başkent — yerinizi bulun",
+      "homes.p":"Kluch'un sizin için ayarlayabileceklerine bir bakış. Her ev tam yönetimli gelir: kira, faturalar, tamirat ve çeviri ilk günden itibaren.",
+      "home0.tag":"🌊 Deniz","home0.name":"Körfez manzaralı daire","home0.town":"Kotor · Adriyatik kıyısı",
+      "home1.tag":"⛰️ Dağlar","home1.name":"Çam evi","home1.town":"Žabljak · Durmitor",
+      "home2.tag":"🏙️ Başkent","home2.name":"Modern daire","home2.town":"Podgorica · Şehir merkezi",
+      "home0.desc":"Kotor Körfezi'ne kartpostal gibi manzarası olan ferah, tek yatak odalı daire. Eski Şehir'e, kafelere ve sahile birkaç adım — tam döşeli ve hemen taşınmaya hazır.",
+      "home1.desc":"Durmitor Milli Parkı'nın kıyısında sıcak, iki yatak odalı dağ evi. Şömineli, rahat iç mekân; yürüyüş ve kayak tam kapınızın önünde.",
+      "home2.desc":"Başkentin kalbinde modern, iki yatak odalı daire. Ofislere, restoranlara ve nehre yürüme mesafesi — çalışanlar ve aileler için ideal.",
+      "viewhome":"Evi gör","modal.rent":"Kira","modal.util":"Aidat (tahmini)",
+      "modal.ctatext":"Tur planlamak için hesap oluşturun","modal.book":"Hesap aç ve tur ayarla",
+      "band.rent":"Kiralamak çok kolay","band.translated":"Her şey çevrili","band.operator":"On değil, tek operatör","band.paperwork":"Evrak işleri halledildi",
+      "why.eyebrow":"Neden Kluch","why.h2":"Karadağ'a taşınmak zor. Burada yaşamak zor olmamalı.",
+      "why.p":"Yabancılar ve ev sahipleri aynı dili konuşmuyor — kelimenin tam anlamıyla. Kira, faturalar, bozulan bir kombi, oturma izni: her küçük şey bilmediğiniz bir dilde telefon maratonuna dönüşüyor. Kluch araya girer ve halleder.",
+      "how.eyebrow":"Nasıl çalışır","how.h2":"Yerleşmek için üç adım",
+      "step1.t":"Bir kez kaydolun","step1.p":"Ev sahibinizden veya acentenizden aldığınız kodla evinizi bağlayın ve dilinizi seçin.",
+      "step2.t":"Gerisini biz hallederiz","step2.p":"Kira hatırlatmaları, faturalar, tamirat, denetimler, evrak işleri. Bize istediğiniz zaman yazın, kendi dilinizde yanıt verelim.",
+      "step3.t":"Hepsi tek yerde","step3.p":"Artık ev sahibi ya da acente peşinde koşmak yok. Eviniz, belgeleriniz, hizmetleriniz — sakin bir uygulama.",
+      "feat.eyebrow":"İçinde ne var","feat.h2":"Bir yabancının ihtiyacı olan her şey",
+      "f.rent.t":"Kira ve faturalar","f.rent.p":"Ödenecekleri görün, tek dokunuşla ödeyin, anında makbuz alın. Okuyamadığınız bir dilde hiçbir tarihi kaçırmayın.",
+      "f.report.t":"Sorun bildir","f.report.p":"Kombi mi bozuldu? Bir fotoğraf gönderin. Tamiri biz ayarlar, baştan sona haberdar ederiz.",
+      "f.msg.t":"Mesajlar, çevrili","f.msg.p":"Siz kendi dilinizde yazın, ev sahibi kendi dilinde okusun. Engel ortadan kalkar.",
+      "f.docs.t":"Belgeler","f.docs.p":"Kira sözleşmesi, makbuzlar ve izinler — düzenli ve her zaman tek dokunuş uzakta.",
+      "f.paper.t":"Evrak işleri","f.paper.p":"Oturma izni, kayıtlar, bürokrasi labirenti — rehberlikle ve sizin için halledilir.",
+      "f.guide.t":"Yerel rehber","f.guide.p":"Acil numaralar, işlerin nasıl yürüdüğü, mahallenizin en iyileri — bilen insanlardan.",
+      "xl.eyebrow":"Fark","xl.h2":"Dil engeli ortadan kalktı.",
+      "xl.p":"Gönderdiğiniz her mesaj ev sahibiniz için çevrilir, her yanıt size kendi dilinizde gelir. Uygulamalarla uğraşmak yok, garip Google Çeviri yok — sadece işe yarayan bir sohbet.",
+      "svc.eyebrow":"Sizinle büyüyor","svc.h2":"Bir evden burada koca bir hayata",
+      "svc.p":"Kiralama sadece başlangıç. Kluch, bir yabancının Karadağ'da ihtiyaç duyduğu her şey için işletim sistemi hâline geliyor.",
+      "chip.permit":"Oturma izni","chip.cleaning":"Temizlik","chip.sim":"SIM ve internet","chip.transport":"Ulaşım","soon":"Yakında",
+      "quote.eyebrow":"Sizin gibiler için yapıldı",
+      "quote.text":"“Keşke ilk geldiğimde Kluch olsaydı. Karadağ'a yeni gelen herkesin aradığı o sakin, güvenilir el tam olarak bu.”",
+      "quote.who":"— Bir Kluch dostu · gerçek bir ses için yer ayrıldı",
+      "cta.h2":"Karadağ'daki yeni hayatınızın anahtarını alın.","cta.p":"Erken listeye katılın — şehrinizde açıldığımızda size ulaşırız.",
+      "cta.ph":"siz@email.com","cta.btn":"Listeye katıl",
+      "footer.tag":"· Karadağ'a anahtarınız","footer.copy":"kluch.me · © 2026 Kluch · Karadağ'da yaşayan yabancılar için yapıldı 🇲🇪",
+    },
+  };
+
+  let LANG = "en";
+  function t(key) { return (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key; }
+
+  function applyLang() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const v = t(el.getAttribute("data-i18n"));
+      if (v.indexOf("<") >= 0) el.innerHTML = v; else el.textContent = v;
     });
+    document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+      el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph")));
+    });
+    document.documentElement.lang = LANG;
+    const meta = LANGS.find((l) => l.code === LANG) || LANGS[0];
+    document.getElementById("langLabel").textContent = meta.label;
+    document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
   }
 
-  function popupHtml(h, i) {
-    return `<div class="pop">
-      <img src="${h.img}" alt="">
-      <div class="pb">
-        <div class="pt">${h.name}</div>
-        <div class="pm">${h.tag} · ${h.town}</div>
-        <div class="ps">${h.specs}</div>
-        <div class="prow"><span class="pp">${h.price}</span><a class="pbtn" href="#" onclick="openHome(${i});return false;">View home</a></div>
-      </div>
-    </div>`;
+  function setLang(code) {
+    LANG = code;
+    try { localStorage.setItem("kluch-lang", code); } catch (e) {}
+    applyLang();
+    if (window.__map) { window.__rebuildPins(); }
+    if (document.getElementById("homeModal").classList.contains("open")) openHome(window.__curHome);
   }
 
-  const map = L.map("map", { scrollWheelZoom: false }).setView([42.78, 19.05], 8);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-    maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO",
-  }).addTo(map);
+  /* language dropdown */
+  const langBtn = document.getElementById("langBtn");
+  const langMenu = document.getElementById("langMenu");
+  function closeLang() { langMenu.classList.remove("open"); langBtn.classList.remove("open"); }
+  langBtn.addEventListener("click", (e) => { e.stopPropagation(); const o = langMenu.classList.toggle("open"); langBtn.classList.toggle("open", o); });
+  document.addEventListener("click", closeLang);
+  langMenu.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setLang(b.dataset.code); closeLang(); }));
 
-  const group = L.featureGroup();
-  KHOMES.forEach((h, i) => {
-    const m = L.marker(h.ll, { icon: pinIcon(h) }).addTo(map).bindPopup(popupHtml(h, i), { maxWidth: 260 });
-    group.addLayer(m);
-  });
-  function frameHomes() { map.invalidateSize(); map.fitBounds(group.getBounds().pad(0.30)); }
+  /* ============ listings ============ */
+  const INT = ["./img/int-living.jpg", "./img/int-bedroom.jpg", "./img/int-kitchen.jpg", "./img/int-bathroom.jpg"];
+  const KHOMES = [
+    { i:0, price:"€620/mo", rent:"€620 / month", util:"≈ €85 / month", specs:"🛏 1 · 🛁 1 · 📐 48 m²", img:"./img/kotor.jpg", ll:[42.4247, 18.7712], photos:["./img/kotor.jpg", ...INT] },
+    { i:1, price:"€480/mo", rent:"€480 / month", util:"≈ €110 / month", specs:"🛏 2 · 🛁 1 · 📐 70 m²", img:"./img/durmitor.jpg", ll:[43.1547, 19.1226], photos:["./img/durmitor.jpg", ...INT] },
+    { i:2, price:"€550/mo", rent:"€550 / month", util:"≈ €95 / month", specs:"🛏 2 · 🛁 1 · 📐 62 m²", img:"./img/podgorica.jpg", ll:[42.4304, 19.2594], photos:["./img/podgorica.jpg", ...INT] },
+  ];
+
+  /* ============ map ============ */
+  function pinIcon(h) {
+    return L.divIcon({ className:"kpin", html:`<div class="pin"><img src="${h.img}" alt=""><span class="ptag">${h.price}</span></div>`, iconSize:[54,54], iconAnchor:[27,54], popupAnchor:[0,-52] });
+  }
+  function popupHtml(h) {
+    return `<div class="pop"><img src="${h.img}" alt=""><div class="pb">
+      <div class="pt">${t("home"+h.i+".name")}</div>
+      <div class="pm">${t("home"+h.i+".tag")} · ${t("home"+h.i+".town")}</div>
+      <div class="ps">${h.specs}</div>
+      <div class="prow"><span class="pp">${h.price}</span><a class="pbtn" href="#" onclick="openHome(${h.i});return false;">${t("viewhome")}</a></div>
+    </div></div>`;
+  }
+
+  const map = L.map("map", { scrollWheelZoom:false }).setView([42.78, 19.05], 8);
+  window.__map = map;
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom:19, attribution:"&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
+  let markers = [];
+  function buildPins() {
+    markers.forEach((m) => map.removeLayer(m));
+    markers = KHOMES.map((h) => L.marker(h.ll, { icon: pinIcon(h) }).addTo(map).bindPopup(popupHtml(h), { maxWidth:260 }));
+  }
+  window.__rebuildPins = buildPins;
+  buildPins();
+  const grp = L.featureGroup(markers);
+  function frameHomes() { map.invalidateSize(); map.fitBounds(L.featureGroup(markers).getBounds().pad(0.30)); }
   frameHomes();
   setTimeout(frameHomes, 250);
   window.addEventListener("resize", frameHomes);
 
-  /* ---- Home detail modal ---- */
+  /* ============ modal ============ */
   const modal = document.getElementById("homeModal");
   const gMain = document.getElementById("gMain");
   const gThumbs = document.getElementById("gThumbs");
-  let curHome = 0, curPhoto = 0;
+  let curPhoto = 0;
+  window.__curHome = 0;
 
   function showPhoto(idx) {
-    const photos = KHOMES[curHome].photos;
+    const photos = KHOMES[window.__curHome].photos;
     curPhoto = (idx + photos.length) % photos.length;
     gMain.src = photos[curPhoto];
     document.getElementById("gIdx").textContent = curPhoto + 1;
-    [...gThumbs.children].forEach((t, i) => t.classList.toggle("active", i === curPhoto));
+    [...gThumbs.children].forEach((tn, i) => tn.classList.toggle("active", i === curPhoto));
   }
-
   function openHome(i) {
-    curHome = i;
+    window.__curHome = i;
     const h = KHOMES[i];
-    document.getElementById("mTitle").textContent = h.name;
-    document.getElementById("mLoc").textContent = h.tag + " · " + h.town;
+    document.getElementById("mTitle").textContent = t("home"+i+".name");
+    document.getElementById("mLoc").textContent = t("home"+i+".tag") + " · " + t("home"+i+".town");
     document.getElementById("mSpecs").textContent = h.specs;
-    document.getElementById("mDesc").textContent = h.desc;
+    document.getElementById("mDesc").textContent = t("home"+i+".desc");
     document.getElementById("mRent").textContent = h.rent;
     document.getElementById("mUtil").textContent = h.util;
+    document.getElementById("mRentL").textContent = t("modal.rent");
+    document.getElementById("mUtilL").textContent = t("modal.util");
+    document.getElementById("mCtaText").textContent = t("modal.ctatext");
+    document.getElementById("mBook").textContent = t("modal.book");
     document.getElementById("gTot").textContent = h.photos.length;
     gThumbs.innerHTML = "";
-    h.photos.forEach((src, idx) => {
-      const t = document.createElement("img");
-      t.src = src; t.alt = "";
-      t.addEventListener("click", () => showPhoto(idx));
-      gThumbs.appendChild(t);
-    });
+    h.photos.forEach((src, idx) => { const tn = document.createElement("img"); tn.src = src; tn.alt = ""; tn.addEventListener("click", () => showPhoto(idx)); gThumbs.appendChild(tn); });
     showPhoto(0);
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    modal.classList.add("open"); modal.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
   }
-  function closeHome() {
-    modal.classList.remove("open");
-    modal.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
-  }
+  function closeHome() { modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
   window.openHome = openHome;
 
   document.getElementById("gPrev").addEventListener("click", () => showPhoto(curPhoto - 1));
@@ -569,9 +738,13 @@
     if (e.key === "ArrowLeft") showPhoto(curPhoto - 1);
     if (e.key === "ArrowRight") showPhoto(curPhoto + 1);
   });
-  document.querySelectorAll("[data-home]").forEach((btn) =>
-    btn.addEventListener("click", (e) => { e.preventDefault(); openHome(Number(btn.getAttribute("data-home"))); }));
-</script>
+  document.querySelectorAll("[data-home]").forEach((btn) => btn.addEventListener("click", (e) => { e.preventDefault(); openHome(Number(btn.getAttribute("data-home"))); }));
+  document.getElementById("mBook").addEventListener("click", () => { location.href = "./login.html#register"; });
 
+  /* init language */
+  let saved = "en";
+  try { saved = localStorage.getItem("kluch-lang") || "en"; } catch (e) {}
+  setLang(saved);
+</script>
 </body>
 </html>

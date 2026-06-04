@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kluch — Log in or register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900:#13233A; --navy-800:#17304B; --navy:#1F3A5C; --navy-200:#A9B8CC;
+    --teal-700:#3C6B63; --teal:#4E827A; --teal-100:#DCE8E4;
+    --cream:#F1ECE0; --paper:#FBF8F1; --page:#F6F2E9; --sand:#E7DFCF;
+    --ink:#16243A; --body:#44535F; --muted:#8A95A1; --tg:#229ED9;
+    --r:14px; --r-lg:24px;
+    --shadow:0 22px 60px rgba(20,35,58,.16), 0 4px 12px rgba(20,35,58,.06);
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-body); color:var(--body); min-height:100vh; display:grid; place-items:center; padding:32px 18px;
+    background:
+      radial-gradient(900px 460px at 85% -10%, rgba(78,130,122,.20), transparent 60%),
+      radial-gradient(800px 420px at -5% 0%, rgba(31,58,92,.14), transparent 55%),
+      var(--page);
+    -webkit-font-smoothing:antialiased; }
+  .auth { width:100%; max-width:430px; }
+  .top { text-align:center; margin-bottom:22px; }
+  .top img { width:62px; height:62px; border-radius:16px; box-shadow:var(--shadow); }
+  .top h1 { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:1.5rem; margin-top:14px; letter-spacing:-.01em; }
+  .top p { color:var(--muted); font-size:.92rem; margin-top:4px; }
+
+  .card { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); box-shadow:var(--shadow); padding:26px; }
+
+  .tabs { display:flex; background:var(--cream); border:1px solid var(--sand); border-radius:999px; padding:4px; margin-bottom:22px; }
+  .tabs button { flex:1; border:0; background:transparent; font-family:var(--font-display); font-weight:700; font-size:.92rem; color:var(--muted); padding:10px; border-radius:999px; cursor:pointer; transition:all .15s; }
+  .tabs button.active { background:#fff; color:var(--navy); box-shadow:0 2px 8px rgba(20,35,58,.08); }
+
+  .pane { display:none; }
+  .pane.active { display:block; }
+
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-family:var(--font-display); font-weight:600; font-size:.8rem; color:var(--navy); margin-bottom:7px; }
+  .field input { width:100%; padding:13px 15px; border:1.5px solid var(--sand); border-radius:var(--r); background:#fff; font-family:var(--font-body); font-size:.95rem; color:var(--ink); outline:none; transition:border-color .15s, box-shadow .15s; }
+  .field input:focus { border-color:var(--teal); box-shadow:0 0 0 4px var(--teal-100); }
+  .field .hint { color:var(--muted); font-size:.74rem; margin-top:5px; }
+
+  .btn { width:100%; font-family:var(--font-display); font-weight:700; font-size:.98rem; border:0; border-radius:999px; padding:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; transition:background .15s, transform .08s; }
+  .btn:active { transform:translateY(1px); }
+  .btn-primary { background:var(--navy); color:#fff; box-shadow:0 10px 22px rgba(31,58,92,.24); margin-top:6px; }
+  .btn-primary:hover { background:var(--navy-800); }
+  .btn-tg { background:var(--tg); color:#fff; box-shadow:0 10px 22px rgba(34,158,217,.26); }
+  .btn-tg:hover { filter:brightness(.96); }
+
+  .row { display:flex; justify-content:space-between; align-items:center; margin:4px 0 6px; }
+  .row a { font-size:.82rem; color:var(--teal-700); text-decoration:none; font-weight:600; }
+  .check { display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--body); }
+
+  .divider { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:.78rem; margin:18px 0; }
+  .divider::before, .divider::after { content:""; flex:1; height:1px; background:var(--sand); }
+
+  .swap { text-align:center; margin-top:18px; font-size:.88rem; color:var(--body); }
+  .swap a { color:var(--navy); font-weight:700; text-decoration:none; cursor:pointer; }
+
+  .back { text-align:center; margin-top:18px; }
+  .back a { color:var(--muted); font-size:.85rem; text-decoration:none; }
+  .back a:hover { color:var(--navy); }
+
+  .note { display:none; margin-top:14px; background:var(--teal-100); color:var(--teal-700); border-radius:var(--r); padding:11px 14px; font-size:.85rem; text-align:center; }
+  .note.show { display:block; }
+</style>
+</head>
+<body>
+<div class="auth">
+  <div class="top">
+    <img src="./kluch-icon.png" alt="Kluch">
+    <h1 id="title">Welcome to Kluch</h1>
+    <p id="subtitle">Your keys to Montenegro</p>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button id="tabLogin" class="active">Log in</button>
+      <button id="tabReg">Register</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form class="pane active" id="paneLogin" onsubmit="return fakeSubmit('login')">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="your@email.com" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••" required>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox"> Remember me</label>
+        <a href="#">Forgot password?</a>
+      </div>
+      <button class="btn btn-primary" type="submit">Log in</button>
+      <div class="divider">or</div>
+      <button class="btn btn-tg" type="button" onclick="fakeSubmit('telegram')">✈ Continue with Telegram</button>
+      <div class="swap">New here? <a onclick="show('reg')">Create an account</a></div>
+    </form>
+
+    <!-- REGISTER -->
+    <form class="pane" id="paneReg" onsubmit="return fakeSubmit('register')">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" placeholder="Balša Popović" required>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="your@email.com" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="Create a password" required>
+      </div>
+      <div class="field">
+        <label>Join code <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+        <input type="text" placeholder="e.g. A468BU">
+        <div class="hint">Got a code from your landlord or agency? Link your home right away.</div>
+      </div>
+      <button class="btn btn-primary" type="submit">Create account</button>
+      <div class="divider">or</div>
+      <button class="btn btn-tg" type="button" onclick="fakeSubmit('telegram')">✈ Continue with Telegram</button>
+      <div class="swap">Already have an account? <a onclick="show('login')">Log in</a></div>
+    </form>
+
+    <div class="note" id="note"></div>
+  </div>
+
+  <div class="back"><a href="./landing.html">← Back to kluch.me</a></div>
+</div>
+
+<script>
+  const tabLogin = document.getElementById("tabLogin");
+  const tabReg = document.getElementById("tabReg");
+  const paneLogin = document.getElementById("paneLogin");
+  const paneReg = document.getElementById("paneReg");
+  const title = document.getElementById("title");
+  const subtitle = document.getElementById("subtitle");
+
+  function show(which) {
+    const reg = which === "reg" || which === "register";
+    tabReg.classList.toggle("active", reg);
+    tabLogin.classList.toggle("active", !reg);
+    paneReg.classList.toggle("active", reg);
+    paneLogin.classList.toggle("active", !reg);
+    title.textContent = reg ? "Create your account" : "Welcome to Kluch";
+    subtitle.textContent = reg ? "Set up once — we handle the rest" : "Your keys to Montenegro";
+    document.getElementById("note").classList.remove("show");
+  }
+  tabLogin.addEventListener("click", () => show("login"));
+  tabReg.addEventListener("click", () => show("reg"));
+
+  function fakeSubmit(kind) {
+    const note = document.getElementById("note");
+    const msg = {
+      login: "✅ Demo only — this would sign you in.",
+      register: "✅ Demo only — this would create your account.",
+      telegram: "✈ Demo only — this would connect your Telegram.",
+    }[kind];
+    note.textContent = msg;
+    note.classList.add("show");
+    return false;
+  }
+
+  if (location.hash.replace("#", "") === "register") show("reg");
+</script>
+</body>
+</html>
