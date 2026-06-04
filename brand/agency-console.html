@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kluch — Agency Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900:#13233A; --navy-800:#17304B; --navy:#1F3A5C; --navy-400:#5C7796; --navy-200:#A9B8CC;
+    --teal-700:#3C6B63; --teal:#4E827A; --teal-100:#DCE8E4;
+    --cream:#F1ECE0; --paper:#FBF8F1; --page:#F2EEE4; --sand:#E7DFCF;
+    --ink:#16243A; --body:#44535F; --muted:#8A95A1; --amber:#C9883C; --amber-100:#FBF0DD;
+    --r:16px; --r-lg:22px;
+    --shadow:0 14px 36px rgba(20,35,58,.10), 0 3px 8px rgba(20,35,58,.05);
+    --shadow-sm:0 4px 14px rgba(20,35,58,.06);
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-body); color:var(--body); background:var(--page); -webkit-font-smoothing:antialiased; display:flex; min-height:100vh; }
+  h1,h2,h3 { font-family:var(--font-display); color:var(--ink); letter-spacing:-.01em; }
+
+  /* Sidebar */
+  .sidebar { width:248px; flex:0 0 248px; background:var(--navy); color:#C7D4E3; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .sidebar .brandrow { display:flex; align-items:center; gap:11px; padding:20px 20px 14px; }
+  .sidebar .brandrow img { width:36px; height:36px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+  .sidebar .brandrow .b { font-family:var(--font-display); font-weight:800; color:#fff; font-size:1.1rem; line-height:1; }
+  .sidebar .brandrow .t { font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--navy-200); margin-top:3px; }
+  .agencybox { margin:6px 14px 16px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; display:flex; align-items:center; gap:10px; }
+  .agencybox .pic { width:34px; height:34px; border-radius:9px; background:var(--teal); color:#fff; display:grid; place-items:center; font-family:var(--font-display); font-weight:700; }
+  .agencybox .an { font-family:var(--font-display); font-weight:700; color:#fff; font-size:.86rem; }
+  .agencybox .al { color:var(--navy-200); font-size:.72rem; }
+  nav.menu { padding:6px 12px; display:flex; flex-direction:column; gap:3px; }
+  nav.menu a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; color:#B9C7DA; text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:.9rem; }
+  nav.menu a .ic { width:20px; text-align:center; }
+  nav.menu a:hover { background:rgba(255,255,255,.07); color:#fff; }
+  nav.menu a.active { background:rgba(255,255,255,.14); color:#fff; }
+  nav.menu a .badge { margin-left:auto; background:var(--amber); color:#fff; font-size:.66rem; font-weight:800; padding:1px 7px; border-radius:999px; }
+  .sidebar .foot { margin-top:auto; padding:14px; border-top:1px solid rgba(255,255,255,.08); }
+  .sidebar .foot a { color:var(--navy-200); text-decoration:none; font-size:.85rem; display:flex; align-items:center; gap:9px; }
+  .sidebar .foot a:hover { color:#fff; }
+
+  /* Main */
+  .main { flex:1; min-width:0; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:22px 30px; border-bottom:1px solid var(--sand); background:rgba(246,242,233,.7); backdrop-filter:blur(8px); position:sticky; top:0; z-index:5; }
+  .topbar h1 { font-size:1.4rem; font-weight:800; }
+  .topbar .sub { color:var(--muted); font-size:.85rem; margin-top:2px; }
+  .topbar .spacer { margin-left:auto; }
+  .btn { font-family:var(--font-display); font-weight:700; font-size:.9rem; border:0; border-radius:999px; padding:11px 18px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; text-decoration:none; }
+  .btn-primary { background:var(--navy); color:#fff; box-shadow:0 8px 18px rgba(31,58,92,.22); }
+  .btn-primary:hover { background:var(--navy-800); }
+  .btn-ghost { background:#fff; color:var(--navy); border:1.5px solid var(--sand); }
+
+  /* EN | SR toggle */
+  .langtoggle { display:inline-flex; background:var(--cream); border:1px solid var(--sand); border-radius:999px; padding:3px; }
+  .langtoggle button { border:0; background:transparent; font-family:var(--font-display); font-weight:700; font-size:.78rem; color:var(--muted); padding:6px 12px; border-radius:999px; cursor:pointer; }
+  .langtoggle button.active { background:#fff; color:var(--navy); box-shadow:0 2px 6px rgba(20,35,58,.1); }
+
+  .content { padding:26px 30px 50px; }
+
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:30px; }
+  .kpi { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r); padding:18px; box-shadow:var(--shadow-sm); }
+  .kpi .l { color:var(--muted); font-size:.78rem; }
+  .kpi .v { font-family:var(--font-display); font-weight:800; color:var(--ink); font-size:1.7rem; margin-top:6px; }
+  .kpi .d { font-size:.74rem; margin-top:4px; color:var(--teal-700); font-weight:600; }
+  @media (max-width:900px){ .kpis{ grid-template-columns:1fr 1fr; } }
+
+  .sechead { display:flex; align-items:center; margin:6px 0 16px; }
+  .sechead h2 { font-size:1.15rem; font-weight:700; }
+  .sechead .spacer { margin-left:auto; }
+  .sechead a { color:var(--teal-700); font-size:.85rem; font-weight:600; text-decoration:none; }
+
+  .pipeline { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:38px; }
+  .col { background:rgba(231,223,207,.45); border:1px solid var(--sand); border-radius:var(--r); padding:12px; }
+  .col .ch { display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.84rem; margin:2px 4px 12px; }
+  .col .ch .cnt { background:#fff; border:1px solid var(--sand); color:var(--muted); font-size:.7rem; font-weight:700; padding:1px 8px; border-radius:999px; }
+  .col .ch .dot { width:8px; height:8px; border-radius:50%; }
+  .lead { background:#fff; border:1px solid var(--sand); border-radius:13px; padding:12px; box-shadow:var(--shadow-sm); margin-bottom:10px; cursor:pointer; transition:transform .1s, box-shadow .2s; }
+  .lead:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+  .lead .lr { display:flex; align-items:center; gap:7px; }
+  .lead .nm { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.88rem; }
+  .lead .tm { margin-left:auto; color:var(--muted); font-size:.7rem; }
+  .lead .it { color:var(--body); font-size:.78rem; margin-top:6px; }
+  .lead .bud { display:inline-block; margin-top:8px; background:var(--cream); color:var(--navy); font-family:var(--font-display); font-weight:700; font-size:.72rem; padding:3px 9px; border-radius:999px; }
+  @media (max-width:1000px){ .pipeline{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .pipeline{ grid-template-columns:1fr; } }
+
+  .listings { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .listing { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); transition:transform .12s, box-shadow .2s; }
+  .listing:hover { transform:translateY(-3px); box-shadow:var(--shadow); }
+  .listing .ph { position:relative; height:128px; }
+  .listing .ph img { width:100%; height:100%; object-fit:cover; display:block; }
+  .listing .st { position:absolute; top:10px; left:10px; font-family:var(--font-display); font-weight:700; font-size:.66rem; padding:3px 9px; border-radius:999px; }
+  .st-pub { background:var(--teal-100); color:var(--teal-700); }
+  .st-draft { background:#EEE8DA; color:var(--muted); }
+  .listing .lb { padding:13px 15px 15px; }
+  .listing .lt { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.92rem; }
+  .listing .lp { color:var(--navy); font-family:var(--font-display); font-weight:800; font-size:.95rem; margin-top:3px; }
+  .listing .lp small { color:var(--muted); font-weight:600; font-size:.7rem; }
+  .listing .lstats { display:flex; gap:14px; margin-top:10px; color:var(--muted); font-size:.76rem; }
+  @media (max-width:1100px){ .listings{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .listings{ grid-template-columns:1fr; } }
+
+  @media (max-width:760px){
+    body { flex-direction:column; }
+    .sidebar { width:100%; flex:none; height:auto; position:static; flex-direction:row; align-items:center; overflow-x:auto; }
+    .sidebar .brandrow{ padding:14px; } .agencybox,.sidebar .foot{ display:none; }
+    nav.menu{ flex-direction:row; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brandrow">
+    <img src="./kluch-icon.png" alt="Kluch">
+    <div><div class="b">Kluch</div><div class="t" data-i18n="side.foragencies">for Agencies</div></div>
+  </div>
+  <div class="agencybox">
+    <div class="pic">P</div>
+    <div><div class="an">Popović Nekretnine</div><div class="al">Podgorica</div></div>
+  </div>
+  <nav class="menu">
+    <a href="#" class="active"><span class="ic">▦</span> <span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="#"><span class="ic">🏠</span> <span data-i18n="nav.listings">Listings</span></a>
+    <a href="#"><span class="ic">📩</span> <span data-i18n="nav.leads">Leads</span> <span class="badge">5</span></a>
+    <a href="./agency-tenants.html"><span class="ic">👥</span> <span data-i18n="nav.tenants">Tenants</span></a>
+    <a href="#"><span class="ic">💬</span> <span data-i18n="nav.messages">Messages</span> <span class="badge">2</span></a>
+    <a href="#"><span class="ic">💳</span> <span data-i18n="nav.billing">Billing</span></a>
+    <a href="#"><span class="ic">⚙</span> <span data-i18n="nav.settings">Settings</span></a>
+  </nav>
+  <div class="foot"><a href="./login.html">⎋ <span data-i18n="logout">Log out</span></a></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="top.title">Dashboard</h1>
+      <div class="sub" data-i18n="top.welcome">Welcome back · Popović Nekretnine</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="langtoggle">
+      <button data-code="en" class="active">EN</button>
+      <button data-code="sr">SR</button>
+    </div>
+    <a href="#" class="btn btn-ghost" data-i18n="top.storefront">View storefront ↗</a>
+    <a href="#" class="btn btn-primary" data-i18n="top.addlisting">+ Add listing</a>
+  </div>
+
+  <div class="content">
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi"><div class="l" data-i18n="kpi.listings">Active listings</div><div class="v">12</div><div class="d" data-i18n="kpi.listingsd">+2 this week</div></div>
+      <div class="kpi"><div class="l" data-i18n="kpi.leads">New leads</div><div class="v">5</div><div class="d" data-i18n="kpi.leadsd">from the Kluch marketplace</div></div>
+      <div class="kpi"><div class="l" data-i18n="kpi.tours">Tours this week</div><div class="v">3</div><div class="d" data-i18n="kpi.toursd">2 confirmed</div></div>
+      <div class="kpi"><div class="l" data-i18n="kpi.earn">Earnings · June</div><div class="v">€1,240</div><div class="d" data-i18n="kpi.earnd">2 deals closed</div></div>
+    </div>
+
+    <!-- LEADS -->
+    <div class="sechead">
+      <h2 data-i18n="sec.leads">Leads</h2>
+      <div class="spacer"></div>
+      <a href="#" data-i18n="viewall">View all →</a>
+    </div>
+    <div class="pipeline">
+
+      <div class="col">
+        <div class="ch"><span class="dot" style="background:var(--navy-400);"></span> <span data-i18n="col.new">New</span> <span class="cnt">2</span></div>
+        <div class="lead">
+          <div class="lr"><span>🇷🇺</span><span class="nm">Dmitry K.</span><span class="tm" data-i18n="t.2h">2h ago</span></div>
+          <div class="it" data-i18n="lead0.it">Interested in <b>Modern flat, Podgorica</b></div>
+          <span class="bud">€500–600</span>
+        </div>
+        <div class="lead">
+          <div class="lr"><span>🇹🇷</span><span class="nm">Elif Y.</span><span class="tm" data-i18n="t.5h">5h ago</span></div>
+          <div class="it" data-i18n="lead1.it">Studio near the centre</div>
+          <span class="bud">€400–500</span>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="ch"><span class="dot" style="background:var(--amber);"></span> <span data-i18n="col.contacted">Contacted</span> <span class="cnt">2</span></div>
+        <div class="lead">
+          <div class="lr"><span>🇬🇧</span><span class="nm">James W.</span><span class="tm" data-i18n="t.1d">1d</span></div>
+          <div class="it" data-i18n="lead2.it">2-bed, city centre</div>
+          <span class="bud">€600</span>
+        </div>
+        <div class="lead">
+          <div class="lr"><span>🇷🇺</span><span class="nm">Anna S.</span><span class="tm" data-i18n="t.1d">1d</span></div>
+          <div class="it" data-i18n="lead3.it">Interested in <b>Modern flat</b></div>
+          <span class="bud">€550</span>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="ch"><span class="dot" style="background:var(--teal);"></span> <span data-i18n="col.viewing">Viewing</span> <span class="cnt">1</span></div>
+        <div class="lead">
+          <div class="lr"><span>🇹🇷</span><span class="nm">Mehmet A.</span><span class="tm" data-i18n="t.sat">Sat</span></div>
+          <div class="it" data-i18n="lead4.it">Tour booked · <b>Sat 14:00</b></div>
+          <span class="bud" data-i18n="l.modernflat">Modern flat</span>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="ch"><span class="dot" style="background:var(--teal-700);"></span> <span data-i18n="col.signed">Signed</span> <span class="cnt">1</span></div>
+        <div class="lead">
+          <div class="lr"><span>🇷🇺</span><span class="nm">Elena P.</span><span class="tm">Jun 1</span></div>
+          <div class="it" data-i18n="lead5.it">Signed <b>Modern flat</b> ✅</div>
+          <span class="bud">€550/mo</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- LISTINGS -->
+    <div class="sechead">
+      <h2 data-i18n="sec.listings">Your listings</h2>
+      <div class="spacer"></div>
+      <a href="#" data-i18n="manageall">Manage all →</a>
+    </div>
+    <div class="listings">
+
+      <div class="listing">
+        <div class="ph"><img src="./img/podgorica.jpg" alt=""><span class="st st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="lb">
+          <div class="lt" data-i18n="l0.t">Modern flat, Podgorica</div>
+          <div class="lp">€550<small>/mo</small></div>
+          <div class="lstats"><span>👁 320</span><span data-i18n="l0.leads">📩 4 leads</span></div>
+        </div>
+      </div>
+
+      <div class="listing">
+        <div class="ph"><img src="./img/kotor.jpg" alt=""><span class="st st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="lb">
+          <div class="lt" data-i18n="l1.t">Bay-view one-bed, Kotor</div>
+          <div class="lp">€620<small>/mo</small></div>
+          <div class="lstats"><span>👁 210</span><span data-i18n="l1.leads">📩 2 leads</span></div>
+        </div>
+      </div>
+
+      <div class="listing">
+        <div class="ph"><img src="./img/int-living.jpg" alt=""><span class="st st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="lb">
+          <div class="lt" data-i18n="l2.t">Studio, Podgorica centre</div>
+          <div class="lp">€420<small>/mo</small></div>
+          <div class="lstats"><span>👁 150</span><span data-i18n="l2.leads">📩 3 leads</span></div>
+        </div>
+      </div>
+
+      <div class="listing">
+        <div class="ph"><img src="./img/durmitor.jpg" alt=""><span class="st st-draft" data-i18n="st.draft">Draft</span></div>
+        <div class="lb">
+          <div class="lt" data-i18n="l3.t">Pine chalet, Žabljak</div>
+          <div class="lp">€480<small>/mo</small></div>
+          <div class="lstats"><span>👁 —</span><span data-i18n="l3.leads">📩 0 leads</span></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const I18N = {
+    en: {
+      "side.foragencies":"for Agencies",
+      "nav.dashboard":"Dashboard","nav.listings":"Listings","nav.leads":"Leads","nav.tenants":"Tenants","nav.messages":"Messages","nav.billing":"Billing","nav.settings":"Settings","logout":"Log out",
+      "top.title":"Dashboard","top.welcome":"Welcome back · Popović Nekretnine","top.storefront":"View storefront ↗","top.addlisting":"+ Add listing",
+      "kpi.listings":"Active listings","kpi.listingsd":"+2 this week",
+      "kpi.leads":"New leads","kpi.leadsd":"from the Kluch marketplace",
+      "kpi.tours":"Tours this week","kpi.toursd":"2 confirmed",
+      "kpi.earn":"Earnings · June","kpi.earnd":"2 deals closed",
+      "sec.leads":"Leads","viewall":"View all →",
+      "col.new":"New","col.contacted":"Contacted","col.viewing":"Viewing","col.signed":"Signed",
+      "t.2h":"2h ago","t.5h":"5h ago","t.1d":"1d","t.sat":"Sat",
+      "lead0.it":"Interested in <b>Modern flat, Podgorica</b>",
+      "lead1.it":"Studio near the centre",
+      "lead2.it":"2-bed, city centre",
+      "lead3.it":"Interested in <b>Modern flat</b>",
+      "lead4.it":"Tour booked · <b>Sat 14:00</b>",
+      "lead5.it":"Signed <b>Modern flat</b> ✅",
+      "l.modernflat":"Modern flat",
+      "sec.listings":"Your listings","manageall":"Manage all →",
+      "st.pub":"Published","st.draft":"Draft",
+      "l0.t":"Modern flat, Podgorica","l0.leads":"📩 4 leads",
+      "l1.t":"Bay-view one-bed, Kotor","l1.leads":"📩 2 leads",
+      "l2.t":"Studio, Podgorica centre","l2.leads":"📩 3 leads",
+      "l3.t":"Pine chalet, Žabljak","l3.leads":"📩 0 leads",
+    },
+    sr: {
+      "side.foragencies":"za agencije",
+      "nav.dashboard":"Kontrolna tabla","nav.listings":"Oglasi","nav.leads":"Upiti","nav.tenants":"Stanari","nav.messages":"Poruke","nav.billing":"Naplata","nav.settings":"Podešavanja","logout":"Odjava",
+      "top.title":"Kontrolna tabla","top.welcome":"Dobrodošli nazad · Popović Nekretnine","top.storefront":"Pogledaj sajt ↗","top.addlisting":"+ Dodaj oglas",
+      "kpi.listings":"Aktivni oglasi","kpi.listingsd":"+2 ove sedmice",
+      "kpi.leads":"Novi upiti","kpi.leadsd":"sa Kluch marketplace-a",
+      "kpi.tours":"Obilasci ove sedmice","kpi.toursd":"2 potvrđena",
+      "kpi.earn":"Zarada · jun","kpi.earnd":"2 zaključena posla",
+      "sec.leads":"Upiti","viewall":"Vidi sve →",
+      "col.new":"Novi","col.contacted":"Kontaktirani","col.viewing":"Obilazak","col.signed":"Potpisani",
+      "t.2h":"prije 2h","t.5h":"prije 5h","t.1d":"1d","t.sat":"sub",
+      "lead0.it":"Zainteresovan za <b>Moderan stan, Podgorica</b>",
+      "lead1.it":"Studio blizu centra",
+      "lead2.it":"Dvosoban, centar grada",
+      "lead3.it":"Zainteresovana za <b>Moderan stan</b>",
+      "lead4.it":"Obilazak zakazan · <b>sub 14:00</b>",
+      "lead5.it":"Potpisan <b>Moderan stan</b> ✅",
+      "l.modernflat":"Moderan stan",
+      "sec.listings":"Vaši oglasi","manageall":"Upravljaj svima →",
+      "st.pub":"Objavljeno","st.draft":"Nacrt",
+      "l0.t":"Moderan stan, Podgorica","l0.leads":"📩 4 upita",
+      "l1.t":"Stan s pogledom, Kotor","l1.leads":"📩 2 upita",
+      "l2.t":"Studio, centar Podgorice","l2.leads":"📩 3 upita",
+      "l3.t":"Planinska kuća, Žabljak","l3.leads":"📩 0 upita",
+    },
+  };
+
+  let LANG = "en";
+  function t(k) { return (I18N[LANG] && I18N[LANG][k]) ?? I18N.en[k] ?? k; }
+  function setLang(code) {
+    LANG = code;
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const v = t(el.getAttribute("data-i18n"));
+      if (v.indexOf("<") >= 0) el.innerHTML = v; else el.textContent = v;
+    });
+    document.documentElement.lang = code;
+    document.querySelectorAll(".langtoggle button").forEach((b) => b.classList.toggle("active", b.dataset.code === code));
+    try { localStorage.setItem("kluch-agency-lang", code); } catch (e) {}
+  }
+  document.querySelectorAll(".langtoggle button").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.code)));
+
+  let saved = "en";
+  try { saved = localStorage.getItem("kluch-agency-lang") || "en"; } catch (e) {}
+  setLang(saved);
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kluch — Tenants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900:#13233A; --navy-800:#17304B; --navy:#1F3A5C; --navy-400:#5C7796; --navy-200:#A9B8CC;
+    --teal-700:#3C6B63; --teal:#4E827A; --teal-100:#DCE8E4;
+    --cream:#F1ECE0; --paper:#FBF8F1; --page:#F2EEE4; --sand:#E7DFCF;
+    --ink:#16243A; --body:#44535F; --muted:#8A95A1; --amber:#C9883C; --amber-100:#FBF0DD; --terracotta:#B4543F;
+    --r:16px; --r-lg:22px;
+    --shadow:0 14px 36px rgba(20,35,58,.10), 0 3px 8px rgba(20,35,58,.05);
+    --shadow-sm:0 4px 14px rgba(20,35,58,.06);
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-body); color:var(--body); background:var(--page); -webkit-font-smoothing:antialiased; display:flex; min-height:100vh; }
+  h1,h2,h3 { font-family:var(--font-display); color:var(--ink); letter-spacing:-.01em; }
+
+  /* Sidebar */
+  .sidebar { width:248px; flex:0 0 248px; background:var(--navy); color:#C7D4E3; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .sidebar .brandrow { display:flex; align-items:center; gap:11px; padding:20px 20px 14px; }
+  .sidebar .brandrow img { width:36px; height:36px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+  .sidebar .brandrow .b { font-family:var(--font-display); font-weight:800; color:#fff; font-size:1.1rem; line-height:1; }
+  .sidebar .brandrow .t { font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--navy-200); margin-top:3px; }
+  .agencybox { margin:6px 14px 16px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; display:flex; align-items:center; gap:10px; }
+  .agencybox .pic { width:34px; height:34px; border-radius:9px; background:var(--teal); color:#fff; display:grid; place-items:center; font-family:var(--font-display); font-weight:700; }
+  .agencybox .an { font-family:var(--font-display); font-weight:700; color:#fff; font-size:.86rem; }
+  .agencybox .al { color:var(--navy-200); font-size:.72rem; }
+  nav.menu { padding:6px 12px; display:flex; flex-direction:column; gap:3px; }
+  nav.menu a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; color:#B9C7DA; text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:.9rem; }
+  nav.menu a .ic { width:20px; text-align:center; }
+  nav.menu a:hover { background:rgba(255,255,255,.07); color:#fff; }
+  nav.menu a.active { background:rgba(255,255,255,.14); color:#fff; }
+  nav.menu a .badge { margin-left:auto; background:var(--amber); color:#fff; font-size:.66rem; font-weight:800; padding:1px 7px; border-radius:999px; }
+  .sidebar .foot { margin-top:auto; padding:14px; border-top:1px solid rgba(255,255,255,.08); }
+  .sidebar .foot a { color:var(--navy-200); text-decoration:none; font-size:.85rem; display:flex; align-items:center; gap:9px; }
+
+  /* Main */
+  .main { flex:1; min-width:0; display:flex; flex-direction:column; height:100vh; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:18px 26px; border-bottom:1px solid var(--sand); background:var(--paper); }
+  .topbar h1 { font-size:1.3rem; font-weight:800; }
+  .topbar .sub { color:var(--muted); font-size:.82rem; margin-top:2px; }
+  .topbar .spacer { margin-left:auto; }
+  .langtoggle { display:inline-flex; background:var(--cream); border:1px solid var(--sand); border-radius:999px; padding:3px; }
+  .langtoggle button { border:0; background:transparent; font-family:var(--font-display); font-weight:700; font-size:.78rem; color:var(--muted); padding:6px 12px; border-radius:999px; cursor:pointer; }
+  .langtoggle button.active { background:#fff; color:var(--navy); box-shadow:0 2px 6px rgba(20,35,58,.1); }
+
+  /* Two-pane */
+  .panes { flex:1; display:grid; grid-template-columns:340px 1fr; min-height:0; }
+  .tlist { border-right:1px solid var(--sand); overflow-y:auto; background:var(--paper); }
+  .search { padding:14px; border-bottom:1px solid var(--sand); }
+  .search input { width:100%; padding:10px 13px; border:1.5px solid var(--sand); border-radius:999px; font-family:var(--font-body); font-size:.86rem; background:#fff; outline:none; }
+  .search input:focus { border-color:var(--teal); }
+  .titem { display:flex; gap:11px; padding:14px; border-bottom:1px solid var(--sand); cursor:pointer; }
+  .titem:hover { background:var(--cream); }
+  .titem.active { background:var(--cream); box-shadow:inset 3px 0 0 var(--navy); }
+  .titem .av { width:40px; height:40px; border-radius:11px; background:var(--navy); color:#fff; display:grid; place-items:center; font-family:var(--font-display); font-weight:700; flex:0 0 auto; }
+  .titem .mid { min-width:0; flex:1; }
+  .titem .apt { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.86rem; }
+  .titem .ten { color:var(--muted); font-size:.76rem; margin-top:1px; }
+  .titem .prev { color:var(--body); font-size:.76rem; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .titem .right { text-align:right; flex:0 0 auto; }
+  .titem .tm { color:var(--muted); font-size:.68rem; }
+  .titem .unread { display:inline-block; margin-top:6px; background:var(--amber); color:#fff; font-size:.64rem; font-weight:800; min-width:18px; height:18px; line-height:18px; text-align:center; border-radius:999px; padding:0 5px; }
+  .dot-status { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
+
+  /* Detail */
+  .tdetail { display:flex; flex-direction:column; min-width:0; }
+  .dhead { padding:16px 22px; border-bottom:1px solid var(--sand); background:var(--paper); }
+  .dhead .row1 { display:flex; align-items:center; gap:12px; }
+  .dhead h2 { font-size:1.1rem; font-weight:800; }
+  .dhead .meta { margin-left:auto; display:flex; gap:18px; }
+  .dhead .meta .m .k { color:var(--muted); font-size:.68rem; }
+  .dhead .meta .m .v { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.84rem; }
+  .parties { display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; }
+  .party { display:flex; align-items:center; gap:8px; font-size:.8rem; }
+  .party .pl { color:var(--muted); }
+  .party .pn { font-weight:600; color:var(--ink); }
+  .transbanner { display:flex; align-items:center; gap:8px; margin-top:12px; background:var(--teal-100); color:var(--teal-700); border-radius:10px; padding:8px 12px; font-size:.78rem; }
+
+  .thread { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:14px; background:
+      radial-gradient(700px 360px at 90% -5%, rgba(78,130,122,.06), transparent 60%), var(--page); }
+  .sys { align-self:center; background:var(--cream); border:1px solid var(--sand); color:var(--muted); font-size:.74rem; padding:5px 12px; border-radius:999px; }
+  .msg { max-width:74%; }
+  .msg.inc { align-self:flex-start; }
+  .msg.out { align-self:flex-end; }
+  .msg .who { font-size:.72rem; color:var(--muted); margin:0 4px 4px; display:flex; align-items:center; gap:5px; }
+  .msg.out .who { justify-content:flex-end; }
+  .msg .bub { padding:11px 14px; border-radius:16px; font-size:.9rem; line-height:1.45; }
+  .msg.inc .bub { background:#fff; border:1px solid var(--sand); color:var(--ink); border-bottom-left-radius:5px; }
+  .msg.owner .bub { background:#FBF4E6; border:1px solid #EADBC2; }
+  .msg.out .bub { background:var(--navy); color:#fff; border-bottom-right-radius:5px; }
+  .msg .tr { display:block; margin-top:6px; padding-top:6px; border-top:1px dashed rgba(0,0,0,.12); font-size:.78rem; color:var(--teal-700); font-style:italic; }
+  .msg.out .tr { border-top-color:rgba(255,255,255,.25); color:#BFE0D8; }
+  .msg .delivered { font-size:.68rem; color:var(--muted); margin:5px 4px 0; }
+  .msg.out .delivered { text-align:right; }
+
+  .composer { border-top:1px solid var(--sand); background:var(--paper); padding:14px 22px; }
+  .composer .note { color:var(--muted); font-size:.74rem; margin-bottom:9px; }
+  .composer .note b { color:var(--navy); }
+  .composer .box { display:flex; gap:10px; align-items:center; background:#fff; border:1.5px solid var(--sand); border-radius:999px; padding:6px 6px 6px 16px; }
+  .composer .box input { flex:1; border:0; outline:none; font-family:var(--font-body); font-size:.9rem; background:transparent; }
+  .composer .send { width:40px; height:40px; border-radius:50%; border:0; background:var(--teal); color:#fff; font-size:1.1rem; cursor:pointer; }
+
+  @media (max-width:860px){ .panes{ grid-template-columns:1fr; } .tlist{ display:none; } .dhead .meta{ display:none; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brandrow">
+    <img src="./kluch-icon.png" alt="Kluch">
+    <div><div class="b">Kluch</div><div class="t" data-i18n="side.foragencies">for Agencies</div></div>
+  </div>
+  <div class="agencybox">
+    <div class="pic">P</div>
+    <div><div class="an">Popović Nekretnine</div><div class="al">Podgorica</div></div>
+  </div>
+  <nav class="menu">
+    <a href="./agency-console.html"><span class="ic">▦</span> <span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="#"><span class="ic">🏠</span> <span data-i18n="nav.listings">Listings</span></a>
+    <a href="#"><span class="ic">📩</span> <span data-i18n="nav.leads">Leads</span> <span class="badge">5</span></a>
+    <a href="#" class="active"><span class="ic">👥</span> <span data-i18n="nav.tenants">Tenants</span></a>
+    <a href="#"><span class="ic">💬</span> <span data-i18n="nav.messages">Messages</span> <span class="badge">2</span></a>
+    <a href="#"><span class="ic">💳</span> <span data-i18n="nav.billing">Billing</span></a>
+    <a href="#"><span class="ic">⚙</span> <span data-i18n="nav.settings">Settings</span></a>
+  </nav>
+  <div class="foot"><a href="./login.html">⎋ <span data-i18n="logout">Log out</span></a></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="top.tenants">Tenants</h1>
+      <div class="sub" data-i18n="top.sub">12 apartments under management</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="langtoggle">
+      <button data-code="en" class="active">EN</button>
+      <button data-code="sr">SR</button>
+    </div>
+  </div>
+
+  <div class="panes">
+
+    <!-- LEFT: tenancy list -->
+    <div class="tlist">
+      <div class="search"><input type="text" data-i18n-ph="search.ph" placeholder="Search apartments or tenants…"></div>
+
+      <div class="titem active">
+        <div class="av">4B</div>
+        <div class="mid">
+          <div class="apt">Modern flat, Podgorica</div>
+          <div class="ten">🇷🇺 Anna S. · <span class="dot-status" style="background:var(--amber);"></span><span data-i18n="status.due">Rent due</span></div>
+          <div class="prev">🇷🇺 В квартире не работает отопление…</div>
+        </div>
+        <div class="right"><div class="tm">10m</div><div class="unread">2</div></div>
+      </div>
+
+      <div class="titem">
+        <div class="av">12</div>
+        <div class="mid">
+          <div class="apt">Bay-view one-bed, Kotor</div>
+          <div class="ten">🇬🇧 James W. · <span class="dot-status" style="background:var(--teal);"></span><span data-i18n="status.paid">Paid</span></div>
+          <div class="prev">🇬🇧 Thanks, all good!</div>
+        </div>
+        <div class="right"><div class="tm">1h</div></div>
+      </div>
+
+      <div class="titem">
+        <div class="av">7A</div>
+        <div class="mid">
+          <div class="apt">Studio, Podgorica centre</div>
+          <div class="ten">🇹🇷 Mehmet A. · <span class="dot-status" style="background:var(--teal);"></span><span data-i18n="status.paid">Paid</span></div>
+          <div class="prev">🇹🇷 Anahtarı aldım, teşekkürler</div>
+        </div>
+        <div class="right"><div class="tm">3h</div></div>
+      </div>
+
+      <div class="titem">
+        <div class="av">2C</div>
+        <div class="mid">
+          <div class="apt">Seafront studio, Budva</div>
+          <div class="ten">🇷🇺 Igor V. · <span class="dot-status" style="background:var(--teal);"></span><span data-i18n="status.paid">Paid</span></div>
+          <div class="prev">🇷🇺 Когда следующая инспекция?</div>
+        </div>
+        <div class="right"><div class="tm">1d</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: conversation -->
+    <div class="tdetail">
+      <div class="dhead">
+        <div class="row1">
+          <h2>Modern flat, Podgorica</h2>
+          <div class="meta">
+            <div class="m"><div class="k" data-i18n="d.rent">Rent</div><div class="v">€550 · <span data-i18n="status.due">due 5th</span></div></div>
+            <div class="m"><div class="k" data-i18n="d.lease">Lease</div><div class="v">Jan–Dec 2026</div></div>
+          </div>
+        </div>
+        <div class="parties">
+          <div class="party"><span class="pl" data-i18n="d.tenant">Tenant</span> <span class="pn">🇷🇺 Anna S.</span></div>
+          <div class="party"><span class="pl" data-i18n="d.owner">Owner</span> <span class="pn">🇲🇪 Marko P.</span></div>
+          <div class="party"><span class="pl" data-i18n="d.you">You</span> <span class="pn">🇷🇸 Popović Nekretnine</span></div>
+        </div>
+        <div class="transbanner">🌐 <span data-i18n="transbanner">Everyone writes in their own language — Kluch translates in real time.</span></div>
+      </div>
+
+      <div class="thread">
+        <div class="sys" data-i18n="sys.opened">Conversation started · Jan 2026</div>
+
+        <!-- tenant -->
+        <div class="msg inc">
+          <div class="who">🇷🇺 Anna · <span data-i18n="via.bot">via Telegram</span></div>
+          <div class="bub">В квартире не работает отопление 🥶<span class="tr" data-i18n="m1.tr">→ The heating isn't working in the apartment 🥶</span></div>
+        </div>
+
+        <!-- you -->
+        <div class="msg out">
+          <div class="who" data-i18n="who.you">You</div>
+          <div class="bub" data-i18n="m2.txt">Thanks Anna — I'm contacting the owner and a technician now.</div>
+          <div class="delivered" data-i18n="m2.del">Delivered to Anna in 🇷🇺 Russian</div>
+        </div>
+
+        <!-- owner -->
+        <div class="msg inc owner">
+          <div class="who">🇲🇪 Marko · <span data-i18n="lbl.owner">owner</span></div>
+          <div class="bub">Šaljem majstora sjutra u 9h.<span class="tr" data-i18n="m3.tr">→ I'll send a technician tomorrow at 9am.</span></div>
+          <div class="delivered" data-i18n="m3.del">Delivered to Anna in 🇷🇺 Russian</div>
+        </div>
+
+        <!-- you relay -->
+        <div class="msg out">
+          <div class="who" data-i18n="who.you">You</div>
+          <div class="bub" data-i18n="m4.txt">A technician will come tomorrow at 9:00. 👍</div>
+          <div class="delivered" data-i18n="m4.del">Delivered to Anna in 🇷🇺 Russian</div>
+        </div>
+
+        <!-- tenant reply -->
+        <div class="msg inc">
+          <div class="who">🇷🇺 Anna · <span data-i18n="via.bot">via Telegram</span></div>
+          <div class="bub">Спасибо большое! 🙏<span class="tr" data-i18n="m5.tr">→ Thank you so much! 🙏</span></div>
+        </div>
+
+        <div class="sys" data-i18n="sys.paid">Anna paid June rent ✅</div>
+      </div>
+
+      <div class="composer">
+        <div class="note" data-i18n="composer.note">You write in <b>English</b> · Anna receives 🇷🇺 Russian · Marko receives 🇲🇪 Montenegrin</div>
+        <div class="box">
+          <input type="text" data-i18n-ph="composer.ph" placeholder="Type a message…">
+          <button class="send">↑</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const I18N = {
+    en: {
+      "side.foragencies":"for Agencies",
+      "nav.dashboard":"Dashboard","nav.listings":"Listings","nav.leads":"Leads","nav.tenants":"Tenants","nav.messages":"Messages","nav.billing":"Billing","nav.settings":"Settings","logout":"Log out",
+      "top.tenants":"Tenants","top.sub":"12 apartments under management","search.ph":"Search apartments or tenants…",
+      "status.due":"Rent due","status.paid":"Paid",
+      "d.rent":"Rent","d.lease":"Lease","d.tenant":"Tenant","d.owner":"Owner","d.you":"You",
+      "transbanner":"Everyone writes in their own language — Kluch translates in real time.",
+      "sys.opened":"Conversation started · Jan 2026","sys.paid":"Anna paid June rent ✅",
+      "via.bot":"via Telegram","lbl.owner":"owner","who.you":"You",
+      "m1.tr":"→ The heating isn't working in the apartment 🥶",
+      "m2.txt":"Thanks Anna — I'm contacting the owner and a technician now.","m2.del":"Delivered to Anna in 🇷🇺 Russian",
+      "m3.tr":"→ I'll send a technician tomorrow at 9am.","m3.del":"Delivered to Anna in 🇷🇺 Russian",
+      "m4.txt":"A technician will come tomorrow at 9:00. 👍","m4.del":"Delivered to Anna in 🇷🇺 Russian",
+      "m5.tr":"→ Thank you so much! 🙏",
+      "composer.note":"You write in <b>English</b> · Anna receives 🇷🇺 Russian · Marko receives 🇲🇪 Montenegrin",
+      "composer.ph":"Type a message…",
+    },
+    sr: {
+      "side.foragencies":"za agencije",
+      "nav.dashboard":"Kontrolna tabla","nav.listings":"Oglasi","nav.leads":"Upiti","nav.tenants":"Stanari","nav.messages":"Poruke","nav.billing":"Naplata","nav.settings":"Podešavanja","logout":"Odjava",
+      "top.tenants":"Stanari","top.sub":"12 stanova pod upravom","search.ph":"Pretraži stanove ili stanare…",
+      "status.due":"Kirija dospijeva","status.paid":"Plaćeno",
+      "d.rent":"Kirija","d.lease":"Ugovor","d.tenant":"Stanar","d.owner":"Vlasnik","d.you":"Vi",
+      "transbanner":"Svako piše na svom jeziku — Kluch prevodi u realnom vremenu.",
+      "sys.opened":"Razgovor započet · jan 2026","sys.paid":"Ana je platila junsku kiriju ✅",
+      "via.bot":"preko Telegrama","lbl.owner":"vlasnik","who.you":"Vi",
+      "m1.tr":"→ U stanu ne radi grijanje 🥶",
+      "m2.txt":"Hvala Ana — javljam se vlasniku i majstoru.","m2.del":"Dostavljeno Ani na 🇷🇺 ruskom",
+      "m3.tr":"→ Šaljem majstora sjutra u 9h.","m3.del":"Dostavljeno Ani na 🇷🇺 ruskom",
+      "m4.txt":"Majstor dolazi sjutra u 9:00. 👍","m4.del":"Dostavljeno Ani na 🇷🇺 ruskom",
+      "m5.tr":"→ Mnogo vam hvala! 🙏",
+      "composer.note":"Pišete na <b>srpskom</b> · Ana prima 🇷🇺 ruski · Marko prima 🇲🇪 crnogorski",
+      "composer.ph":"Napišite poruku…",
+    },
+  };
+  let LANG = "en";
+  function t(k){ return (I18N[LANG] && I18N[LANG][k]) ?? I18N.en[k] ?? k; }
+  function setLang(code){
+    LANG = code;
+    document.querySelectorAll("[data-i18n]").forEach((el)=>{ const v=t(el.getAttribute("data-i18n")); if(v.indexOf("<")>=0) el.innerHTML=v; else el.textContent=v; });
+    document.querySelectorAll("[data-i18n-ph]").forEach((el)=> el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))));
+    document.documentElement.lang = code;
+    document.querySelectorAll(".langtoggle button").forEach((b)=> b.classList.toggle("active", b.dataset.code===code));
+    try { localStorage.setItem("kluch-agency-lang", code); } catch(e){}
+  }
+  document.querySelectorAll(".langtoggle button").forEach((b)=> b.addEventListener("click", ()=> setLang(b.dataset.code)));
+  document.querySelectorAll(".titem").forEach((it)=> it.addEventListener("click", ()=>{ document.querySelectorAll(".titem").forEach(x=>x.classList.remove("active")); it.classList.add("active"); }));
+  let saved="en"; try { saved = localStorage.getItem("kluch-agency-lang") || "en"; } catch(e){}
+  setLang(saved);
+</script>
+</body>
+</html>
