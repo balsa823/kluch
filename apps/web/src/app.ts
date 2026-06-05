@@ -172,7 +172,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const url = typeof body?.url === "string" ? body.url.trim() : "";
     if (!url) return c.json({ error: "url is required" }, 400);
     try {
-      const property = await importListing(db, user.agencyId, url);
+      const property = await importListing(db, user.agencyId, url, storage);
       return c.json(property, 201);
     } catch (e) {
       return c.json({ error: (e as Error).message }, 400);
