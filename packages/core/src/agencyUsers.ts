@@ -1,12 +1,13 @@
 import { eq } from "drizzle-orm";
 import { agencyUsers, type Database } from "@kluch/db";
+import { hashPassword } from "./auth.js";
 
 export type AgencyUser = typeof agencyUsers.$inferSelect;
 export type AgencyRole = AgencyUser["role"];
 
 export async function createAgencyUser(
   db: Database,
-  input: { agencyId: string; email: string; name?: string; role?: AgencyRole },
+  input: { agencyId: string; email: string; name?: string; role?: AgencyRole; password?: string },
 ): Promise<AgencyUser> {
   const [user] = await db.insert(agencyUsers)
     .values({
@@ -14,6 +15,7 @@ export async function createAgencyUser(
       email: input.email.toLowerCase().trim(),
       name: input.name,
       role: input.role ?? "agent",
+      passwordHash: input.password ? hashPassword(input.password) : undefined,
     })
     .returning();
   return user;

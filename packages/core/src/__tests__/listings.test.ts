@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, createProperty, getProperty, publishProperty, searchProperties } from "../listings.js";
+import { addPropertyPhotos, createProperty, getProperty, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -63,6 +63,20 @@ test("searchProperties filters by city, maxPrice, bedrooms", async () => {
   expect((await searchProperties(db, a.id, { maxPrice: 100000 })).map((r) => r.name)).toEqual(["Kotor 1BR"]);
   expect((await searchProperties(db, a.id, { bedrooms: 2 })).map((r) => r.name).sort()).toEqual(["Budva 2BR", "Tivat 3BR"]);
   expect((await searchProperties(db, a.id, { minPrice: 120000, type: "apartment" }))).toEqual([]);
+});
+
+test("listAgencyProperties returns all properties incl. drafts, newest first, scoped to agency", async () => {
+  const a = await agency("Agency A");
+  const b = await agency("Agency B");
+  const first = await createProperty(db, { agencyId: a.id, name: "First", address: "A", city: "Budva", priceMinor: 100000 });
+  await new Promise((r) => setTimeout(r, 5));
+  const second = await createProperty(db, { agencyId: a.id, name: "Second", address: "B", city: "Budva", priceMinor: 200000 });
+  await publishProperty(db, second.id); // second is published, first is a draft
+  await createProperty(db, { agencyId: b.id, name: "Other", address: "C", city: "Budva", priceMinor: 100000 });
+
+  const results = await listAgencyProperties(db, a.id);
+  expect(results).toHaveLength(2);
+  expect(results.map((r) => r.name)).toEqual([second.name, first.name]);
 });
 
 test("searchProperties is isolated per agency", async () => {

@@ -1,4 +1,4 @@
-import { and, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
 import { properties, type Database } from "@kluch/db";
 
 export type Property = typeof properties.$inferSelect;
@@ -64,6 +64,13 @@ export async function addPropertyPhotos(
     .where(eq(properties.id, id))
     .returning();
   return property;
+}
+
+/** All properties for an agency (drafts included), newest first. For the agency console. */
+export async function listAgencyProperties(db: Database, agencyId: string): Promise<Property[]> {
+  return db.select().from(properties)
+    .where(eq(properties.agencyId, agencyId))
+    .orderBy(desc(properties.createdAt));
 }
 
 export interface SearchFilters {
