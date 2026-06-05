@@ -1,0 +1,52 @@
+# Kluch — full local stack: Postgres + backend (apps/web) + static frontend.
+# Run:  docker compose up --build
+#   backend  → http://localhost:8080   (agency console: /login, agency sites by Host)
+#   frontend → http://localhost:8081   (marketing landing + mockups)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: kluch
+      POSTGRES_PASSWORD: kluch
+      POSTGRES_DB: kluch
+    ports:
+      - "5440:5432"           # host:container (5440 avoids the test DB on 5433)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kluch -d kluch"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://kluch:kluch@db:5432/kluch
+      DIRECT_DATABASE_URL: postgres://kluch:kluch@db:5432/kluch
+      SESSION_SECRET: dev-secret-change-me
+      UPLOAD_DIR: /data/uploads
+      BASE_DOMAIN: localhost
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/data/uploads   # local file storage for logos/photos
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./presentation.html:/usr/share/nginx/html/presentation.html:ro
+      - ./brand:/usr/share/nginx/html/brand:ro
+
+volumes:
+  pgdata:
+  uploads:
