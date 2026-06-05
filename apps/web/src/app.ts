@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { cors } from "hono/cors";
 import { getSignedCookie, setSignedCookie, deleteCookie } from "hono/cookie";
 import {
   addPropertyPhotos,
@@ -12,8 +13,10 @@ import {
   listAgencyProperties,
   publishProperty,
   searchProperties,
+  signToken,
   updateAgencyConfig,
   verifyAgencyUser,
+  verifyToken,
   type AgencyUser,
   type PropertyType,
   type SearchFilters,
@@ -37,6 +40,9 @@ function isUuid(s: string): boolean {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 20;
+
+/** Bearer-token lifetime: 7 days. */
+const TOKEN_TTL = 60 * 60 * 24 * 7;
 
 /** Parses raw query params into the core SearchFilters shape, ignoring blanks. */
 export function parseSearchFilters(query: Record<string, string | undefined>): SearchFilters {
@@ -120,7 +126,34 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return uid ? getAgencyUserById(db, uid) : null;
   }
 
+  /** Resolves the agency user from a `Authorization: Bearer <token>` header, or null. */
+  async function bearerUser(c: Context): Promise<AgencyUser | null> {
+    const header = c.req.header("Authorization");
+    if (!header?.startsWith("Bearer ")) return null;
+    const payload = verifyToken<{ sub?: string }>(header.slice("Bearer ".length), sessionSecret);
+    if (!payload?.sub) return null;
+    return getAgencyUserById(db, payload.sub);
+  }
+
   app.get("/health", (c) => c.text("ok"));
+
+  app.use("/api/*", cors());
+
+  app.post("/api/auth/login", async (c) => {
+    const { email, password } = await c.req.json();
+    const user = await verifyAgencyUser(db, String(email ?? ""), String(password ?? ""));
+    if (!user) return c.json({ error: "invalid credentials" }, 401);
+    return c.json({
+      token: signToken({ sub: user.id }, sessionSecret, TOKEN_TTL),
+      user: { id: user.id, email: user.email, role: user.role, agencyId: user.agencyId },
+    });
+  });
+
+  app.get("/api/me", async (c) => {
+    const user = await bearerUser(c);
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    return c.json({ user, agency: await getAgency(db, user.agencyId) });
+  });
 
   app.get("/login", (c) => c.html(renderLogin(c.req.query("error") === "1")));
 
