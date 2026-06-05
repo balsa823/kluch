@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   addPropertyPhotos,
   createProperty,
+  getAgency,
   getProperty,
   publishProperty,
   searchProperties,
@@ -17,6 +18,16 @@ import { renderAgencySite } from "./render.js";
 type Vars = { site: Site };
 
 const PROPERTY_TYPES: PropertyType[] = ["apartment", "studio", "house"];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True if the string is a canonical UUID. Guards against path traversal in storage keys. */
+function isUuid(s: string): boolean {
+  return UUID_RE.test(s);
+}
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILES = 20;
 
 /** Parses raw query params into the core SearchFilters shape, ignoring blanks. */
 export function parseSearchFilters(query: Record<string, string | undefined>): SearchFilters {
@@ -103,6 +114,8 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   // TODO: auth (admin only)
   app.post("/api/agency/:id/config", async (c) => {
     const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    if (!(await getAgency(db, id))) return c.json({ error: "not found" }, 404);
     const body = await c.req.json();
     try {
       const agency = await updateAgencyConfig(db, id, body);
@@ -115,6 +128,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   // TODO: auth (admin only)
   app.post("/api/agency/:id/properties", async (c) => {
     const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
     const body = await c.req.json();
     const property = await createProperty(db, { agencyId: id, ...body });
     return c.json(property, 201);
@@ -123,6 +137,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   // TODO: auth (admin only)
   app.post("/api/properties/:id/publish", async (c) => {
     const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
     const existing = await getProperty(db, id);
     if (!existing) return c.json({ error: "not found" }, 404);
     const property = await publishProperty(db, id);
@@ -132,10 +147,14 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   // TODO: auth (admin only)
   app.post("/api/agency/:id/logo", async (c) => {
     const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
     if (!storage) return c.json({ error: "storage not configured" }, 500);
+    if (!(await getAgency(db, id))) return c.json({ error: "not found" }, 404);
     const form = await c.req.parseBody();
-    const file = form.file as File;
+    const file = form.file;
+    if (!(file instanceof File)) return c.json({ error: "file required" }, 400);
     const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length > MAX_FILE_BYTES) return c.json({ error: "file too large" }, 400);
     const url = await storage.upload(
       `agencies/${id}/logo.${extForType(file.type)}`,
       bytes,
@@ -148,16 +167,25 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   // TODO: auth (admin only)
   app.post("/api/properties/:id/photos", async (c) => {
     const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
     if (!storage) return c.json({ error: "storage not configured" }, 500);
+    const existing = await getProperty(db, id);
+    if (!existing) return c.json({ error: "not found" }, 404);
     const form = await c.req.parseBody({ all: true });
     const raw = form.file;
-    const files = (Array.isArray(raw) ? raw : [raw]) as File[];
+    const files = (Array.isArray(raw) ? raw : [raw]).filter(
+      (f): f is File => f instanceof File,
+    );
+    if (files.length === 0) return c.json({ error: "file(s) required" }, 400);
+    if (files.length > MAX_FILES) return c.json({ error: "too many files" }, 400);
+    const base = existing.photos?.length ?? 0;
     const photos: string[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes.length > MAX_FILE_BYTES) return c.json({ error: "file too large" }, 400);
       const url = await storage.upload(
-        `properties/${id}/photo-${i}.${extForType(file.type)}`,
+        `properties/${id}/photo-${base + i}.${extForType(file.type)}`,
         bytes,
         file.type,
       );

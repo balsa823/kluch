@@ -162,6 +162,72 @@ test("POST /api/agency/:id/logo uploads and persists the logo", async () => {
   expect(await page.text()).toContain(body.logoUrl);
 });
 
+test("POST /api/agency/:id/logo with a non-uuid id returns 400 and uploads nothing", async () => {
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1, 2, 3])], "l.jpg", { type: "image/jpeg" }));
+  // ..%2f..%2fevil decodes to ../../evil — a path-traversal attempt.
+  const res = await app.request(new Request("http://kluche.me/api/agency/..%2f..%2fevil/logo", {
+    method: "POST",
+    body: form,
+  }));
+  expect(res.status).toBe(400);
+  expect((await res.json() as any).error).toBe("invalid id");
+  expect(storage.calls).toHaveLength(0);
+});
+
+test("POST /api/agency/:id/config with a non-uuid id returns 400", async () => {
+  const app = createApp(db);
+  const res = await app.request(new Request("http://kluche.me/api/agency/..%2f..%2fevil/config", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ colorPrimary: "#aa0000" }),
+  }));
+  expect(res.status).toBe(400);
+  expect((await res.json() as any).error).toBe("invalid id");
+});
+
+test("POST /api/agency/:id/logo for an unknown agency returns 404 and uploads nothing", async () => {
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1, 2, 3])], "l.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(
+    "http://kluche.me/api/agency/00000000-0000-0000-0000-000000000000/logo",
+    { method: "POST", body: form },
+  ));
+  expect(res.status).toBe(404);
+  expect((await res.json() as any).error).toBe("not found");
+  expect(storage.calls).toHaveLength(0);
+});
+
+test("POST /api/agency/:id/logo with no file returns 400 (not 500)", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+  const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
+    method: "POST",
+    body: new FormData(),
+  }));
+  expect(res.status).toBe(400);
+  expect((await res.json() as any).error).toBe("file required");
+  expect(storage.calls).toHaveLength(0);
+});
+
+test("POST /api/properties/:id/photos for an unknown property returns 404 and uploads nothing", async () => {
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1])], "1.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(
+    "http://kluche.me/api/properties/00000000-0000-0000-0000-000000000000/photos",
+    { method: "POST", body: form },
+  ));
+  expect(res.status).toBe(404);
+  expect(storage.calls).toHaveLength(0);
+});
+
 test("POST /api/agency/:id/logo without storage returns 500", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const app = createApp(db);
