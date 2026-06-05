@@ -1,12 +1,20 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Hono } from "hono";
+import type { Context } from "hono";
+import { getSignedCookie, setSignedCookie, deleteCookie } from "hono/cookie";
 import {
   addPropertyPhotos,
   createProperty,
   getAgency,
+  getAgencyUserById,
   getProperty,
+  listAgencyProperties,
   publishProperty,
   searchProperties,
   updateAgencyConfig,
+  verifyAgencyUser,
+  type AgencyUser,
   type PropertyType,
   type SearchFilters,
   type Storage,
@@ -14,6 +22,7 @@ import {
 import type { Database } from "@kluch/db";
 import { resolveSite, type Site } from "./site.js";
 import { renderAgencySite } from "./render.js";
+import { renderLogin, renderDashboard } from "./console.js";
 
 type Vars = { site: Site };
 
@@ -74,17 +83,104 @@ function extForType(contentType: string): string {
   return map[contentType] ?? "bin";
 }
 
+/** Content-type for a filename, guessed from its extension. */
+function contentTypeFor(path: string): string {
+  const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
+  const map: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+  };
+  return map[ext] ?? "application/octet-stream";
+}
+
 export interface CreateAppOptions {
   baseDomain?: string;
   storage?: Storage;
+  sessionSecret?: string;
+  uploadDir?: string;
 }
 
 /** Builds the multi-tenant web app: marketplace, agency console and white-label sites. */
 export function createApp(db: Database, opts: CreateAppOptions = {}) {
-  const { baseDomain = "kluche.me", storage } = opts;
+  const {
+    baseDomain = "kluche.me",
+    storage,
+    sessionSecret = "dev-secret-change-me",
+    uploadDir = "./data/uploads",
+  } = opts;
   const app = new Hono<{ Variables: Vars }>();
 
+  /** Resolves the signed-in agency user from the session cookie, or null. */
+  async function currentUser(c: Context): Promise<AgencyUser | null> {
+    const uid = await getSignedCookie(c, sessionSecret, "session");
+    return uid ? getAgencyUserById(db, uid) : null;
+  }
+
   app.get("/health", (c) => c.text("ok"));
+
+  app.get("/login", (c) => c.html(renderLogin(c.req.query("error") === "1")));
+
+  app.post("/login", async (c) => {
+    const body = await c.req.parseBody();
+    const email = String(body.email ?? "");
+    const password = String(body.password ?? "");
+    const user = await verifyAgencyUser(db, email, password);
+    if (!user) return c.redirect("/login?error=1", 302);
+    await setSignedCookie(c, "session", user.id, sessionSecret, {
+      httpOnly: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return c.redirect("/dashboard", 302);
+  });
+
+  app.get("/logout", (c) => {
+    deleteCookie(c, "session", { path: "/" });
+    return c.redirect("/login", 302);
+  });
+
+  app.get("/dashboard", async (c) => {
+    const user = await currentUser(c);
+    if (!user) return c.redirect("/login", 302);
+    const agency = await getAgency(db, user.agencyId);
+    if (!agency) return c.redirect("/login", 302);
+    const listings = await listAgencyProperties(db, agency.id);
+    return c.html(renderDashboard(agency, user, listings));
+  });
+
+  app.post("/dashboard/listings", async (c) => {
+    const user = await currentUser(c);
+    if (!user) return c.redirect("/login", 302);
+    const body = await c.req.parseBody();
+    const type = String(body.type ?? "");
+    const property = await createProperty(db, {
+      agencyId: user.agencyId,
+      name: String(body.name ?? ""),
+      address: String(body.address ?? ""),
+      city: String(body.city ?? ""),
+      priceMinor: Number(body.priceMinor),
+      bedrooms: Number(body.bedrooms),
+      type: (PROPERTY_TYPES as string[]).includes(type) ? (type as PropertyType) : undefined,
+    });
+    await publishProperty(db, property.id);
+    return c.redirect("/dashboard", 302);
+  });
+
+  app.get("/uploads/*", async (c) => {
+    const rest = c.req.path.slice("/uploads/".length);
+    // Reject path traversal before touching the filesystem.
+    if (rest.includes("..")) return c.text("Not found", 404);
+    try {
+      const bytes = await readFile(join(uploadDir, rest));
+      return c.body(bytes, 200, { "content-type": contentTypeFor(rest) });
+    } catch {
+      return c.text("Not found", 404);
+    }
+  });
 
   app.use("*", async (c, next) => {
     // Prefer the Host header; fall back to the request URL's host (e.g. in unit

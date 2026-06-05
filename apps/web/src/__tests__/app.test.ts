@@ -1,6 +1,9 @@
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { createAgency, createProperty, getProperty, publishProperty, FakeStorage } from "@kluch/core";
+import { createAgency, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluch/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -29,6 +32,22 @@ async function seed() {
 
   return { agency, draft };
 }
+
+test("GET /uploads/* serves a file written by LocalDiskStorage, 404 when missing", async () => {
+  const uploadDir = join(tmpdir(), `kluch-uploads-${randomUUID()}`);
+  const storage = new LocalDiskStorage(uploadDir, "/uploads");
+  const url = await storage.upload("properties/x/photo-0.png", new Uint8Array([1, 2, 3, 4]), "image/png");
+  expect(url).toBe("/uploads/properties/x/photo-0.png");
+
+  const app = createApp(db, { storage, uploadDir });
+  const res = await app.request(new Request(`http://localhost${url}`));
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toBe("image/png");
+  expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]));
+
+  const missing = await app.request(new Request("http://localhost/uploads/properties/x/nope.png"));
+  expect(missing.status).toBe(404);
+});
 
 test("GET /health returns ok on any host", async () => {
   const app = createApp(db);
