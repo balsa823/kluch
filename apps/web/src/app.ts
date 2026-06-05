@@ -155,6 +155,23 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return c.json({ user, agency: await getAgency(db, user.agencyId) });
   });
 
+  app.get("/api/listings", async (c) => {
+    const user = await bearerUser(c);
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const listings = await listAgencyProperties(db, user.agencyId);
+    return c.json({ listings });
+  });
+
+  app.post("/api/listings", async (c) => {
+    const user = await bearerUser(c);
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const body = await c.req.json();
+    // Always scope to the token's agency; ignore any agencyId in the body.
+    const property = await createProperty(db, { ...body, agencyId: user.agencyId });
+    const published = await publishProperty(db, property.id);
+    return c.json(published, 201);
+  });
+
   app.get("/login", (c) => c.html(renderLogin(c.req.query("error") === "1")));
 
   app.post("/login", async (c) => {
