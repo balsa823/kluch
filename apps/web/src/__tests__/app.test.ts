@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { createAgency, createProperty, publishProperty } from "@kluch/core";
+import { createAgency, createProperty, getProperty, publishProperty, FakeStorage } from "@kluch/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -76,4 +76,129 @@ test("agency console host renders the console placeholder", async () => {
   const res = await app.request(new Request("http://agency.kluche.me/"));
   expect(res.status).toBe(200);
   expect(await res.text()).toContain("Kluch agency console");
+});
+
+test("POST /api/agency/:id/config persists a valid color", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db);
+  const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/config`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ colorPrimary: "#aa0000" }),
+  }));
+  expect(res.status).toBe(200);
+  const body = await res.json() as any;
+  expect(body.colorPrimary).toBe("#aa0000");
+  const reloaded = await createApp(db).request(new Request("http://popovic.kluche.me/"));
+  expect(await reloaded.text()).toContain("#aa0000");
+});
+
+test("POST /api/agency/:id/config rejects an invalid color with 400", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db);
+  const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/config`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ colorPrimary: "red} x" }),
+  }));
+  expect(res.status).toBe(400);
+  const body = await res.json() as any;
+  expect(body.error).toBe("Invalid color");
+});
+
+test("create draft property is hidden until published, then appears on agency host", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db);
+
+  const created = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/properties`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      name: "Brand New Flat", address: "Nova 1", city: "Bar",
+      priceMinor: 55000, bedrooms: 2, type: "apartment",
+    }),
+  }));
+  expect(created.status).toBe(201);
+  const property = await created.json() as any;
+
+  const beforePublish = await createApp(db).request(new Request("http://popovic.kluche.me/"));
+  expect(await beforePublish.text()).not.toContain("Brand New Flat");
+
+  const published = await app.request(new Request(`http://kluche.me/api/properties/${property.id}/publish`, {
+    method: "POST",
+  }));
+  expect(published.status).toBe(200);
+
+  const afterPublish = await createApp(db).request(new Request("http://popovic.kluche.me/"));
+  expect(await afterPublish.text()).toContain("Brand New Flat");
+});
+
+test("POST /api/properties/:id/publish on unknown id returns 404", async () => {
+  const app = createApp(db);
+  const res = await app.request(new Request(
+    "http://kluche.me/api/properties/00000000-0000-0000-0000-000000000000/publish",
+    { method: "POST" },
+  ));
+  expect(res.status).toBe(404);
+});
+
+test("POST /api/agency/:id/logo uploads and persists the logo", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1, 2, 3])], "l.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
+    method: "POST",
+    body: form,
+  }));
+  expect(res.status).toBe(200);
+  const body = await res.json() as any;
+  expect(body.logoUrl).toBe(`https://fake.storage/agencies/${agency.id}/logo.jpg`);
+  expect(storage.calls).toHaveLength(1);
+
+  const page = await createApp(db).request(new Request("http://popovic.kluche.me/"));
+  expect(await page.text()).toContain(body.logoUrl);
+});
+
+test("POST /api/agency/:id/logo without storage returns 500", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db);
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1])], "l.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
+    method: "POST",
+    body: form,
+  }));
+  expect(res.status).toBe(500);
+  expect((await res.json() as any).error).toBe("storage not configured");
+});
+
+test("POST /api/properties/:id/photos uploads multiple files and persists them", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const property = await createProperty(db, {
+    agencyId: agency.id, name: "Photo Flat", address: "Slika 1",
+    city: "Tivat", priceMinor: 40000, type: "apartment",
+  });
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1, 2])], "1.jpg", { type: "image/jpeg" }));
+  form.append("file", new File([new Uint8Array([3, 4])], "2.png", { type: "image/png" }));
+  const res = await app.request(new Request(`http://kluche.me/api/properties/${property.id}/photos`, {
+    method: "POST",
+    body: form,
+  }));
+  expect(res.status).toBe(200);
+  const body = await res.json() as any;
+  expect(body.photos).toEqual([
+    `https://fake.storage/properties/${property.id}/photo-0.jpg`,
+    `https://fake.storage/properties/${property.id}/photo-1.png`,
+  ]);
+  expect(storage.calls).toHaveLength(2);
+
+  const reloaded = await getProperty(db, property.id);
+  expect(reloaded?.photos).toEqual(body.photos);
 });
