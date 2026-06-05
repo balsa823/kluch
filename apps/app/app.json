@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Kluch",
+    "slug": "kluch",
+    "scheme": "kluch",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font"
+    ]
+  }
+}
