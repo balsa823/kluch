@@ -3,10 +3,12 @@ import {
   View,
   Text,
   Pressable,
+  TextInput,
   StyleSheet,
   type ViewStyle,
   type TextStyle,
   type StyleProp,
+  type TextInputProps,
 } from "react-native";
 import { colors, space, radius } from "../theme/tokens";
 
@@ -34,6 +36,7 @@ type ButtonProps = {
   label: string;
   onPress?: () => void;
   variant?: ButtonVariant;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -41,17 +44,21 @@ export function Button({
   label,
   onPress,
   variant = "primary",
+  disabled = false,
   style,
 }: ButtonProps) {
   const isGhost = variant === "ghost";
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         isGhost ? styles.buttonGhost : styles.buttonPrimary,
-        pressed && styles.buttonPressed,
+        pressed && !disabled && styles.buttonPressed,
+        disabled && styles.buttonDisabled,
         style,
       ]}
     >
@@ -59,6 +66,24 @@ export function Button({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+type TextFieldProps = TextInputProps & {
+  label?: string;
+  containerStyle?: StyleProp<ViewStyle>;
+};
+
+export function TextField({ label, containerStyle, style, ...rest }: TextFieldProps) {
+  return (
+    <View style={[styles.fieldContainer, containerStyle]}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <TextInput
+        placeholderTextColor={colors.muted}
+        style={[styles.field, style]}
+        {...rest}
+      />
+    </View>
   );
 }
 
@@ -112,6 +137,29 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.85,
+  },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
+  fieldContainer: {
+    width: "100%",
+    gap: space.xs,
+  },
+  fieldLabel: {
+    color: colors.body,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  field: {
+    width: "100%",
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
+    fontSize: 15,
+    color: colors.ink,
   },
   buttonLabel: {
     color: colors.white,
