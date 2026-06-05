@@ -15,6 +15,7 @@ import { useAuth } from "../lib/auth";
 import {
   listListings,
   createListing,
+  importListing,
   formatMoney,
   mediaUrl,
   type Property,
@@ -86,6 +87,10 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
   const refetch = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -153,6 +158,26 @@ export default function Dashboard() {
     }
   }
 
+  async function onImport() {
+    if (!token || importing) return;
+    const url = importUrl.trim();
+    setImportError(null);
+    if (!url) {
+      setImportError("Paste a listing URL to import.");
+      return;
+    }
+    setImporting(true);
+    try {
+      await importListing(token, url);
+      setImportUrl("");
+      await refetch();
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : "Failed to import listing");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const subtitle = loading
     ? "Loading…"
     : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`;
@@ -182,6 +207,41 @@ export default function Dashboard() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
       >
+        <View style={styles.importCard}>
+          <Text style={styles.formTitle}>Import from a listing URL</Text>
+          <Text style={styles.importHint}>
+            Paste a listing link (e.g. bestate4.me) to import it into your agency.
+          </Text>
+          <View style={styles.importRow}>
+            <View style={styles.importField}>
+              <TextField
+                label="Listing URL"
+                value={importUrl}
+                onChangeText={setImportUrl}
+                placeholder="https://www.bestate4.me/listing/…"
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={importing}
+              onPress={onImport}
+              style={({ pressed }) => [
+                styles.addBtn,
+                styles.importBtn,
+                pressed && styles.addBtnPressed,
+                importing && styles.btnDisabled,
+              ]}
+            >
+              <Text style={styles.addBtnText}>
+                {importing ? "Importing…" : "Import"}
+              </Text>
+            </Pressable>
+          </View>
+          {importError ? <Text style={styles.error}>{importError}</Text> : null}
+        </View>
+
         {showForm ? (
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Add listing</Text>
@@ -397,6 +457,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: colors.ink,
+  },
+  importCard: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    borderRadius: radius.lg,
+    padding: space.xl,
+    gap: space.sm,
+    maxWidth: 560,
+    width: "100%",
+  },
+  importHint: {
+    color: colors.muted,
+    fontSize: 13,
+  },
+  importRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: space.sm,
+  },
+  importField: {
+    flex: 1,
+  },
+  importBtn: {
+    marginLeft: 0,
   },
   fieldLabel: {
     color: colors.body,

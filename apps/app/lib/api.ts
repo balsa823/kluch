@@ -95,6 +95,15 @@ export function createListing(
   });
 }
 
+/** Imports a listing from an external URL, creating it under the caller's agency. */
+export function importListing(token: string, url: string): Promise<Property> {
+  return request("/api/listings/import", {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ url }),
+  });
+}
+
 /** Resolve a stored media path (e.g. "/uploads/...") against the API origin. */
 export function mediaUrl(path: string): string {
   if (!path) return path;
