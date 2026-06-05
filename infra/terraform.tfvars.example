@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and adjust. terraform.tfvars is gitignored.
+
+# Azure subscription (defaults to the Kluch Azure Sponsorship sub if omitted).
+# subscription_id = "cc97dbf2-f732-4fd1-b853-faa7d795df9e"
+
+# PostgreSQL admin password. If left unset, a random_password is generated and
+# exposed via the sensitive `pg_admin_password` output.
+# pg_admin_password = "Change_Me_1234!"
+
+# The backend image. Leave as the default placeholder for the first apply,
+# then re-apply with the ACR image once `az acr build` has pushed it:
+# backend_image = "kluchacrxxxxxx.azurecr.io/kluch-backend:latest"
+
+# location      = "italynorth"
+# swa_location  = "westeurope"
+# base_domain   = "kluche.me"
