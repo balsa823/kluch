@@ -52,6 +52,22 @@ test("updateAgencyConfig updates only provided fields", async () => {
   expect(updated.colorAccent).toBe("#4E827A"); // untouched default
 });
 
+test("updateAgencyConfig rejects an invalid color (CSS injection)", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  await expect(
+    updateAgencyConfig(db, a.id, { colorPrimary: "red}; body{background:url(https://evil/?x)" }),
+  ).rejects.toThrow();
+  // bad value was not persisted
+  const found = await getAgencyBySlug(db, a.slug);
+  expect(found?.colorPrimary).toBe("#1F3A5C");
+});
+
+test("updateAgencyConfig accepts a valid hex color", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  const updated = await updateAgencyConfig(db, a.id, { colorPrimary: "#abc123" });
+  expect(updated.colorPrimary).toBe("#abc123");
+});
+
 test("addAgencyDomain + getAgencyByDomain round-trip (lowercased)", async () => {
   const a = await createAgency(db, { name: "Adriatic Homes" });
   const d = await addAgencyDomain(db, a.id, "  Adriatic.ME  ");

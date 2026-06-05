@@ -13,8 +13,20 @@ function attr(value: unknown): string {
   return value === undefined || value === null || value === "" ? "" : esc(value);
 }
 
+/** Returns `value` only if it is a safe CSS color (hex or plain keyword), else `fallback`. */
+function cssColor(value: unknown, fallback: string): string {
+  const s = String(value ?? "");
+  return /^#[0-9a-fA-F]{3,8}$/.test(s) || /^[a-zA-Z]+$/.test(s) ? s : fallback;
+}
+
+/** Returns the URL only if it uses an http(s) scheme, else an empty string. */
+function safeUrl(u: unknown): string {
+  const s = String(u ?? "");
+  return /^https?:\/\//i.test(s) ? s : "";
+}
+
 function renderCard(listing: Property): string {
-  const photo = listing.photos?.[0];
+  const photo = safeUrl(listing.photos?.[0]);
   const image = photo
     ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" />`
     : `<div class="card-photo card-photo--empty"></div>`;
@@ -38,8 +50,9 @@ export function renderAgencySite(
   listings: Property[],
   filters: SearchFilters = {},
 ): string {
-  const logo = agency.logoUrl
-    ? `<img class="logo" src="${esc(agency.logoUrl)}" alt="${esc(agency.name)}" />`
+  const logoUrl = safeUrl(agency.logoUrl);
+  const logo = logoUrl
+    ? `<img class="logo" src="${esc(logoUrl)}" alt="${esc(agency.name)}" />`
     : "";
 
   const cards = listings.length
@@ -57,8 +70,8 @@ export function renderAgencySite(
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --color-primary: ${esc(agency.colorPrimary)};
-      --color-accent: ${esc(agency.colorAccent)};
+      --color-primary: ${cssColor(agency.colorPrimary, "#1F3A5C")};
+      --color-accent: ${cssColor(agency.colorAccent, "#4E827A")};
       --color-cream: #F1ECE0;
       --color-navy: #1F3A5C;
       --color-teal: #4E827A;

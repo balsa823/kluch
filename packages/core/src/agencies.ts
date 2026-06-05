@@ -49,11 +49,20 @@ export async function getAgencyByDomain(db: Database, domain: string): Promise<A
   return agency ?? null;
 }
 
+/** A safe CSS color: a hex value or a plain CSS keyword. */
+const SAFE_COLOR = /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)$/;
+
 export async function updateAgencyConfig(
   db: Database,
   agencyId: string,
   patch: { logoUrl?: string; colorPrimary?: string; colorAccent?: string; tagline?: string },
 ): Promise<Agency> {
+  for (const key of ["colorPrimary", "colorAccent"] as const) {
+    const value = patch[key];
+    if (value !== undefined && !SAFE_COLOR.test(value)) {
+      throw new Error("Invalid color");
+    }
+  }
   const [agency] = await db.update(agencies).set(patch).where(eq(agencies.id, agencyId)).returning();
   return agency;
 }

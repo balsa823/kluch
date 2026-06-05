@@ -99,3 +99,25 @@ test("includes a Powered by Kluch footer", () => {
   const html = renderAgencySite(agency, listings);
   expect(html).toContain("Powered by Kluch");
 });
+
+test("falls back to the default color when colorPrimary is malicious (CSS injection)", () => {
+  const html = renderAgencySite({ ...agency, colorPrimary: "red} body{x:1}" }, listings);
+  expect(html).not.toContain("red} body{x:1}");
+  expect(html).toContain("--color-primary: #1F3A5C");
+});
+
+test("escapes the agency name to prevent HTML injection", () => {
+  const html = renderAgencySite({ ...agency, name: "<script>alert(1)</script>" }, listings);
+  expect(html).not.toContain("<script>alert(1)</script>");
+});
+
+test("drops a javascript: photo URL", () => {
+  const evil: Property = { ...listings[0], photos: ["javascript:alert(1)"] };
+  const html = renderAgencySite(agency, [evil]);
+  expect(html).not.toContain("javascript:alert(1)");
+});
+
+test("drops a javascript: logo URL", () => {
+  const html = renderAgencySite({ ...agency, logoUrl: "javascript:alert(1)" }, listings);
+  expect(html).not.toContain("javascript:alert(1)");
+});
