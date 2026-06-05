@@ -68,6 +68,7 @@ export const agencyUsers = pgTable("agency_users", {
   agencyId: uuid("agency_id").notNull().references(() => agencies.id),
   email: text("email").notNull().unique(),
   name: text("name"),
+  passwordHash: text("password_hash"),
   role: agencyRoleEnum("role").notNull().default("agent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

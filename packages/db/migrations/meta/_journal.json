@@ -15,6 +15,13 @@
       "when": 1780653755396,
       "tag": "0001_mean_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780657194066,
+      "tag": "0002_awesome_maddog",
+      "breakpoints": true
     }
   ]
 }
