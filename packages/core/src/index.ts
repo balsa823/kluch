@@ -6,3 +6,4 @@ export * from "./tickets.js";
 export * from "./messages.js";
 export * from "./rent.js";
 export * from "./agencies.js";
+export * from "./agencyUsers.js";
