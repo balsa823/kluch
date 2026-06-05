@@ -46,6 +46,26 @@ export async function publishProperty(db: Database, id: string): Promise<Propert
   return property;
 }
 
+export async function getProperty(db: Database, id: string): Promise<Property | null> {
+  const [property] = await db.select().from(properties).where(eq(properties.id, id));
+  return property ?? null;
+}
+
+/** Appends the given photo URLs to the property's existing photos. */
+export async function addPropertyPhotos(
+  db: Database,
+  id: string,
+  urls: string[],
+): Promise<Property> {
+  const existing = await getProperty(db, id);
+  if (!existing) throw new Error("Property not found");
+  const [property] = await db.update(properties)
+    .set({ photos: [...existing.photos, ...urls] })
+    .where(eq(properties.id, id))
+    .returning();
+  return property;
+}
+
 export interface SearchFilters {
   city?: string;
   minPrice?: number;

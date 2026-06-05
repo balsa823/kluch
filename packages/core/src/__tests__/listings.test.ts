@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
 import { createAgency } from "../agencies.js";
-import { createProperty, publishProperty, searchProperties } from "../listings.js";
+import { addPropertyPhotos, createProperty, getProperty, publishProperty, searchProperties } from "../listings.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -29,6 +29,18 @@ test("publishProperty flips status to published", async () => {
   });
   const pub = await publishProperty(db, p.id);
   expect(pub.status).toBe("published");
+});
+
+test("addPropertyPhotos appends to existing photos", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Studio", address: "A", city: "Budva", priceMinor: 100000,
+    photos: ["https://cdn/one.jpg"],
+  });
+  const updated = await addPropertyPhotos(db, p.id, ["https://cdn/two.jpg", "https://cdn/three.jpg"]);
+  expect(updated.photos).toEqual(["https://cdn/one.jpg", "https://cdn/two.jpg", "https://cdn/three.jpg"]);
+  const reread = await getProperty(db, p.id);
+  expect(reread?.photos).toEqual(updated.photos);
 });
 
 test("searchProperties excludes drafts, includes published", async () => {
