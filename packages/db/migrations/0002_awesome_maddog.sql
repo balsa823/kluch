@@ -1,0 +1,1 @@
+ALTER TABLE "agency_users" ADD COLUMN "password_hash" text;
