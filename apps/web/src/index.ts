@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createDb } from "@kluch/db";
-import { LocalDiskStorage } from "@kluch/core";
+import { AzureBlobStorage, LocalDiskStorage, type Storage } from "@kluch/core";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 
@@ -9,7 +9,10 @@ const { db, client } = createDb(config.databaseUrl);
 
 const sessionSecret = process.env.SESSION_SECRET ?? "dev-secret-change-me";
 const uploadDir = process.env.UPLOAD_DIR ?? "./data/uploads";
-const storage = new LocalDiskStorage(uploadDir, "/uploads");
+// Azure Blob in prod (when AZURE_STORAGE_ACCOUNT is set), local disk otherwise.
+const storage: Storage = process.env.AZURE_STORAGE_ACCOUNT
+  ? new AzureBlobStorage()
+  : new LocalDiskStorage(uploadDir, "/uploads");
 
 const app = createApp(db, {
   baseDomain: config.baseDomain,

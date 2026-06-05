@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
-import { FakeStorage, LocalDiskStorage } from "../storage.js";
+import { FakeStorage, LocalDiskStorage, publicUrl } from "../storage.js";
 
 test("FakeStorage records the call and returns a deterministic URL", async () => {
   const storage = new FakeStorage();
@@ -23,4 +23,10 @@ test("LocalDiskStorage writes bytes to disk and returns a public URL", async () 
   expect(url).toBe("/uploads/properties/abc/photo-0.png");
   const onDisk = await readFile(join(baseDir, "properties/abc/photo-0.png"));
   expect(new Uint8Array(onDisk)).toEqual(bytes);
+});
+
+test("publicUrl builds the Azure Blob public URL (no network)", () => {
+  expect(publicUrl("kluchprod", "photos", "properties/abc/photo-0.png")).toBe(
+    "https://kluchprod.blob.core.windows.net/photos/properties/abc/photo-0.png",
+  );
 });
