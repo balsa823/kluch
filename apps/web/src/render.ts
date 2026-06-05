@@ -93,13 +93,16 @@ export function renderAgencySite(
     header.site {
       background: var(--color-primary);
       color: #fff;
-      padding: 1.5rem clamp(1rem, 4vw, 3rem);
+      padding: 2.25rem 1rem 1.9rem;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1rem;
+      text-align: center;
+      gap: 0.65rem;
+      border-bottom: 3px solid var(--color-accent);
     }
-    .logo { height: 48px; width: auto; }
-    .logo-text { font-size: 1.4rem; margin: 0; }
+    .logo { height: 84px; width: auto; border-radius: 8px; }
+    .logo-text { font-size: 1.5rem; margin: 0; letter-spacing: 0.02em; }
     .tagline { margin: 0; opacity: 0.85; font-size: 0.95rem; }
     main { padding: clamp(1rem, 4vw, 3rem); max-width: 1100px; margin: 0 auto; }
     form.search {
