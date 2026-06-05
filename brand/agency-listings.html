@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kluch — Listings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900:#13233A; --navy-800:#17304B; --navy:#1F3A5C; --navy-400:#5C7796; --navy-200:#A9B8CC;
+    --teal-700:#3C6B63; --teal:#4E827A; --teal-100:#DCE8E4;
+    --cream:#F1ECE0; --paper:#FBF8F1; --page:#F2EEE4; --sand:#E7DFCF;
+    --ink:#16243A; --body:#44535F; --muted:#8A95A1; --amber:#C9883C; --amber-100:#FBF0DD; --terracotta:#B4543F;
+    --r:16px; --r-lg:22px;
+    --shadow:0 14px 36px rgba(20,35,58,.10), 0 3px 8px rgba(20,35,58,.05);
+    --shadow-sm:0 4px 14px rgba(20,35,58,.06);
+    --font-display:"Plus Jakarta Sans", system-ui, sans-serif;
+    --font-body:"Inter", system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-body); color:var(--body); background:var(--page); -webkit-font-smoothing:antialiased; display:flex; min-height:100vh; }
+  h1,h2,h3 { font-family:var(--font-display); color:var(--ink); letter-spacing:-.01em; }
+
+  /* Sidebar */
+  .sidebar { width:248px; flex:0 0 248px; background:var(--navy); color:#C7D4E3; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .sidebar .brandrow { display:flex; align-items:center; gap:11px; padding:20px 20px 14px; }
+  .sidebar .brandrow img { width:36px; height:36px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+  .sidebar .brandrow .b { font-family:var(--font-display); font-weight:800; color:#fff; font-size:1.1rem; line-height:1; }
+  .sidebar .brandrow .t { font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--navy-200); margin-top:3px; }
+  .agencybox { margin:6px 14px 16px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; display:flex; align-items:center; gap:10px; }
+  .agencybox .pic { width:34px; height:34px; border-radius:9px; background:var(--teal); color:#fff; display:grid; place-items:center; font-family:var(--font-display); font-weight:700; }
+  .agencybox .an { font-family:var(--font-display); font-weight:700; color:#fff; font-size:.86rem; }
+  .agencybox .al { color:var(--navy-200); font-size:.72rem; }
+  nav.menu { padding:6px 12px; display:flex; flex-direction:column; gap:3px; }
+  nav.menu a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; color:#B9C7DA; text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:.9rem; }
+  nav.menu a .ic { width:20px; text-align:center; }
+  nav.menu a:hover { background:rgba(255,255,255,.07); color:#fff; }
+  nav.menu a.active { background:rgba(255,255,255,.14); color:#fff; }
+  nav.menu a .badge { margin-left:auto; background:var(--amber); color:#fff; font-size:.66rem; font-weight:800; padding:1px 7px; border-radius:999px; }
+  .sidebar .foot { margin-top:auto; padding:14px; border-top:1px solid rgba(255,255,255,.08); }
+  .sidebar .foot a { color:var(--navy-200); text-decoration:none; font-size:.85rem; display:flex; align-items:center; gap:9px; }
+
+  /* Main */
+  .main { flex:1; min-width:0; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:22px 30px; border-bottom:1px solid var(--sand); background:rgba(246,242,233,.7); backdrop-filter:blur(8px); position:sticky; top:0; z-index:5; }
+  .topbar h1 { font-size:1.4rem; font-weight:800; }
+  .topbar .sub { color:var(--muted); font-size:.85rem; margin-top:2px; }
+  .topbar .spacer { margin-left:auto; }
+  .btn { font-family:var(--font-display); font-weight:700; font-size:.88rem; border:0; border-radius:999px; padding:10px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; text-decoration:none; }
+  .btn-primary { background:var(--navy); color:#fff; box-shadow:0 8px 18px rgba(31,58,92,.22); }
+  .btn-primary:hover { background:var(--navy-800); }
+  .btn-ghost { background:#fff; color:var(--navy); border:1.5px solid var(--sand); }
+  .btn-amber { background:var(--amber); color:#fff; }
+  .btn-amber:hover { background:#B97B31; }
+  .btn-sm { padding:8px 13px; font-size:.8rem; }
+  .langtoggle { display:inline-flex; background:var(--cream); border:1px solid var(--sand); border-radius:999px; padding:3px; }
+  .langtoggle button { border:0; background:transparent; font-family:var(--font-display); font-weight:700; font-size:.78rem; color:var(--muted); padding:6px 12px; border-radius:999px; cursor:pointer; }
+  .langtoggle button.active { background:#fff; color:var(--navy); box-shadow:0 2px 6px rgba(20,35,58,.1); }
+
+  .content { padding:24px 30px 50px; }
+
+  /* Promotion budget card */
+  .promo { background:linear-gradient(155deg,#264A75,#1F3A5C 60%,#15273F); color:#fff; border-radius:var(--r-lg); padding:24px 26px; box-shadow:var(--shadow); margin-bottom:30px; }
+  .promo .ptop { display:flex; align-items:flex-start; gap:14px; }
+  .promo .pic { width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.14); display:grid; place-items:center; font-size:1.3rem; }
+  .promo h2 { color:#fff; font-size:1.15rem; }
+  .promo .psub { color:#BFD0E3; font-size:.85rem; margin-top:2px; }
+  .promo .pbtn { margin-left:auto; }
+  .promo .bigrow { display:flex; align-items:baseline; gap:10px; margin-top:18px; }
+  .promo .big { font-family:var(--font-display); font-weight:800; font-size:2rem; }
+  .promo .of { color:#BFD0E3; font-size:.95rem; }
+  .promo .left { margin-left:auto; color:#9FD8C9; font-family:var(--font-display); font-weight:700; font-size:.95rem; }
+  .promo .bar { height:10px; background:rgba(255,255,255,.16); border-radius:999px; margin-top:10px; overflow:hidden; }
+  .promo .bar i { display:block; height:100%; width:60%; background:linear-gradient(90deg,var(--teal-300),var(--teal)); border-radius:999px; }
+  .promo .extra { margin-top:14px; display:inline-flex; align-items:center; gap:8px; background:rgba(141,183,174,.18); color:#CDE7DF; border-radius:999px; padding:6px 13px; font-size:.82rem; font-weight:600; }
+  .promo .blurb { color:#9FB2C9; font-size:.8rem; margin-top:12px; }
+  @media (max-width:680px){ .promo .pbtn{ margin-left:0; margin-top:12px; } .promo .ptop{ flex-wrap:wrap; } }
+
+  .sechead { display:flex; align-items:center; margin:6px 0 14px; }
+  .sechead h2 { font-size:1.15rem; font-weight:700; }
+  .sechead .spacer { margin-left:auto; }
+
+  /* Listings table */
+  .ltable { background:var(--paper); border:1px solid var(--sand); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); }
+  .lhead, .lrow { display:grid; grid-template-columns:64px 2.3fr 1fr 1.1fr 1.2fr 1.6fr; gap:14px; align-items:center; padding:13px 18px; }
+  .lhead { background:var(--cream); border-bottom:1px solid var(--sand); font-family:var(--font-display); font-weight:700; color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+  .lhead .thumbh { }
+  .lrow { border-bottom:1px solid var(--sand); }
+  .lrow:last-child { border-bottom:0; }
+  .lrow:hover { background:#fff; }
+  .lrow .thumb { width:56px; height:48px; border-radius:10px; object-fit:cover; }
+  .lrow .lt { font-family:var(--font-display); font-weight:700; color:var(--ink); font-size:.92rem; }
+  .lrow .lm { color:var(--muted); font-size:.76rem; margin-top:2px; }
+  .lrow .lp { font-family:var(--font-display); font-weight:800; color:var(--navy); font-size:.9rem; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:700; font-size:.7rem; padding:4px 10px; border-radius:999px; }
+  .st-pub { background:var(--teal-100); color:var(--teal-700); }
+  .st-draft { background:#EEE8DA; color:var(--muted); }
+  .lrow .stats { color:var(--body); font-size:.78rem; }
+  .lrow .stats span { display:block; }
+  .lrow .actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .promoted { display:inline-flex; align-items:center; gap:6px; background:var(--amber-100); color:var(--amber); font-family:var(--font-display); font-weight:700; font-size:.72rem; padding:7px 12px; border-radius:999px; }
+  @media (max-width:920px){
+    .lhead { display:none; }
+    .lrow { grid-template-columns:56px 1fr; grid-auto-rows:auto; gap:6px 14px; padding:14px; }
+    .lrow .thumb { grid-row:span 2; }
+    .lrow .lp, .lrow .statuscell, .lrow .stats { display:inline-block; margin-right:12px; }
+    .lrow .actions { grid-column:1 / -1; justify-content:flex-start; }
+  }
+
+  /* Modal */
+  .modal { position:fixed; inset:0; z-index:100; display:none; }
+  .modal.open { display:grid; place-items:center; }
+  .modal .bg { position:absolute; inset:0; background:rgba(19,35,58,.5); backdrop-filter:blur(3px); }
+  .modal .card { position:relative; width:calc(100% - 36px); max-width:430px; background:var(--paper); border-radius:var(--r-lg); box-shadow:0 30px 70px rgba(0,0,0,.4); padding:26px; }
+  .modal h3 { font-size:1.25rem; }
+  .modal p { font-size:.92rem; margin-top:8px; }
+  .modal .field { margin-top:16px; }
+  .modal .field label { display:block; font-family:var(--font-display); font-weight:600; font-size:.8rem; color:var(--navy); margin-bottom:6px; }
+  .modal .field input { width:100%; padding:12px 14px; border:1.5px solid var(--sand); border-radius:12px; font-family:var(--font-body); font-size:.95rem; outline:none; }
+  .modal .field input:focus { border-color:var(--teal); box-shadow:0 0 0 4px var(--teal-100); }
+  .modal .est { margin-top:14px; background:var(--cream); border:1px solid var(--sand); border-radius:12px; padding:12px 14px; font-size:.84rem; }
+  .modal .est b { color:var(--ink); font-family:var(--font-display); }
+  .modal .mact { display:flex; gap:10px; margin-top:20px; }
+  .modal .mact .btn { flex:1; justify-content:center; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brandrow">
+    <img src="./kluch-icon.png" alt="Kluch">
+    <div><div class="b">Kluch</div><div class="t" data-i18n="side.foragencies">for Agencies</div></div>
+  </div>
+  <div class="agencybox">
+    <div class="pic">P</div>
+    <div><div class="an">Popović Nekretnine</div><div class="al">Podgorica</div></div>
+  </div>
+  <nav class="menu">
+    <a href="./agency-console.html"><span class="ic">▦</span> <span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="#" class="active"><span class="ic">🏠</span> <span data-i18n="nav.listings">Listings</span></a>
+    <a href="#"><span class="ic">📩</span> <span data-i18n="nav.leads">Leads</span> <span class="badge">5</span></a>
+    <a href="./agency-tenants.html"><span class="ic">👥</span> <span data-i18n="nav.tenants">Tenants</span></a>
+    <a href="#"><span class="ic">💬</span> <span data-i18n="nav.messages">Messages</span> <span class="badge">2</span></a>
+    <a href="#"><span class="ic">💳</span> <span data-i18n="nav.billing">Billing</span></a>
+    <a href="#"><span class="ic">⚙</span> <span data-i18n="nav.settings">Settings</span></a>
+  </nav>
+  <div class="foot"><a href="./login.html">⎋ <span data-i18n="logout">Log out</span></a></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="top.listings">Listings</h1>
+      <div class="sub" data-i18n="top.sub">12 active · 2 promoted</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="langtoggle">
+      <button data-code="en" class="active">EN</button>
+      <button data-code="sr">SR</button>
+    </div>
+    <a href="#" class="btn btn-primary" data-i18n="addlisting">+ Add listing</a>
+  </div>
+
+  <div class="content">
+
+    <!-- PROMOTION BUDGET -->
+    <div class="promo">
+      <div class="ptop">
+        <div class="pic">📣</div>
+        <div>
+          <h2 data-i18n="promo.title">Promotion budget</h2>
+          <div class="psub" data-i18n="promo.psub">Boost listings to the top of the Kluch marketplace &amp; map</div>
+        </div>
+        <button class="btn btn-light pbtn" style="background:#fff;color:var(--navy);" onclick="openBudget()" data-i18n="promo.manage">Manage budget</button>
+      </div>
+      <div class="bigrow">
+        <span class="big">€120</span>
+        <span class="of"><span data-i18n="promo.of">of</span> €200 / <span data-i18n="promo.month">month</span></span>
+        <span class="left">€80 <span data-i18n="promo.left">left</span></span>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="extra">⚡ <span data-i18n="promo.extra">+18 extra leads from promotion this month</span></div>
+      <div class="blurb" data-i18n="promo.blurb">Promoted listings get up to 3× more views from foreign tenants.</div>
+    </div>
+
+    <div class="sechead"><h2 data-i18n="sec.your">Your listings</h2></div>
+
+    <!-- LISTINGS TABLE -->
+    <div class="ltable">
+      <div class="lhead">
+        <div class="thumbh"></div>
+        <div data-i18n="col.listing">Listing</div>
+        <div data-i18n="col.price">Price</div>
+        <div data-i18n="col.status">Status</div>
+        <div data-i18n="col.perf">Performance</div>
+        <div></div>
+      </div>
+
+      <!-- row: promoted -->
+      <div class="lrow">
+        <img class="thumb" src="./img/podgorica.jpg" alt="">
+        <div><div class="lt">Modern flat, Podgorica</div><div class="lm">Podgorica · City centre</div></div>
+        <div class="lp">€550<small style="color:var(--muted)">/mo</small></div>
+        <div class="statuscell"><span class="pill st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="stats"><span>👁 320</span><span>📩 4 <span data-i18n="leadsword">leads</span></span></div>
+        <div class="actions">
+          <span class="promoted">⚡ <span data-i18n="promoted">Promoted</span></span>
+          <button class="btn btn-ghost btn-sm" data-i18n="act.manage">Manage</button>
+        </div>
+      </div>
+
+      <!-- row: promotable -->
+      <div class="lrow">
+        <img class="thumb" src="./img/kotor.jpg" alt="">
+        <div><div class="lt">Bay-view one-bed, Kotor</div><div class="lm">Kotor · Adriatic coast</div></div>
+        <div class="lp">€620<small style="color:var(--muted)">/mo</small></div>
+        <div class="statuscell"><span class="pill st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="stats"><span>👁 210</span><span>📩 2 <span data-i18n="leadsword">leads</span></span></div>
+        <div class="actions">
+          <button class="btn btn-amber btn-sm" onclick="openPromote('Bay-view one-bed, Kotor', this)">⚡ <span data-i18n="act.promote">Promote</span></button>
+          <button class="btn btn-ghost btn-sm" data-i18n="act.manage">Manage</button>
+        </div>
+      </div>
+
+      <!-- row: promoted -->
+      <div class="lrow">
+        <img class="thumb" src="./img/int-living.jpg" alt="">
+        <div><div class="lt">Studio, Podgorica centre</div><div class="lm">Podgorica · Centre</div></div>
+        <div class="lp">€420<small style="color:var(--muted)">/mo</small></div>
+        <div class="statuscell"><span class="pill st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="stats"><span>👁 150</span><span>📩 3 <span data-i18n="leadsword">leads</span></span></div>
+        <div class="actions">
+          <span class="promoted">⚡ <span data-i18n="promoted">Promoted</span></span>
+          <button class="btn btn-ghost btn-sm" data-i18n="act.manage">Manage</button>
+        </div>
+      </div>
+
+      <!-- row: real scraped listing -->
+      <div class="lrow">
+        <img class="thumb" src="./img/ljubovic.jpg" alt="">
+        <div><div class="lt">Jednosoban stan, Ljubović</div><div class="lm">Podgorica · Zabjelo / Ljubović</div></div>
+        <div class="lp">€450<small style="color:var(--muted)">/mo</small></div>
+        <div class="statuscell"><span class="pill st-pub" data-i18n="st.pub">Published</span></div>
+        <div class="stats"><span>👁 6</span><span>📩 0 <span data-i18n="leadsword">leads</span></span></div>
+        <div class="actions">
+          <button class="btn btn-amber btn-sm" onclick="openPromote('Jednosoban stan, Ljubović', this)">⚡ <span data-i18n="act.promote">Promote</span></button>
+          <button class="btn btn-ghost btn-sm" data-i18n="act.manage">Manage</button>
+        </div>
+      </div>
+
+      <!-- row: draft -->
+      <div class="lrow">
+        <img class="thumb" src="./img/durmitor.jpg" alt="">
+        <div><div class="lt">Pine chalet, Žabljak</div><div class="lm">Žabljak · Durmitor</div></div>
+        <div class="lp">€480<small style="color:var(--muted)">/mo</small></div>
+        <div class="statuscell"><span class="pill st-draft" data-i18n="st.draft">Draft</span></div>
+        <div class="stats"><span>👁 —</span><span>📩 0 <span data-i18n="leadsword">leads</span></span></div>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" data-i18n="act.publish">Publish first</button>
+          <button class="btn btn-ghost btn-sm" data-i18n="act.manage">Manage</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="bg" data-close></div>
+  <div class="card">
+    <h3 id="mTitle"></h3>
+    <p id="mBody"></p>
+    <div id="mExtra"></div>
+    <div class="mact">
+      <button class="btn btn-ghost" data-close data-i18n="cancel">Cancel</button>
+      <button class="btn btn-primary" id="mConfirm"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const I18N = {
+    en: {
+      "side.foragencies":"for Agencies",
+      "nav.dashboard":"Dashboard","nav.listings":"Listings","nav.leads":"Leads","nav.tenants":"Tenants","nav.messages":"Messages","nav.billing":"Billing","nav.settings":"Settings","logout":"Log out",
+      "top.listings":"Listings","top.sub":"12 active · 2 promoted","addlisting":"+ Add listing",
+      "promo.title":"Promotion budget","promo.psub":"Boost listings to the top of the Kluch marketplace & map",
+      "promo.of":"of","promo.month":"month","promo.left":"left",
+      "promo.extra":"+18 extra leads from promotion this month",
+      "promo.blurb":"Promoted listings get up to 3× more views from foreign tenants.","promo.manage":"Manage budget",
+      "sec.your":"Your listings",
+      "col.listing":"Listing","col.price":"Price","col.status":"Status","col.perf":"Performance",
+      "st.pub":"Published","st.draft":"Draft","leadsword":"leads","promoted":"Promoted",
+      "act.manage":"Manage","act.promote":"Promote","act.publish":"Publish first","cancel":"Cancel",
+      "budget.title":"Monthly promotion budget","budget.body":"Set how much you want to spend promoting your listings each month. You can change or pause it anytime.",
+      "budget.label":"Monthly budget (€)","budget.save":"Save budget",
+      "promote.title":"Promote listing","promote.body":"Boost this listing to the top of the Kluch marketplace and the map — in front of more foreign tenants in your city.",
+      "promote.est":"<b>€5 / day</b> · est. <b>+12 leads / month</b> · comes from your promotion budget","promote.start":"Start promotion",
+    },
+    sr: {
+      "side.foragencies":"za agencije",
+      "nav.dashboard":"Kontrolna tabla","nav.listings":"Oglasi","nav.leads":"Upiti","nav.tenants":"Stanari","nav.messages":"Poruke","nav.billing":"Naplata","nav.settings":"Podešavanja","logout":"Odjava",
+      "top.listings":"Oglasi","top.sub":"12 aktivnih · 2 promovisana","addlisting":"+ Dodaj oglas",
+      "promo.title":"Budžet za promociju","promo.psub":"Istaknite oglase na vrh Kluch marketplace-a i mape",
+      "promo.of":"od","promo.month":"mjesec","promo.left":"preostalo",
+      "promo.extra":"+18 dodatnih upita od promocije ovog mjeseca",
+      "promo.blurb":"Promovisani oglasi dobijaju do 3× više pregleda od stranaca.","promo.manage":"Upravljaj budžetom",
+      "sec.your":"Vaši oglasi",
+      "col.listing":"Oglas","col.price":"Cijena","col.status":"Status","col.perf":"Učinak",
+      "st.pub":"Objavljeno","st.draft":"Nacrt","leadsword":"upita","promoted":"Promovisano",
+      "act.manage":"Uredi","act.promote":"Promoviši","act.publish":"Prvo objavi","cancel":"Otkaži",
+      "budget.title":"Mjesečni budžet za promociju","budget.body":"Podesite koliko želite da trošite na promociju oglasa svakog mjeseca. Možete promijeniti ili pauzirati u svakom trenutku.",
+      "budget.label":"Mjesečni budžet (€)","budget.save":"Sačuvaj budžet",
+      "promote.title":"Promoviši oglas","promote.body":"Istaknite ovaj oglas na vrh Kluch marketplace-a i mape — pred više stranaca u vašem gradu.",
+      "promote.est":"<b>€5 / dan</b> · ~ <b>+12 upita / mjesec</b> · troši se iz vašeg budžeta za promociju","promote.start":"Pokreni promociju",
+    },
+  };
+  let LANG = "en";
+  function t(k){ return (I18N[LANG] && I18N[LANG][k]) ?? I18N.en[k] ?? k; }
+  function applyLang(){
+    document.querySelectorAll("[data-i18n]").forEach((el)=>{ const v=t(el.getAttribute("data-i18n")); if(v.indexOf("<")>=0) el.innerHTML=v; else el.textContent=v; });
+    document.documentElement.lang = LANG;
+    document.querySelectorAll(".langtoggle button").forEach((b)=> b.classList.toggle("active", b.dataset.code===LANG));
+  }
+  function setLang(code){ LANG=code; try{localStorage.setItem("kluch-agency-lang",code)}catch(e){} applyLang(); }
+  document.querySelectorAll(".langtoggle button").forEach((b)=> b.addEventListener("click", ()=> setLang(b.dataset.code)));
+
+  /* modal */
+  const modal = document.getElementById("modal");
+  let promoteBtnEl = null;
+  function closeModal(){ modal.classList.remove("open"); promoteBtnEl = null; }
+  modal.querySelectorAll("[data-close]").forEach((el)=> el.addEventListener("click", closeModal));
+
+  function openBudget(){
+    document.getElementById("mTitle").textContent = t("budget.title");
+    document.getElementById("mBody").textContent = t("budget.body");
+    document.getElementById("mExtra").innerHTML = `<div class="field"><label>${t("budget.label")}</label><input type="number" value="200" min="0" step="10"></div>`;
+    const c = document.getElementById("mConfirm"); c.textContent = t("budget.save"); c.onclick = closeModal;
+    modal.classList.add("open");
+  }
+  function openPromote(name, btn){
+    promoteBtnEl = btn;
+    document.getElementById("mTitle").textContent = t("promote.title");
+    document.getElementById("mBody").textContent = `${name} — ${t("promote.body")}`;
+    document.getElementById("mExtra").innerHTML = `<div class="est">${t("promote.est")}</div>`;
+    const c = document.getElementById("mConfirm"); c.textContent = t("promote.start");
+    c.onclick = () => {
+      if (promoteBtnEl) {
+        const span = document.createElement("span");
+        span.className = "promoted"; span.innerHTML = `⚡ ${t("promoted")}`;
+        promoteBtnEl.replaceWith(span);
+      }
+      closeModal();
+    };
+    modal.classList.add("open");
+  }
+  window.openBudget = openBudget; window.openPromote = openPromote;
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+
+  let saved="en"; try{ saved=localStorage.getItem("kluch-agency-lang")||"en" }catch(e){}
+  setLang(saved);
+</script>
+</body>
+</html>
