@@ -5,10 +5,12 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  Pressable,
+  Image,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Card, Button, Pill, TextField } from "../components/ui";
-import { colors, space } from "../theme/tokens";
+import { ConsoleLayout } from "../components/ConsoleLayout";
+import { Pill, TextField } from "../components/ui";
+import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
 import {
   listListings,
@@ -20,14 +22,60 @@ import {
 const TYPES = ["apartment", "studio", "house"] as const;
 type ListingType = (typeof TYPES)[number];
 
+function isPublished(status: string): boolean {
+  return status.toLowerCase() === "published";
+}
+
+function StatusPill({ status }: { status: string }) {
+  const published = isPublished(status);
+  const label = published ? "Published" : status === "draft" ? "Draft" : status;
+  return (
+    <Pill
+      label={label.charAt(0).toUpperCase() + label.slice(1)}
+      style={published ? styles.pillPub : styles.pillDraft}
+      textStyle={published ? styles.pillPubText : styles.pillDraftText}
+    />
+  );
+}
+
+function ListingRow({ p }: { p: Property }) {
+  const photo = p.photos && p.photos.length > 0 ? p.photos[0] : null;
+  return (
+    <View style={styles.row}>
+      {photo ? (
+        <Image source={{ uri: photo }} style={styles.thumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.thumb, styles.thumbPlaceholder]} />
+      )}
+      <View style={styles.rowInfo}>
+        <Text style={styles.rowName} numberOfLines={1}>
+          {p.name}
+        </Text>
+        <Text style={styles.rowCity} numberOfLines={1}>
+          {p.city}
+        </Text>
+      </View>
+      <View style={styles.rowPriceCol}>
+        <Text style={styles.rowPrice}>
+          {formatMoney(p.priceMinor, p.currency)}
+          <Text style={styles.rowPriceUnit}>/mo</Text>
+        </Text>
+      </View>
+      <View style={styles.rowStatusCol}>
+        <StatusPill status={p.status} />
+      </View>
+    </View>
+  );
+}
+
 export default function Dashboard() {
-  const { token, agency, logout } = useAuth();
-  const router = useRouter();
+  const { token } = useAuth();
 
   const [listings, setListings] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -55,9 +103,14 @@ export default function Dashboard() {
     void refetch();
   }, [refetch]);
 
-  async function onLogout() {
-    await logout();
-    router.replace("/login");
+  function resetForm() {
+    setName("");
+    setAddress("");
+    setCity("");
+    setPrice("");
+    setBedrooms("");
+    setType("apartment");
+    setFormError(null);
   }
 
   async function onAdd() {
@@ -89,12 +142,8 @@ export default function Dashboard() {
         bedrooms: beds,
         type,
       });
-      setName("");
-      setAddress("");
-      setCity("");
-      setPrice("");
-      setBedrooms("");
-      setType("apartment");
+      resetForm();
+      setShowForm(false);
       await refetch();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Failed to add listing");
@@ -103,132 +152,247 @@ export default function Dashboard() {
     }
   }
 
+  const subtitle = loading
+    ? "Loading…"
+    : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`;
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.inner}>
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Pill label="AGENCY CONSOLE" />
-            <Text style={styles.agencyName}>
-              {agency?.name ?? "Your agency"}
-            </Text>
-          </View>
-          <Button label="Log out" variant="ghost" onPress={onLogout} />
+    <ConsoleLayout>
+      <View style={styles.topbar}>
+        <View style={styles.topbarText}>
+          <Text style={styles.title}>Listings</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-
-        <Card>
-          <Text style={styles.sectionTitle}>Add listing</Text>
-          <TextField label="Name" value={name} onChangeText={setName} placeholder="Seaside apartment" />
-          <TextField label="Address" value={address} onChangeText={setAddress} placeholder="Obala bb" />
-          <TextField label="City" value={city} onChangeText={setCity} placeholder="Kotor" />
-          <TextField
-            label="Price (EUR)"
-            value={price}
-            onChangeText={setPrice}
-            placeholder="120000"
-            keyboardType="numeric"
-          />
-          <TextField
-            label="Bedrooms"
-            value={bedrooms}
-            onChangeText={setBedrooms}
-            placeholder="2"
-            keyboardType="number-pad"
-          />
-
-          <Text style={styles.fieldLabel}>Type</Text>
-          <View style={styles.typeRow}>
-            {TYPES.map((t) => (
-              <Button
-                key={t}
-                label={t}
-                variant={type === t ? "primary" : "ghost"}
-                onPress={() => setType(t)}
-                style={styles.typeButton}
-              />
-            ))}
-          </View>
-
-          {formError ? <Text style={styles.error}>{formError}</Text> : null}
-          <Button
-            label={submitting ? "Adding…" : "Add listing"}
-            onPress={onAdd}
-            disabled={submitting}
-          />
-        </Card>
-
-        <View style={styles.listHeader}>
-          <Text style={styles.sectionTitle}>Listings</Text>
-          <Text style={styles.count}>
-            {loading ? "…" : `${listings.length}`}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowForm((s) => !s)}
+          style={({ pressed }) => [
+            styles.addBtn,
+            pressed && styles.addBtnPressed,
+          ]}
+        >
+          <Text style={styles.addBtnText}>
+            {showForm ? "Close" : "+ Add listing"}
           </Text>
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+      >
+        {showForm ? (
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>Add listing</Text>
+            <TextField
+              label="Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Modern flat, Podgorica"
+            />
+            <TextField
+              label="Address"
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Bulevar bb"
+            />
+            <TextField
+              label="City"
+              value={city}
+              onChangeText={setCity}
+              placeholder="Podgorica"
+            />
+            <TextField
+              label="Price (EUR / mo)"
+              value={price}
+              onChangeText={setPrice}
+              placeholder="550"
+              keyboardType="numeric"
+            />
+            <TextField
+              label="Bedrooms"
+              value={bedrooms}
+              onChangeText={setBedrooms}
+              placeholder="2"
+              keyboardType="number-pad"
+            />
+
+            <Text style={styles.fieldLabel}>Type</Text>
+            <View style={styles.typeRow}>
+              {TYPES.map((t) => {
+                const active = type === t;
+                return (
+                  <Pressable
+                    key={t}
+                    accessibilityRole="button"
+                    onPress={() => setType(t)}
+                    style={[
+                      styles.typeChip,
+                      active && styles.typeChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.typeChipText,
+                        active && styles.typeChipTextActive,
+                      ]}
+                    >
+                      {t}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {formError ? (
+              <Text style={styles.error}>{formError}</Text>
+            ) : null}
+
+            <View style={styles.formActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  resetForm();
+                  setShowForm(false);
+                }}
+                style={({ pressed }) => [
+                  styles.ghostBtn,
+                  pressed && styles.addBtnPressed,
+                ]}
+              >
+                <Text style={styles.ghostBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={submitting}
+                onPress={onAdd}
+                style={({ pressed }) => [
+                  styles.addBtn,
+                  styles.formSubmit,
+                  pressed && styles.addBtnPressed,
+                  submitting && styles.btnDisabled,
+                ]}
+              >
+                <Text style={styles.addBtnText}>
+                  {submitting ? "Adding…" : "Add listing"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.sechead}>
+          <Text style={styles.sectionTitle}>Your listings</Text>
         </View>
 
         {loading ? (
           <ActivityIndicator color={colors.navy} style={styles.spinner} />
         ) : loadError ? (
-          <Card>
+          <View style={styles.card}>
             <Text style={styles.error}>{loadError}</Text>
-            <Button label="Retry" variant="ghost" onPress={() => void refetch()} />
-          </Card>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void refetch()}
+              style={({ pressed }) => [
+                styles.ghostBtn,
+                styles.retryBtn,
+                pressed && styles.addBtnPressed,
+              ]}
+            >
+              <Text style={styles.ghostBtnText}>Retry</Text>
+            </Pressable>
+          </View>
         ) : listings.length === 0 ? (
-          <Card>
-            <Text style={styles.empty}>No listings yet. Add your first above.</Text>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.empty}>
+              No listings yet. Add your first with “+ Add listing”.
+            </Text>
+          </View>
         ) : (
-          listings.map((p) => (
-            <Card key={p.id}>
-              <View style={styles.listingTop}>
-                <Text style={styles.listingName}>{p.name}</Text>
-                <Pill label={p.status} />
+          <View style={styles.table}>
+            {listings.map((p, i) => (
+              <View
+                key={p.id}
+                style={[
+                  styles.rowWrap,
+                  i < listings.length - 1 && styles.rowDivider,
+                ]}
+              >
+                <ListingRow p={p} />
               </View>
-              <Text style={styles.listingCity}>{p.city}</Text>
-              <Text style={styles.listingPrice}>
-                {formatMoney(p.priceMinor, p.currency)}
-              </Text>
-            </Card>
-          ))
+            ))}
+          </View>
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </ConsoleLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: colors.page,
-  },
-  content: {
-    alignItems: "center",
-    paddingHorizontal: space.xl,
-    paddingVertical: space.xxl,
-  },
-  inner: {
-    width: "100%",
-    maxWidth: 480,
-    gap: space.lg,
-  },
-  header: {
+  topbar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: space.md,
+    gap: 14,
+    paddingHorizontal: 30,
+    paddingVertical: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sand,
+    backgroundColor: colors.page,
   },
-  headerText: {
-    gap: space.xs,
+  topbarText: {
     flexShrink: 1,
   },
-  agencyName: {
-    fontSize: 26,
+  title: {
+    fontSize: 24,
     fontWeight: "800",
-    color: colors.navy,
-    letterSpacing: -0.4,
+    color: colors.ink,
+    letterSpacing: -0.3,
   },
-  sectionTitle: {
+  subtitle: {
+    color: colors.muted,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  addBtn: {
+    marginLeft: "auto",
+    backgroundColor: colors.navy,
+    borderRadius: radius.pill,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnPressed: {
+    opacity: 0.85,
+  },
+  addBtnText: {
+    color: colors.white,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 30,
+    paddingTop: 26,
+    paddingBottom: 50,
+    gap: space.lg,
+  },
+  formCard: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    borderRadius: radius.lg,
+    padding: space.xl,
+    gap: space.md,
+    maxWidth: 480,
+    width: "100%",
+  },
+  formTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: colors.ink,
@@ -242,23 +406,77 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.sm,
   },
-  typeButton: {
+  typeChip: {
     flex: 1,
-    paddingHorizontal: space.sm,
-  },
-  listHeader: {
-    flexDirection: "row",
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.sand,
+    backgroundColor: colors.white,
+    paddingVertical: 10,
     alignItems: "center",
-    justifyContent: "space-between",
+  },
+  typeChipActive: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
+  typeChipText: {
+    color: colors.navy,
+    fontWeight: "700",
+    fontSize: 13,
+    textTransform: "capitalize",
+  },
+  typeChipTextActive: {
+    color: colors.white,
+  },
+  formActions: {
+    flexDirection: "row",
+    gap: space.sm,
+    marginTop: space.xs,
+  },
+  formSubmit: {
+    flex: 1,
+    marginLeft: 0,
+  },
+  ghostBtn: {
+    backgroundColor: colors.white,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.sand,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  ghostBtnText: {
+    color: colors.navy,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  retryBtn: {
+    flex: 0,
+    alignSelf: "flex-start",
     marginTop: space.sm,
   },
-  count: {
+  sechead: {
+    marginTop: space.xs,
+    marginBottom: space.xs,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.teal,
+    color: colors.ink,
   },
   spinner: {
     marginTop: space.lg,
+  },
+  card: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    borderRadius: radius.lg,
+    padding: space.xl,
+    gap: space.sm,
   },
   empty: {
     color: colors.body,
@@ -269,25 +487,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  listingTop: {
+  table: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+  },
+  rowWrap: {
+    paddingHorizontal: 18,
+  },
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sand,
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: space.sm,
+    gap: 14,
+    paddingVertical: 13,
   },
-  listingName: {
-    fontSize: 17,
+  thumb: {
+    width: 56,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: colors.cream,
+  },
+  thumbPlaceholder: {
+    backgroundColor: colors.sand,
+  },
+  rowInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowName: {
     fontWeight: "700",
     color: colors.ink,
-    flexShrink: 1,
+    fontSize: 15,
   },
-  listingCity: {
-    fontSize: 14,
-    color: colors.body,
+  rowCity: {
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: 2,
   },
-  listingPrice: {
-    fontSize: 16,
-    fontWeight: "700",
+  rowPriceCol: {
+    minWidth: 80,
+  },
+  rowPrice: {
+    fontWeight: "800",
     color: colors.navy,
+    fontSize: 15,
+  },
+  rowPriceUnit: {
+    color: colors.muted,
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  rowStatusCol: {
+    minWidth: 96,
+    alignItems: "flex-end",
+  },
+  pillPub: {
+    backgroundColor: colors.teal100,
+  },
+  pillPubText: {
+    color: colors.teal700,
+  },
+  pillDraft: {
+    backgroundColor: "#EEE8DA",
+  },
+  pillDraftText: {
+    color: colors.muted,
   },
 });

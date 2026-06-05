@@ -1,8 +1,10 @@
 export const colors = {
   navy: "#1F3A5C",
   navy800: "#17304B",
+  navy200: "#A9B8CC",
   teal: "#4E827A",
   teal100: "#DCE8E4",
+  teal700: "#3C6B63",
   cream: "#F1ECE0",
   paper: "#FBF8F1",
   page: "#F2EEE4",
