@@ -8,6 +8,13 @@
       "when": 1780523596925,
       "tag": "0000_yielding_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780653755396,
+      "tag": "0001_mean_professor_monster",
+      "breakpoints": true
     }
   ]
 }

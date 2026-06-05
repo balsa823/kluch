@@ -1,6 +1,7 @@
 import {
   pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const localeEnum = pgEnum("locale", ["en", "ru", "me"]);
 export const roleEnum = pgEnum("role", ["occupant", "operator"]);
@@ -10,6 +11,9 @@ export const ticketStatusEnum = pgEnum("ticket_status", [
   "received", "scheduled", "done", "cancelled",
 ]);
 export const directionEnum = pgEnum("direction", ["in", "out"]);
+export const agencyRoleEnum = pgEnum("agency_role", ["admin", "agent"]);
+export const propertyTypeEnum = pgEnum("property_type", ["apartment", "studio", "house"]);
+export const propertyStatusEnum = pgEnum("property_status", ["draft", "published"]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -28,6 +32,43 @@ export const properties = pgTable("properties", {
   city: text("city").notNull(),
   landlordName: text("landlord_name"),
   landlordContact: text("landlord_contact"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  agencyId: uuid("agency_id").references(() => agencies.id),
+  priceMinor: integer("price_minor"),
+  currency: text("currency").notNull().default("EUR"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  areaM2: integer("area_m2"),
+  type: propertyTypeEnum("type"),
+  status: propertyStatusEnum("status").notNull().default("draft"),
+  photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
+});
+
+export const agencies = pgTable("agencies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logoUrl: text("logo_url"),
+  colorPrimary: text("color_primary").notNull().default("#1F3A5C"),
+  colorAccent: text("color_accent").notNull().default("#4E827A"),
+  tagline: text("tagline"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const agencyDomains = pgTable("agency_domains", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agencyId: uuid("agency_id").notNull().references(() => agencies.id),
+  domain: text("domain").notNull().unique(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const agencyUsers = pgTable("agency_users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agencyId: uuid("agency_id").notNull().references(() => agencies.id),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  role: agencyRoleEnum("role").notNull().default("agent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
