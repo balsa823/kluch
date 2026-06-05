@@ -1,9 +1,15 @@
-import { expect, test } from "vitest";
+import { beforeAll, afterAll, expect, test, vi } from "vitest";
+import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
+import { createAgency } from "../agencies.js";
+import { FakeStorage } from "../storage.js";
 import {
   bestate4Parser,
+  importListing,
   mapBestate4,
+  PARSERS,
   pickParser,
   unwrapFirestore,
+  type ListingParser,
 } from "../importers.js";
 
 // A representative Firestore typed-value `fields` object.
@@ -108,4 +114,96 @@ test("mapBestate4 throws when title is missing", () => {
 test("pickParser resolves by URL host", () => {
   expect(pickParser("https://www.bestate4.me/listing/abc")).toBe(bestate4Parser);
   expect(pickParser("https://zoopla.co.uk/x")).toBeNull();
+});
+
+// --- importListing downloads + stores photos in our storage ----------------
+
+const REMOTE_PHOTOS = [
+  "https://firebasestorage.googleapis.com/one.jpg",
+  "https://firebasestorage.googleapis.com/two.jpg",
+];
+
+const fakeParser: ListingParser = {
+  id: "fake",
+  matches: (host) => host === "fake.test",
+  parse: async () => ({
+    name: "Imported flat",
+    address: "Somewhere 1",
+    city: "Budva",
+    priceMinor: 100000,
+    currency: "EUR",
+    type: "apartment",
+    photos: REMOTE_PHOTOS,
+  }),
+};
+
+beforeAll(async () => { await migrateTestDb(); });
+afterAll(async () => { await client.end(); });
+
+test("importListing downloads remote photos and stores them in our storage", async () => {
+  await resetDb();
+  PARSERS.push(fakeParser);
+  const realFetch = globalThis.fetch;
+  const imageBytes = new Uint8Array(512).fill(7);
+  globalThis.fetch = vi.fn(async () =>
+    new Response(imageBytes, {
+      headers: { "content-type": "image/jpeg" },
+    }),
+  ) as unknown as typeof fetch;
+  try {
+    const agency = await createAgency(db, { name: "Import Agency" });
+    const storage = new FakeStorage();
+
+    const property = await importListing(db, agency.id, "https://fake.test/listing/x", storage);
+
+    // Photos are our stored URLs, not the remote source URLs.
+    expect(property.photos).toEqual([
+      `https://fake.storage/properties/${property.id}/photo-0.jpg`,
+      `https://fake.storage/properties/${property.id}/photo-1.jpg`,
+    ]);
+    expect(property.photos).not.toContain(REMOTE_PHOTOS[0]);
+    expect(property.status).toBe("published");
+
+    // Storage recorded both uploads under the property's path.
+    expect(storage.calls.map((c) => c.path)).toEqual([
+      `properties/${property.id}/photo-0.jpg`,
+      `properties/${property.id}/photo-1.jpg`,
+    ]);
+    expect(storage.calls[0].contentType).toBe("image/jpeg");
+    expect(storage.calls[0].size).toBe(512);
+  } finally {
+    globalThis.fetch = realFetch;
+    PARSERS.splice(PARSERS.indexOf(fakeParser), 1);
+  }
+});
+
+test("importListing keeps remote photos when no storage is provided", async () => {
+  await resetDb();
+  PARSERS.push(fakeParser);
+  try {
+    const agency = await createAgency(db, { name: "Import Agency" });
+    const property = await importListing(db, agency.id, "https://fake.test/listing/x");
+    expect(property.photos).toEqual(REMOTE_PHOTOS);
+  } finally {
+    PARSERS.splice(PARSERS.indexOf(fakeParser), 1);
+  }
+});
+
+test("importListing falls back to remote photos when every download fails", async () => {
+  await resetDb();
+  PARSERS.push(fakeParser);
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = vi.fn(async () =>
+    new Response(null, { status: 404 }),
+  ) as unknown as typeof fetch;
+  try {
+    const agency = await createAgency(db, { name: "Import Agency" });
+    const storage = new FakeStorage();
+    const property = await importListing(db, agency.id, "https://fake.test/listing/x", storage);
+    expect(property.photos).toEqual(REMOTE_PHOTOS);
+    expect(storage.calls).toEqual([]);
+  } finally {
+    globalThis.fetch = realFetch;
+    PARSERS.splice(PARSERS.indexOf(fakeParser), 1);
+  }
 });

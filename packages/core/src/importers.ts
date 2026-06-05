@@ -1,5 +1,13 @@
 import type { Database } from "@kluch/db";
-import { createProperty, publishProperty, type Property, type PropertyType } from "./listings.js";
+import {
+  addPropertyPhotos,
+  createProperty,
+  getProperty,
+  publishProperty,
+  type Property,
+  type PropertyType,
+} from "./listings.js";
+import type { Storage } from "./storage.js";
 
 /** A single Firestore typed value, e.g. `{ "stringValue": "x" }`. */
 type FirestoreValue = Record<string, unknown>;
@@ -147,18 +155,70 @@ export function pickParser(url: string): ListingParser | null {
   return PARSERS.find((p) => p.matches(host)) ?? null;
 }
 
+/** Maps an image content-type to a file extension, defaulting to jpg. */
+export function extFromContentType(ct: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/avif": "avif",
+    "image/gif": "gif",
+  };
+  return map[ct.split(";")[0].trim().toLowerCase()] ?? "jpg";
+}
+
+/** Largest image we'll download and store (15MB). */
+const MAX_IMAGE_BYTES = 15_000_000;
+/** Smallest plausible image; anything below is treated as a failed/empty fetch. */
+const MIN_IMAGE_BYTES = 100;
+
 /**
  * Imports a listing from a URL: picks a parser by host, fetches + maps the
  * listing, then creates and publishes it under the given agency.
+ *
+ * When `storage` is provided, each remote photo is downloaded and re-uploaded
+ * into our own storage so listings don't hot-link the source site. Downloads
+ * are best-effort per image — a single bad image won't fail the import, and if
+ * every download fails we fall back to the remote URLs. Without `storage`, the
+ * remote URLs are kept as-is.
  */
 export async function importListing(
   db: Database,
   agencyId: string,
   url: string,
+  storage?: Storage,
 ): Promise<Property> {
   const parser = pickParser(url);
   if (!parser) throw new Error("Unsupported listing site");
   const parsed = await parser.parse(url);
-  const property = await createProperty(db, { agencyId, ...parsed });
-  return publishProperty(db, property.id);
+  // Create without the remote photos first — we need the id for storage paths.
+  const property = await createProperty(db, { agencyId, ...parsed, photos: [] });
+
+  let finalPhotos: string[] = parsed.photos;
+  if (storage && parsed.photos.length) {
+    const localUrls: string[] = [];
+    for (let i = 0; i < parsed.photos.length; i++) {
+      const remoteUrl = parsed.photos[i];
+      try {
+        const res = await fetch(remoteUrl);
+        if (!res.ok) continue;
+        const ct = res.headers.get("content-type") || "image/jpeg";
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length > MAX_IMAGE_BYTES || bytes.length < MIN_IMAGE_BYTES) continue;
+        const storedUrl = await storage.upload(
+          `properties/${property.id}/photo-${i}.${extFromContentType(ct)}`,
+          bytes,
+          ct,
+        );
+        localUrls.push(storedUrl);
+      } catch {
+        // Best-effort: skip this image, keep importing the rest.
+      }
+    }
+    finalPhotos = localUrls.length ? localUrls : parsed.photos;
+  }
+
+  await addPropertyPhotos(db, property.id, finalPhotos);
+  const published = await publishProperty(db, property.id);
+  return published.photos?.length ? published : (await getProperty(db, property.id))!;
 }
