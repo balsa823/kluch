@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
 import {
-  slugify, createAgency, getAgencyBySlug, getAgencyByDomain,
+  slugify, createAgency, getAgency, getAgencyBySlug, getAgencyByDomain,
   updateAgencyConfig, addAgencyDomain,
 } from "../agencies.js";
 
@@ -40,6 +40,13 @@ test("getAgencyBySlug returns the agency or null", async () => {
   const found = await getAgencyBySlug(db, "adriatic-homes");
   expect(found?.name).toBe("Adriatic Homes");
   expect(await getAgencyBySlug(db, "nope")).toBeNull();
+});
+
+test("getAgency returns the agency by id or null", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  const found = await getAgency(db, a.id);
+  expect(found?.id).toBe(a.id);
+  expect(await getAgency(db, "00000000-0000-0000-0000-000000000000")).toBeNull();
 });
 
 test("updateAgencyConfig updates only provided fields", async () => {

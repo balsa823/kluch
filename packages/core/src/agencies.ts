@@ -36,6 +36,11 @@ export async function createAgency(
   return agency;
 }
 
+export async function getAgency(db: Database, id: string): Promise<Agency | null> {
+  const [agency] = await db.select().from(agencies).where(eq(agencies.id, id));
+  return agency ?? null;
+}
+
 export async function getAgencyBySlug(db: Database, slug: string): Promise<Agency | null> {
   const [agency] = await db.select().from(agencies).where(eq(agencies.slug, slug));
   return agency ?? null;
