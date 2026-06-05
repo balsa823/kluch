@@ -95,6 +95,12 @@ export function createListing(
   });
 }
 
+/** Resolve a stored media path (e.g. "/uploads/...") against the API origin. */
+export function mediaUrl(path: string): string {
+  if (!path) return path;
+  return /^https?:\/\//i.test(path) ? path : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export function formatMoney(minor: number, currency = "EUR"): string {
   const symbols: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
   const symbol = symbols[currency] ?? currency + " ";

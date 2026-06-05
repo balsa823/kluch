@@ -16,6 +16,7 @@ import {
   listListings,
   createListing,
   formatMoney,
+  mediaUrl,
   type Property,
 } from "../lib/api";
 
@@ -39,7 +40,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function ListingRow({ p }: { p: Property }) {
-  const photo = p.photos && p.photos.length > 0 ? p.photos[0] : null;
+  const photo = p.photos && p.photos.length > 0 ? mediaUrl(p.photos[0]) : null;
   return (
     <View style={styles.row}>
       {photo ? (
