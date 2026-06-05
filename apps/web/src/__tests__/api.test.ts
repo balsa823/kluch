@@ -149,3 +149,41 @@ test("POST /api/listings without a token returns 401", async () => {
   }));
   expect(res.status).toBe(401);
 });
+
+// --- import from URL ---
+
+test("POST /api/listings/import without a token returns 401", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request("http://localhost/api/listings/import", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url: "https://www.bestate4.me/listing/abc" }),
+  }));
+  expect(res.status).toBe(401);
+});
+
+test("POST /api/listings/import with a token but no url returns 400", async () => {
+  await seedAdmin();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = await tokenFor(app, "admin@popovic.me", "pw123");
+  const res = await app.request(new Request("http://localhost/api/listings/import", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({}),
+  }));
+  expect(res.status).toBe(400);
+  expect(((await res.json()) as { error: string }).error).toBeTruthy();
+});
+
+test("POST /api/listings/import with an unsupported host returns 400 with an error", async () => {
+  await seedAdmin();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = await tokenFor(app, "admin@popovic.me", "pw123");
+  const res = await app.request(new Request("http://localhost/api/listings/import", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ url: "https://example.com/x" }),
+  }));
+  expect(res.status).toBe(400);
+  expect(((await res.json()) as { error: string }).error).toBe("Unsupported listing site");
+});

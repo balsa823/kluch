@@ -9,6 +9,7 @@ import {
   getAgency,
   getAgencyUserById,
   getProperty,
+  importListing,
   listAgencyProperties,
   publishProperty,
   searchProperties,
@@ -162,6 +163,20 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const property = await createProperty(db, { ...body, agencyId: user.agencyId });
     const published = await publishProperty(db, property.id);
     return c.json(published, 201);
+  });
+
+  app.post("/api/listings/import", async (c) => {
+    const user = await bearerUser(c);
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const body = await c.req.json();
+    const url = typeof body?.url === "string" ? body.url.trim() : "";
+    if (!url) return c.json({ error: "url is required" }, 400);
+    try {
+      const property = await importListing(db, user.agencyId, url);
+      return c.json(property, 201);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 400);
+    }
   });
 
   app.get("/uploads/*", async (c) => {
