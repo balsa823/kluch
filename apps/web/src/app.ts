@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
-import { getSignedCookie, setSignedCookie, deleteCookie } from "hono/cookie";
 import {
   addPropertyPhotos,
   createProperty,
@@ -25,7 +24,6 @@ import {
 import type { Database } from "@kluch/db";
 import { resolveSite, type Site } from "./site.js";
 import { renderAgencySite } from "./render.js";
-import { renderLogin, renderDashboard } from "./console.js";
 
 type Vars = { site: Site };
 
@@ -120,12 +118,6 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   } = opts;
   const app = new Hono<{ Variables: Vars }>();
 
-  /** Resolves the signed-in agency user from the session cookie, or null. */
-  async function currentUser(c: Context): Promise<AgencyUser | null> {
-    const uid = await getSignedCookie(c, sessionSecret, "session");
-    return uid ? getAgencyUserById(db, uid) : null;
-  }
-
   /** Resolves the agency user from a `Authorization: Bearer <token>` header, or null. */
   async function bearerUser(c: Context): Promise<AgencyUser | null> {
     const header = c.req.header("Authorization");
@@ -170,54 +162,6 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const property = await createProperty(db, { ...body, agencyId: user.agencyId });
     const published = await publishProperty(db, property.id);
     return c.json(published, 201);
-  });
-
-  app.get("/login", (c) => c.html(renderLogin(c.req.query("error") === "1")));
-
-  app.post("/login", async (c) => {
-    const body = await c.req.parseBody();
-    const email = String(body.email ?? "");
-    const password = String(body.password ?? "");
-    const user = await verifyAgencyUser(db, email, password);
-    if (!user) return c.redirect("/login?error=1", 302);
-    await setSignedCookie(c, "session", user.id, sessionSecret, {
-      httpOnly: true,
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    return c.redirect("/dashboard", 302);
-  });
-
-  app.get("/logout", (c) => {
-    deleteCookie(c, "session", { path: "/" });
-    return c.redirect("/login", 302);
-  });
-
-  app.get("/dashboard", async (c) => {
-    const user = await currentUser(c);
-    if (!user) return c.redirect("/login", 302);
-    const agency = await getAgency(db, user.agencyId);
-    if (!agency) return c.redirect("/login", 302);
-    const listings = await listAgencyProperties(db, agency.id);
-    return c.html(renderDashboard(agency, user, listings));
-  });
-
-  app.post("/dashboard/listings", async (c) => {
-    const user = await currentUser(c);
-    if (!user) return c.redirect("/login", 302);
-    const body = await c.req.parseBody();
-    const type = String(body.type ?? "");
-    const property = await createProperty(db, {
-      agencyId: user.agencyId,
-      name: String(body.name ?? ""),
-      address: String(body.address ?? ""),
-      city: String(body.city ?? ""),
-      priceMinor: Number(body.priceMinor),
-      bedrooms: Number(body.bedrooms),
-      type: (PROPERTY_TYPES as string[]).includes(type) ? (type as PropertyType) : undefined,
-    });
-    await publishProperty(db, property.id);
-    return c.redirect("/dashboard", 302);
   });
 
   app.get("/uploads/*", async (c) => {
