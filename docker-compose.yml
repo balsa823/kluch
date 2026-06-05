@@ -47,15 +47,16 @@ services:
       - ./presentation.html:/usr/share/nginx/html/presentation.html:ro
       - ./brand:/usr/share/nginx/html/brand:ro
 
-  # Expo (React Native + Web) console — built web export served as static.
-  # Rebuild after app changes:  pnpm --filter @kluch/app export:web
+  # Expo (React Native + Web) console — web export built inside the image.
+  # Rebuild after app changes:  docker compose up -d --build app
   app:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: http://localhost:8080
     ports:
       - "8082:80"
-    volumes:
-      - ./apps/app/dist:/usr/share/nginx/html:ro
-      - ./apps/app/web.nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   pgdata:
