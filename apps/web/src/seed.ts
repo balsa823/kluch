@@ -1,6 +1,7 @@
 import { createDb } from "@kluch/db";
 import {
   createAgency,
+  getAgencyBySlug,
   updateAgencyConfig,
   createAgencyUser,
   createProperty,
@@ -9,10 +10,16 @@ import {
 } from "@kluch/core";
 
 /**
- * Seeds a demo agency white-label site with published listings.
+ * Idempotently seeds a demo agency, an admin login and a few published listings.
  * Run: pnpm --filter @kluch/web seed   (needs DATABASE_URL)
  */
 const { db, client } = createDb(process.env.DATABASE_URL);
+
+if (await getAgencyBySlug(db, "popovic")) {
+  console.log("already seeded");
+  await client.end();
+  process.exit(0);
+}
 
 const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
 await updateAgencyConfig(db, agency.id, {
@@ -24,8 +31,9 @@ await updateAgencyConfig(db, agency.id, {
 await createAgencyUser(db, {
   agencyId: agency.id,
   email: "admin@popovic.me",
-  name: "Marko Popović",
+  name: "Balša",
   role: "admin",
+  password: "kluch1234",
 });
 
 const listings: Omit<CreatePropertyInput, "agencyId">[] = [
@@ -67,10 +75,9 @@ const listings: Omit<CreatePropertyInput, "agencyId">[] = [
 for (const l of listings) {
   const property = await createProperty(db, { agencyId: agency.id, ...l });
   await publishProperty(db, property.id);
-  console.log(`published ${property.name} (${property.city})`);
 }
 
-console.log(`\nSeeded agency "${agency.name}" (slug: ${agency.slug}).`);
-console.log(`Try: curl -H "Host: popovic.kluche.me" localhost:8080/`);
+console.log(`Seeded agency "${agency.name}".`);
+console.log(`Login:  admin@popovic.me  /  kluch1234`);
 
 await client.end();
