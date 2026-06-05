@@ -8,3 +8,4 @@ export * from "./rent.js";
 export * from "./agencies.js";
 export * from "./agencyUsers.js";
 export * from "./listings.js";
+export * from "./storage.js";
