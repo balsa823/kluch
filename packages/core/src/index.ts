@@ -5,3 +5,4 @@ export * from "./leases.js";
 export * from "./tickets.js";
 export * from "./messages.js";
 export * from "./rent.js";
+export * from "./agencies.js";
