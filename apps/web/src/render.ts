@@ -19,10 +19,16 @@ function cssColor(value: unknown, fallback: string): string {
   return /^#[0-9a-fA-F]{3,8}$/.test(s) || /^[a-zA-Z]+$/.test(s) ? s : fallback;
 }
 
-/** Returns the URL only if it uses an http(s) scheme, else an empty string. */
+/**
+ * Returns the URL only if it's an http(s) URL or a same-origin root-relative
+ * path (e.g. "/uploads/..."), else an empty string. Blocks javascript:/data:
+ * and protocol-relative ("//host") URLs.
+ */
 function safeUrl(u: unknown): string {
   const s = String(u ?? "");
-  return /^https?:\/\//i.test(s) ? s : "";
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/") && !s.startsWith("//")) return s;
+  return "";
 }
 
 function renderCard(listing: Property): string {
