@@ -229,8 +229,23 @@
   .keychip .desc { font-size: 0.9rem; color: var(--muted); }
   .slide.dark .keychip .desc { color: var(--cream-dark); }
 
+  /* Revenue streams */
+  .rev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
+  .rev {
+    background: rgba(244, 239, 224, 0.06);
+    border: 1px solid rgba(244, 239, 224, 0.14);
+    border-radius: 10px;
+    padding: 1.7rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .rev .tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--teal-soft); font-weight: 600; }
+  .rev h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(1.3rem, 1.9vw, 1.7rem); color: var(--cream); line-height: 1.15; }
+  .rev p { font-size: 0.96rem; line-height: 1.5; color: var(--cream-dark); }
+
   @media (max-width: 900px) {
-    .two-col, .three-col, .pricing-grid, .keys { grid-template-columns: 1fr; gap: 1.5rem; }
+    .two-col, .three-col, .pricing-grid, .keys, .rev-grid { grid-template-columns: 1fr; gap: 1.5rem; }
     .slide { padding: 6vh 6vw; }
   }
 </style>
@@ -403,12 +418,24 @@
   <section class="slide dark">
     <div class="eyebrow">Revenue</div>
     <h1>The marketplace<br>and the account pay.</h1>
-    <div class="pricing-grid">
-      <div class="price-tier"><h4>Featured</h4><div class="price">Agency tiers</div><ul><li>Prominence in the marketplace</li><li>Area / category exclusivity</li><li>Premium console features</li></ul></div>
-      <div class="price-tier featured"><h4>Finder fees</h4><div class="price">Per lead / rental</div><ul><li>Qualified tenant introductions</li><li>Completed rentals sourced via Kluche</li><li>Scales with marketplace volume</li></ul></div>
-      <div class="price-tier"><h4>Services</h4><div class="price">Commission</div><ul><li>Law &amp; tax verticals</li><li>Vetted partners (then in-house)</li><li>High-margin paperwork</li></ul></div>
+    <div class="rev-grid">
+      <div class="rev">
+        <div class="tag">Primary · early</div>
+        <h4>Featured &amp; exclusivity</h4>
+        <p>Agencies pay for prominence or area exclusivity in the marketplace — plus premium console features.</p>
+      </div>
+      <div class="rev">
+        <div class="tag">Scales with volume</div>
+        <h4>Marketplace finder fees</h4>
+        <p>A fee on qualified tenant introductions and rentals sourced through Kluche.</p>
+      </div>
+      <div class="rev">
+        <div class="tag">High margin · later</div>
+        <h4>Service commission</h4>
+        <p>Law &amp; tax verticals take a margin on work by vetted partners — then in-house.</p>
+      </div>
     </div>
-    <p class="note" style="margin-top:1.2rem; color: var(--cream-dark);">Exact pricing set from pilot data — deliberately not guessed here.</p>
+    <p class="note" style="margin-top:1.4rem; color: var(--cream-dark);">Exact pricing set from pilot data — deliberately not guessed here.</p>
   </section>
 
   <!-- 12. Market -->
