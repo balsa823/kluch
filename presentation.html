@@ -229,6 +229,16 @@
   .keychip .desc { font-size: 0.9rem; color: var(--muted); }
   .slide.dark .keychip .desc { color: var(--cream-dark); }
 
+  /* Title: verticals line */
+  .verticals-line { font-size: clamp(0.85rem, 1.1vw, 1rem); letter-spacing: 0.04em; color: var(--muted); margin-bottom: 1.8rem; }
+  .verticals-line strong { color: var(--teal); font-weight: 600; }
+
+  /* rentK vertical reveal */
+  .rentk-slide { align-items: center; text-align: center; }
+  .rentk-lockup { display: inline-flex; align-items: center; gap: 0.15rem; }
+  .rentk-word { font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(3.5rem, 9vw, 7rem); color: var(--navy); letter-spacing: -0.03em; }
+  .rentk-logo { height: clamp(3rem, 7.6vw, 6rem); width: auto; display: inline-block; transform: translateY(0.06em); filter: drop-shadow(0 6px 18px rgba(31,58,95,0.18)); }
+
   /* Revenue streams */
   .rev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
   .rev {
@@ -263,7 +273,17 @@
     <div class="logo-wrap"><img src="/logo.png" alt="Kluche logo"></div>
     <h1>Kluche</h1>
     <div class="tagline">Your keys to Montenegro.</div>
+    <div class="verticals-line">One account · many keys — <strong>rent</strong> · law · tax · and every door after</div>
     <div class="meta">Business plan · v0.3 · June 2026</div>
+  </section>
+
+  <!-- 2. rentK reveal -->
+  <section class="slide rentk-slide">
+    <div class="eyebrow">We start with one key</div>
+    <div class="rentk-lockup">
+      <span class="rentk-word">rent</span><img class="rentk-logo" src="/brand/kluch-icon.png" alt="Kluche key">
+    </div>
+    <p class="lede" style="max-width: 60ch; margin: 1.6rem auto 0;">The rental vertical at <strong>rent.kluche.me</strong> is the wedge. The same playbook then opens <strong>law</strong>, <strong>tax</strong>, and every other door — all on one Kluche account.</p>
   </section>
 
   <!-- 2. Problem -->
@@ -440,23 +460,27 @@
 
   <!-- 12. Market -->
   <section class="slide">
-    <div class="eyebrow">Market</div>
-    <h1>The customers<br>are already here.</h1>
+    <div class="eyebrow">Market · timing</div>
+    <h1>The wave is coming.<br>Nobody is ready.</h1>
     <div class="two-col" style="margin-top: 1rem;">
       <div>
+        <h3>The EU tailwind</h3>
         <ul class="bullets">
-          <li>Montenegro has a <strong>record-high foreign-resident population</strong> — Russian, Ukrainian, Serbian, Turkish, Western.</li>
-          <li>Every long-term foreigner needs a home first, then residency, company, and tax — repeatedly.</li>
+          <li>Montenegro is the <strong>front-runner to join the EU</strong> — the government is targeting accession around 2028.</li>
+          <li>Membership means <strong>free movement</strong>: EU citizens able to relocate here with almost no friction.</li>
+          <li>The country — its agencies, services, and paperwork — is <strong>not prepared</strong> for the inflow. Many will come, and they'll need a front door.</li>
         </ul>
       </div>
       <div>
+        <h3>Already here today</h3>
         <ul class="bullets">
+          <li><strong>Record-high foreign-resident population</strong> — Russian, Ukrainian, Serbian, Turkish, Western.</li>
+          <li>Every long-term foreigner needs a home first, then residency, company, and tax — repeatedly.</li>
           <li>Rental agencies are <strong>fragmented and offline</strong> — none aggregated, none with real web presence.</li>
-          <li>Our cofounder's agency seeds the first inventory and trust.</li>
         </ul>
       </div>
     </div>
-    <p class="note" style="margin-top:1.4rem;">Precise market sizing to be validated during the pilot rather than asserted here.</p>
+    <p class="note" style="margin-top:1.2rem;">Precise market sizing to be validated during the pilot rather than asserted here.</p>
   </section>
 
   <!-- 13. Why now -->
