@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { createAgency } from "../agencies.js";
 import { createAgencyUser } from "../agencyUsers.js";
 import { hashPassword, verifyPassword, verifyAgencyUser, getAgencyUserById } from "../auth.js";

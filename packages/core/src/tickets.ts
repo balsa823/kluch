@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { tickets, type Database } from "@kluch/db";
+import { tickets, type Database } from "@kluche/db";
 import type { Locale } from "./i18n.js";
 import type { Translator } from "./translate.js";
 

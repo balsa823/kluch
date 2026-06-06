@@ -72,7 +72,7 @@ export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 22
 BACKEND_URL=$(terraform -chdir=infra output -raw backend_url)
 SWA_TOKEN=$(terraform -chdir=infra output -raw swa_api_token)
 
-EXPO_PUBLIC_API_URL="$BACKEND_URL" pnpm --filter @kluch/app exec \
+EXPO_PUBLIC_API_URL="$BACKEND_URL" pnpm --filter @kluche/app exec \
   expo export --platform web --output-dir dist
 
 npx @azure/static-web-apps-cli deploy apps/app/dist \

@@ -3,8 +3,8 @@ import { createConversation, type Conversation } from "@grammyjs/conversations";
 import {
   findOrCreateUser, getActiveLeaseForUser, getUserById, createTicket, updateTicketStatus,
   t, type Locale,
-} from "@kluch/core";
-import type { Database } from "@kluch/db";
+} from "@kluche/core";
+import type { Database } from "@kluche/db";
 import type { BotContext, Services } from "../context.js";
 
 const STATUS_KEY: Record<string, string> = {

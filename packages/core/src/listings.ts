@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
-import { properties, type Database } from "@kluch/db";
+import { properties, type Database } from "@kluche/db";
 
 export type Property = typeof properties.$inferSelect;
 export type PropertyType = NonNullable<Property["type"]>;

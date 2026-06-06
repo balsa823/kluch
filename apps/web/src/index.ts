@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
-import { createDb } from "@kluch/db";
-import { AzureBlobStorage, LocalDiskStorage, type Storage } from "@kluch/core";
+import { createDb } from "@kluche/db";
+import { AzureBlobStorage, LocalDiskStorage, type Storage } from "@kluche/core";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 

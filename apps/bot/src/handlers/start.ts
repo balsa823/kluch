@@ -2,7 +2,7 @@ import type { Bot } from "grammy";
 import {
   findOrCreateUser, setUserLocale, linkOccupantByCode, getActiveLeaseForUser,
   t, type Locale,
-} from "@kluch/core";
+} from "@kluche/core";
 import type { BotContext } from "../context.js";
 import { languageKeyboard, mainMenu } from "../keyboards.js";
 

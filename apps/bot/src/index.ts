@@ -1,5 +1,5 @@
-import { createDb } from "@kluch/db";
-import { DeepLTranslator } from "@kluch/core";
+import { createDb } from "@kluche/db";
+import { DeepLTranslator } from "@kluche/core";
 import { loadConfig } from "./config.js";
 import { createBot } from "./bot.js";
 import { startServer } from "./server.js";

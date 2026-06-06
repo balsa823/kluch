@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { agencies, agencyDomains, type Database } from "@kluch/db";
+import { agencies, agencyDomains, type Database } from "@kluche/db";
 
 export type Agency = typeof agencies.$inferSelect;
 export type AgencyDomain = typeof agencyDomains.$inferSelect;

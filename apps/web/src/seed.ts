@@ -1,4 +1,4 @@
-import { createDb } from "@kluch/db";
+import { createDb } from "@kluche/db";
 import {
   createAgency,
   getAgencyBySlug,
@@ -7,11 +7,11 @@ import {
   createProperty,
   publishProperty,
   type CreatePropertyInput,
-} from "@kluch/core";
+} from "@kluche/core";
 
 /**
  * Idempotently seeds a demo agency, an admin login and a few published listings.
- * Run: pnpm --filter @kluch/web seed   (needs DATABASE_URL)
+ * Run: pnpm --filter @kluche/web seed   (needs DATABASE_URL)
  */
 const { db, client } = createDb(process.env.DATABASE_URL);
 

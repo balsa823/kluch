@@ -1,5 +1,5 @@
 {
-  "name": "@kluch/app",
+  "name": "@kluche/app",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {

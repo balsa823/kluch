@@ -1,5 +1,5 @@
 {
-  "name": "@kluch/bot",
+  "name": "@kluche/bot",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "cron:rent": "tsx src/cron/rentReminders.ts"
   },
   "dependencies": {
-    "@kluch/core": "workspace:*",
-    "@kluch/db": "workspace:*",
+    "@kluche/core": "workspace:*",
+    "@kluche/db": "workspace:*",
     "grammy": "^1.30.0",
     "@grammyjs/conversations": "^1.2.0",
     "hono": "^4.5.0",

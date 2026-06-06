@@ -1,4 +1,4 @@
-import { formatMoney, type Agency, type Property, type SearchFilters } from "@kluch/core";
+import { formatMoney, type Agency, type Property, type SearchFilters } from "@kluche/core";
 
 /** Minimal HTML-escaping for text interpolated into the template. */
 function esc(value: unknown): string {

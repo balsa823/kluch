@@ -1,7 +1,7 @@
 import type { Context } from "grammy";
 import type { ConversationFlavor } from "@grammyjs/conversations";
-import type { Database } from "@kluch/db";
-import type { Translator } from "@kluch/core";
+import type { Database } from "@kluche/db";
+import type { Translator } from "@kluche/core";
 
 /** Shared dependencies attached to every context as `ctx.services`. */
 export interface Services {

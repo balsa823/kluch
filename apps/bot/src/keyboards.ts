@@ -1,5 +1,5 @@
 import { InlineKeyboard } from "grammy";
-import { t, type Locale } from "@kluch/core";
+import { t, type Locale } from "@kluche/core";
 
 export function languageKeyboard(): InlineKeyboard {
   return new InlineKeyboard()

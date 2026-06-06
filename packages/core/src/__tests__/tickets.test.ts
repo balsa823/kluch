@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { FakeTranslator } from "../translate.js";
 import { findOrCreateUser } from "../users.js";
 import { createLease } from "../leases.js";

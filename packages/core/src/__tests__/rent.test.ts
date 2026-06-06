@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { eq } from "drizzle-orm";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { payments } from "@kluch/db";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { payments } from "@kluche/db";
 import { createLease } from "../leases.js";
 import { claimPayment, confirmPayment, leasesDueOn, formatMoney } from "../rent.js";
 

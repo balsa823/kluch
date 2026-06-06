@@ -1,5 +1,5 @@
 {
-  "name": "@kluch/web",
+  "name": "@kluche/web",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -11,8 +11,8 @@
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
-    "@kluch/core": "workspace:*",
-    "@kluch/db": "workspace:*",
+    "@kluche/core": "workspace:*",
+    "@kluche/db": "workspace:*",
     "hono": "^4.5.0",
     "@hono/node-server": "^1.12.0"
   }

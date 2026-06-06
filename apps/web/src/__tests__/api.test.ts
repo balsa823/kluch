@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { createAgency, createAgencyUser, createProperty, publishProperty } from "@kluch/core";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { createAgency, createAgencyUser, createProperty, publishProperty } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });

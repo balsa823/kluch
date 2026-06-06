@@ -23,4 +23,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # On boot: apply migrations, seed (idempotent), then start the web server.
-CMD ["sh", "-c", "pnpm --filter @kluch/db migrate && pnpm --filter @kluch/web seed && pnpm --filter @kluch/web start"]
+CMD ["sh", "-c", "pnpm --filter @kluche/db migrate && pnpm --filter @kluche/web seed && pnpm --filter @kluche/web start"]

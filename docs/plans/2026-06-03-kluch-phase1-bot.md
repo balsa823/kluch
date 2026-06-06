@@ -204,7 +204,7 @@ git commit -m "chore: add local test postgres via docker compose"
 
 ```json
 {
-  "name": "@kluch/db",
+  "name": "@kluche/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -258,7 +258,7 @@ Expected: workspace links, no errors.
 
 ```bash
 git add packages/db pnpm-lock.yaml
-git commit -m "feat(db): scaffold @kluch/db package"
+git commit -m "feat(db): scaffold @kluche/db package"
 ```
 
 ### Task 1.2: Define the schema
@@ -351,7 +351,7 @@ export const messages = pgTable("messages", {
 
 **Step 2:** Typecheck.
 
-Run: `pnpm --filter @kluch/db typecheck`
+Run: `pnpm --filter @kluche/db typecheck`
 Expected: PASS (no type errors).
 
 **Step 3: Commit**
@@ -406,12 +406,12 @@ console.log("migrations applied");
 
 **Step 4:** Generate the first migration from the schema.
 
-Run: `pnpm --filter @kluch/db generate`
+Run: `pnpm --filter @kluche/db generate`
 Expected: a SQL file appears under `packages/db/migrations/`.
 
 **Step 5:** Apply it to the local test DB to confirm it's valid.
 
-Run: `DIRECT_DATABASE_URL=postgresql://kluch:kluch@localhost:5433/kluch_test pnpm --filter @kluch/db migrate`
+Run: `DIRECT_DATABASE_URL=postgresql://kluch:kluch@localhost:5433/kluch_test pnpm --filter @kluche/db migrate`
 Expected: `migrations applied`.
 
 **Step 6: Commit**
@@ -482,7 +482,7 @@ test("can insert and read a user with a default locale", async () => {
 
 **Step 4: Run to verify it passes** (schema already exists, so this confirms the harness works).
 
-Run: `pnpm db:up && pnpm --filter @kluch/db test`
+Run: `pnpm db:up && pnpm --filter @kluche/db test`
 Expected: 1 passed.
 
 **Step 5: Commit**
@@ -507,14 +507,14 @@ git commit -m "test(db): add test harness and schema round-trip test"
 
 ```json
 {
-  "name": "@kluch/core",
+  "name": "@kluche/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
-  "dependencies": { "@kluch/db": "workspace:*", "drizzle-orm": "^0.33.0" }
+  "dependencies": { "@kluche/db": "workspace:*", "drizzle-orm": "^0.33.0" }
 }
 ```
 
@@ -525,7 +525,7 @@ git commit -m "test(db): add test harness and schema round-trip test"
 ```bash
 pnpm install
 git add packages/core pnpm-lock.yaml
-git commit -m "feat(core): scaffold @kluch/core package"
+git commit -m "feat(core): scaffold @kluche/core package"
 ```
 
 ### Task 2.2: i18n dictionary (TDD)
@@ -557,7 +557,7 @@ test("falls back to English for a missing translation", () => {
 
 **Step 2: Run to verify it fails**
 
-Run: `pnpm --filter @kluch/core test`
+Run: `pnpm --filter @kluche/core test`
 Expected: FAIL — cannot find module `../i18n.js`.
 
 **Step 3: Implement** — `packages/core/src/i18n.ts`:
@@ -622,7 +622,7 @@ export function t(locale: Locale, key: string, params: Record<string, string | n
 
 **Step 4: Run to verify it passes**
 
-Run: `pnpm --filter @kluch/core test`
+Run: `pnpm --filter @kluche/core test`
 Expected: 3 passed.
 
 **Step 5: Commit**
@@ -708,7 +708,7 @@ git commit -m "feat(core): add Translator interface, DeepL impl, and fake"
 
 ## Milestone 3 — `packages/core` domain logic (TDD)
 
-> All functions here take `db` (and a `Translator` where needed) as arguments — no globals — so they're trivially testable against the local test DB. Each function gets its own failing-test-first cycle. Reuse the db test harness from `@kluch/db` by importing `migrateTestDb`/`resetDb`. Add `@kluch/db` test-helpers export if needed, or replicate the tiny helper in core's `__tests__/helpers.ts` pointing at `TEST_DATABASE_URL`.
+> All functions here take `db` (and a `Translator` where needed) as arguments — no globals — so they're trivially testable against the local test DB. Each function gets its own failing-test-first cycle. Reuse the db test harness from `@kluche/db` by importing `migrateTestDb`/`resetDb`. Add `@kluche/db` test-helpers export if needed, or replicate the tiny helper in core's `__tests__/helpers.ts` pointing at `TEST_DATABASE_URL`.
 
 ### Task 3.1: `findOrCreateUser` (onboarding identity)
 
@@ -719,7 +719,7 @@ git commit -m "feat(core): add Translator interface, DeepL impl, and fake"
 
 ```ts
 import { eq } from "drizzle-orm";
-import { users, type Database } from "@kluch/db";
+import { users, type Database } from "@kluche/db";
 import type { Locale } from "./i18n.js";
 
 export async function findOrCreateUser(
@@ -792,7 +792,7 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
 
 **Files:** Create `packages/core/src/index.ts` re-exporting i18n, translate, users, leases, tickets, messages, rent.
 
-- **Verify:** `pnpm --filter @kluch/core typecheck` PASS. **Commit:** `feat(core): add barrel export`.
+- **Verify:** `pnpm --filter @kluche/core typecheck` PASS. **Commit:** `feat(core): add barrel export`.
 
 ---
 
@@ -804,7 +804,7 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
 
 ```json
 {
-  "name": "@kluch/bot",
+  "name": "@kluche/bot",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -815,8 +815,8 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kluch/core": "workspace:*",
-    "@kluch/db": "workspace:*",
+    "@kluche/core": "workspace:*",
+    "@kluche/db": "workspace:*",
     "grammy": "^1.30.0",
     "@grammyjs/conversations": "^1.2.0",
     "hono": "^4.5.0",
@@ -825,7 +825,7 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
 }
 ```
 
-- Install + commit: `feat(bot): scaffold @kluch/bot package`.
+- Install + commit: `feat(bot): scaffold @kluche/bot package`.
 
 ### Task 4.2: Config loader (fail fast on missing env)
 
@@ -843,7 +843,7 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
 - `bot.ts`: build the `Bot<BotContext>`, install `session` (in-memory) and `conversations()` plugins, and wire a shared services object `{ db, translator, operatorChatId }` created from config (use `DeepLTranslator`).
 - `server.ts`: a minimal Hono app with `GET /health` → `200 "ok"`, served via `@hono/node-server` on `process.env.PORT ?? 8080` (Railway health check + reserves the future API surface).
 - `index.ts`: load config, run migrations are NOT run here (done at deploy), start the Hono server, then `bot.start()` (long polling). Add graceful shutdown on SIGTERM.
-- **Verify (manual):** with a real `BOT_TOKEN` in `.env`, run `pnpm --filter @kluch/bot dev`; `/start` should not crash (handlers added next). `curl localhost:8080/health` → `ok`.
+- **Verify (manual):** with a real `BOT_TOKEN` in `.env`, run `pnpm --filter @kluche/bot dev`; `/start` should not crash (handlers added next). `curl localhost:8080/health` → `ok`.
 - Commit: `feat(bot): add polling bot bootstrap and health server`.
 
 ---
@@ -968,17 +968,17 @@ export async function setUserLocale(db: Database, userId: string, locale: Locale
 
 ### Task 11.1: Production migration + start
 **Files:** root `package.json` scripts; `apps/bot/package.json` `start`.
-- Add a `release`/predeploy step that runs `pnpm --filter @kluch/db migrate` against `DIRECT_DATABASE_URL`, then `pnpm --filter @kluch/bot start`.
+- Add a `release`/predeploy step that runs `pnpm --filter @kluche/db migrate` against `DIRECT_DATABASE_URL`, then `pnpm --filter @kluche/bot start`.
 
 ### Task 11.2: Railway project
 - Create a Railway project from the GitHub repo. Set the **root directory** to repo root (monorepo) and start command to run migrations then the bot. Add all env vars from `.env.example` (use Supabase pooled `DATABASE_URL`, direct `DIRECT_DATABASE_URL`, `BOT_TOKEN`, `OPERATOR_CHAT_ID`, `DEEPL_API_KEY`, `DEEPL_API_URL`). Set region to EU.
-- Add a **Railway Cron** for `pnpm --filter @kluch/bot cron:rent` (e.g. daily 09:00 CET).
+- Add a **Railway Cron** for `pnpm --filter @kluche/bot cron:rent` (e.g. daily 09:00 CET).
 - **Verify:** deploy logs show "migrations applied" then the bot polling; `/start` works against production; the health endpoint responds.
 - Commit: `chore: railway deploy config and docs`.
 
 ### Task 11.3: README + ops notes
 **Files:** `README.md`.
-- Document: local dev (`pnpm db:up`, `.env`, `pnpm --filter @kluch/bot dev`), running tests, seeding pilot codes, the operator group workflow (how to confirm payments, change ticket status, reply to Ask-Kluch, broadcast), and the manual processes that are intentionally not automated yet.
+- Document: local dev (`pnpm db:up`, `.env`, `pnpm --filter @kluche/bot dev`), running tests, seeding pilot codes, the operator group workflow (how to confirm payments, change ticket status, reply to Ask-Kluch, broadcast), and the manual processes that are intentionally not automated yet.
 - Commit: `docs: add README with dev, test, and operator runbook`.
 
 ---

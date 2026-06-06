@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { leases, payments, type Database } from "@kluch/db";
+import { leases, payments, type Database } from "@kluche/db";
 
 const CURRENCY_SYMBOLS: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
 

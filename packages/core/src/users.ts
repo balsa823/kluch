@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { users, type Database } from "@kluch/db";
+import { users, type Database } from "@kluche/db";
 import type { Locale } from "./i18n.js";
 
 export async function findOrCreateUser(

@@ -1,4 +1,4 @@
-import type { Database } from "@kluch/db";
+import type { Database } from "@kluche/db";
 import {
   addPropertyPhotos,
   createProperty,

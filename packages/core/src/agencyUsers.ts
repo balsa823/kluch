@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { agencyUsers, type Database } from "@kluch/db";
+import { agencyUsers, type Database } from "@kluche/db";
 import { hashPassword } from "./auth.js";
 
 export type AgencyUser = typeof agencyUsers.$inferSelect;

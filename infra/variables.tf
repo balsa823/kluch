@@ -1,7 +1,7 @@
 variable "subscription_id" {
-  description = "Azure subscription ID. Defaults to the Kluch Azure Sponsorship subscription; override via TF_VAR_subscription_id."
+  description = "Azure subscription ID. Defaults to the personal 'Kluche' subscription (balsa823@gmail.com); override via TF_VAR_subscription_id."
   type        = string
-  default     = "cc97dbf2-f732-4fd1-b853-faa7d795df9e"
+  default     = "5b48aa1c-0f8a-4cd1-bd3e-0b7f929be8f5"
 }
 
 variable "name_prefix" {
@@ -17,9 +17,9 @@ variable "location" {
 }
 
 variable "swa_location" {
-  description = "Region for the Static Web App. SWA metadata regions do not include italynorth; it is a global resource."
+  description = "Region for the Static Web App. SWA metadata regions do not include italynorth; it is a global resource. (westeurope was refusing new SWAs on this subscription, so we use westus2.)"
   type        = string
-  default     = "westeurope"
+  default     = "westus2"
 }
 
 variable "resource_group_name" {

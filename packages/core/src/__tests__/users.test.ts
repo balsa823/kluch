@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { eq } from "drizzle-orm";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { users } from "@kluch/db";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { users } from "@kluche/db";
 import { findOrCreateUser, setUserLocale, getUserById } from "../users.js";
 
 beforeAll(async () => { await migrateTestDb(); });

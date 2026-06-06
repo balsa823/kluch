@@ -1,4 +1,4 @@
-import { messages, type Database } from "@kluch/db";
+import { messages, type Database } from "@kluche/db";
 import type { Locale } from "./i18n.js";
 import type { Translator } from "./translate.js";
 

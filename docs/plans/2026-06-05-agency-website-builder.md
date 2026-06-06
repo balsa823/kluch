@@ -89,13 +89,13 @@ export const agencyUsers = pgTable("agency_users", {
 
 **Step 4: Typecheck**
 
-Run: `pnpm --filter @kluch/db typecheck`
+Run: `pnpm --filter @kluche/db typecheck`
 Expected: PASS.
 
 **Step 5: Generate + apply migration**
 
-Run: `pnpm --filter @kluch/db generate`
-Then (test DB): `DIRECT_DATABASE_URL=postgresql://kluch:kluch@localhost:5433/kluch_test pnpm --filter @kluch/db migrate`
+Run: `pnpm --filter @kluche/db generate`
+Then (test DB): `DIRECT_DATABASE_URL=postgresql://kluch:kluch@localhost:5433/kluch_test pnpm --filter @kluche/db migrate`
 Expected: a new migration file; "migrations applied".
 
 **Step 6: Commit**
@@ -110,14 +110,14 @@ git commit -m "feat(db): add agencies, agency_users, domains, and property listi
 **Files:** Test `packages/db/src/__tests__/agencies.test.ts`
 
 - **Test:** insert an `agencies` row (slug unique), insert an `agency_users` row referencing it with role default `agent`, insert a `properties` row with `agencyId` + `status` default `draft` + empty `photos`. Assert reads back.
-- **Run:** `pnpm db:up && pnpm --filter @kluch/db test` → PASS.
+- **Run:** `pnpm db:up && pnpm --filter @kluche/db test` → PASS.
 - **Commit:** `test(db): agencies/agency_users/properties round-trip`.
 
 ---
 
 ## Milestone 2 — Core logic (TDD)
 
-> Reuse the test harness pattern: import `db`, `migrateTestDb`, `resetDb` from `@kluch/db/test-helpers`. Add the new tables to the `resetDb()` TRUNCATE list in `packages/db/src/test-helpers.ts` (agencies, agency_domains, agency_users) — order them before/with the tables that reference them using `CASCADE` (already present).
+> Reuse the test harness pattern: import `db`, `migrateTestDb`, `resetDb` from `@kluche/db/test-helpers`. Add the new tables to the `resetDb()` TRUNCATE list in `packages/db/src/test-helpers.ts` (agencies, agency_domains, agency_users) — order them before/with the tables that reference them using `CASCADE` (already present).
 
 ### Task 2.0: Update resetDb truncate list
 **Files:** Modify `packages/db/src/test-helpers.ts` — add `agency_users, agency_domains, agencies` to the `TRUNCATE ... RESTART IDENTITY CASCADE` statement. Run any existing db test to confirm still green. Commit: `test(db): include agency tables in resetDb`.
@@ -190,16 +190,16 @@ git commit -m "feat(db): add agencies, agency_users, domains, and property listi
 
 ```json
 {
-  "name": "@kluch/web", "private": true, "type": "module", "main": "./src/index.ts",
+  "name": "@kluche/web", "private": true, "type": "module", "main": "./src/index.ts",
   "scripts": { "dev": "tsx watch src/index.ts", "start": "tsx src/index.ts", "typecheck": "tsc --noEmit", "test": "vitest run" },
   "dependencies": {
-    "@kluch/core": "workspace:*", "@kluch/db": "workspace:*",
+    "@kluche/core": "workspace:*", "@kluche/db": "workspace:*",
     "hono": "^4.5.0", "@hono/node-server": "^1.12.0"
   }
 }
 ```
 - `tsconfig.json` extends base (like other packages); `vitest.config.ts` mirrors core's (`fileParallelism:false`).
-- `pnpm install`. **Commit** `feat(web): scaffold @kluch/web`.
+- `pnpm install`. **Commit** `feat(web): scaffold @kluche/web`.
 
 ### Task 3.2: Host → site resolution (TDD)
 **Files:** Create `apps/web/src/site.ts`; Test `apps/web/src/__tests__/site.test.ts`.
@@ -238,7 +238,7 @@ git commit -m "feat(db): add agencies, agency_users, domains, and property listi
 
 ### Task 3.5: Config + server entry
 **Files:** Create `apps/web/src/config.ts` (fail-fast: `DATABASE_URL`, `BASE_DOMAIN` default `kluche.me`, `PORT` default 8080; storage vars optional) and `apps/web/src/index.ts` (create db, `createApp`, serve via `@hono/node-server`, graceful shutdown).
-- **Verify (manual):** `pnpm --filter @kluch/web dev`; `curl -H "Host: popovic.kluche.me" localhost:8080/` renders the seeded agency site; `curl -H "Host: nope.kluche.me" localhost:8080/` → 404.
+- **Verify (manual):** `pnpm --filter @kluche/web dev`; `curl -H "Host: popovic.kluche.me" localhost:8080/` renders the seeded agency site; `curl -H "Host: nope.kluche.me" localhost:8080/` → 404.
 - **Commit** `feat(web): config + server entry`.
 
 ### Task 3.6: Seed script for local multi-tenant testing
@@ -266,7 +266,7 @@ git commit -m "feat(db): add agencies, agency_users, domains, and property listi
 ## Milestone 5 — Deploy
 
 ### Task 5.1: Railway service for `apps/web`
-- Add `apps/web` as a Railway service (or second service in the project). Start: run migrations then `pnpm --filter @kluch/web start`. Env: `DATABASE_URL` (Supabase pooled), `DIRECT_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `STORAGE_BUCKET`, `BASE_DOMAIN=kluche.me`, `PORT`.
+- Add `apps/web` as a Railway service (or second service in the project). Start: run migrations then `pnpm --filter @kluche/web start`. Env: `DATABASE_URL` (Supabase pooled), `DIRECT_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `STORAGE_BUCKET`, `BASE_DOMAIN=kluche.me`, `PORT`.
 
 ### Task 5.2: Cloudflare DNS + wildcard TLS
 - In Cloudflare for `kluche.me`: `A`/`CNAME` for `kluche.me`, `www`, `agency`, and **`*` (wildcard)** → the Railway service. Cloudflare provides `*.kluche.me` TLS automatically (proxied). Verify `https://popovic.kluche.me` serves the agency site in production.

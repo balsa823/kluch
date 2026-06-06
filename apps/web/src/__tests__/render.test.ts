@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Agency, Property } from "@kluch/core";
+import type { Agency, Property } from "@kluche/core";
 import { renderAgencySite } from "../render.js";
 
 const agency: Agency = {

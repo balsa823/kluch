@@ -1,9 +1,9 @@
-import { createDb } from "@kluch/db";
-import { createLease } from "@kluch/core";
+import { createDb } from "@kluche/db";
+import { createLease } from "@kluche/core";
 
 /**
  * Seeds pilot properties + leases and prints their join codes.
- * Run: pnpm --filter @kluch/bot seed
+ * Run: pnpm --filter @kluche/bot seed
  * Give each tenant their code to use with /join <code> (or a deep link).
  */
 const { db, client } = createDb(process.env.DATABASE_URL);

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { leases, properties, type Database } from "@kluch/db";
+import { leases, properties, type Database } from "@kluche/db";
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 const CODE_LENGTH = 6;

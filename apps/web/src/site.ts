@@ -1,5 +1,5 @@
-import { getAgencyBySlug, getAgencyByDomain, type Agency } from "@kluch/core";
-import type { Database } from "@kluch/db";
+import { getAgencyBySlug, getAgencyByDomain, type Agency } from "@kluche/core";
+import type { Database } from "@kluche/db";
 
 export type Site =
   | { kind: "marketplace" }

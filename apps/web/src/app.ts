@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
@@ -21,8 +22,8 @@ import {
   type PropertyType,
   type SearchFilters,
   type Storage,
-} from "@kluch/core";
-import type { Database } from "@kluch/db";
+} from "@kluche/core";
+import type { Database } from "@kluche/db";
 import { resolveSite, type Site } from "./site.js";
 import { renderAgencySite } from "./render.js";
 
@@ -73,7 +74,21 @@ function toInt(raw: string | undefined): number | undefined {
   return Number.isNaN(n) ? undefined : n;
 }
 
-const MARKETPLACE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Kluch</title></head><body><h1>Kluch marketplace — coming soon</h1></body></html>`;
+// Static landing-page assets shipped with the app (apps/web/static).
+const STATIC_DIR = fileURLToPath(new URL("../static", import.meta.url));
+
+/** The marketing landing page, loaded once and cached. Falls back to a stub if missing. */
+let landingHtmlCache: string | null = null;
+async function landingHtml(): Promise<string> {
+  if (landingHtmlCache === null) {
+    try {
+      landingHtmlCache = await readFile(join(STATIC_DIR, "landing.html"), "utf8");
+    } catch {
+      landingHtmlCache = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Kluch</title></head><body><h1>Kluch — Your keys to Montenegro</h1></body></html>`;
+    }
+  }
+  return landingHtmlCache;
+}
 const CONSOLE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Kluch</title></head><body><h1>Kluch agency console</h1></body></html>`;
 
 /** File extension for a given content type, defaulting to bin. */
@@ -191,6 +206,31 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     }
   });
 
+  // Static assets for the marketing landing page (logo + photos), shipped in apps/web/static.
+  app.get("/brand/*", async (c) => {
+    const rest = c.req.path.slice("/brand/".length);
+    if (rest.includes("..")) return c.text("Not found", 404);
+    try {
+      const bytes = await readFile(join(STATIC_DIR, "brand", rest));
+      return c.body(bytes, 200, { "content-type": contentTypeFor(rest) });
+    } catch {
+      return c.text("Not found", 404);
+    }
+  });
+
+  // Standalone static files served at the apex (business plan + its logo).
+  for (const file of ["bussines_plan.html", "logo.png"] as const) {
+    app.get(`/${file}`, async (c) => {
+      try {
+        const bytes = await readFile(join(STATIC_DIR, file));
+        const type = file.endsWith(".html") ? "text/html; charset=utf-8" : contentTypeFor(file);
+        return c.body(bytes, 200, { "content-type": type });
+      } catch {
+        return c.text("Not found", 404);
+      }
+    });
+  }
+
   app.use("*", async (c, next) => {
     // Prefer the Host header; fall back to the request URL's host (e.g. in unit
     // tests where `app.request(new Request(url))` doesn't set a Host header).
@@ -203,7 +243,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const site = c.get("site");
     switch (site.kind) {
       case "marketplace":
-        return c.html(MARKETPLACE);
+        return c.html(await landingHtml());
       case "console":
         return c.html(CONSOLE);
       case "agency": {

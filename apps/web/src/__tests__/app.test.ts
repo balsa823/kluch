@@ -2,8 +2,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
-import { db, client, migrateTestDb, resetDb } from "@kluch/db/test-helpers";
-import { createAgency, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluch/core";
+import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { createAgency, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });

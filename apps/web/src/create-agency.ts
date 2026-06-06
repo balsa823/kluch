@@ -2,8 +2,8 @@
 // Usage: tsx src/create-agency.ts "<Agency Name>" <admin-email> [password]
 //   DATABASE_URL must point at the target DB.
 import { randomBytes } from "node:crypto";
-import { createDb } from "@kluch/db";
-import { createAgency, createAgencyUser } from "@kluch/core";
+import { createDb } from "@kluche/db";
+import { createAgency, createAgencyUser } from "@kluche/core";
 
 const [name, email, pwArg] = process.argv.slice(2);
 if (!name || !email) {

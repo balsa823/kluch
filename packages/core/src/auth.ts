@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { agencyUsers, type Database } from "@kluch/db";
+import { agencyUsers, type Database } from "@kluche/db";
 import type { AgencyUser } from "./agencyUsers.js";
 
 const KEY_LEN = 64;

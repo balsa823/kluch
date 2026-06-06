@@ -1,214 +1,212 @@
-# Kluch — Business Plan
+# Kluche — Business Plan
 
-*Lean internal founder doc — v0.2 (June 2026)*
+*Lean internal founder doc — v0.3 (June 2026)*
 
-> **Working name:** Kluch — from *ključ / ключ*, "key" in Montenegrin and Russian.
-> **Domain:** kluch.me (.me is Montenegro's country code — the brand and domain are one.)
-> **Tagline (working):** *The key to living in Montenegro.*
+> **Name:** Kluche — from *ključ / ключ*, "key" in Montenegrin and Russian.
+> **Domain:** kluche.me (.me is Montenegro's country code — the brand and domain are one.)
+> **Tagline:** *Your keys to Montenegro.*
+
+> **Note on numbers:** this doc deliberately avoids precise market-size and revenue
+> projections we can't yet stand behind. Figures appear only where we're confident or are
+> clearly labelled *illustrative — to validate*.
 
 ---
 
 ## 1. Vision
 
-Kluch starts as a managed rental layer for Montenegro and becomes the **operating system for foreigners living here**. We sit between landlord and occupant on day one — handling rent, bills, inspections, maintenance, and language — and we earn the right to handle everything else a foreigner needs: residency, tax, company formation, banking, schools, healthcare.
+**Kluche is one account, every key.** A single Kluche login is the master key to everything a
+foreigner needs to live in Montenegro — starting with a home, then the paperwork that comes
+with it. We deliver this as a family of focused **vertical marketplaces**, each on its own
+subdomain, all featured at the `kluche.me` hub and all reachable with the same account.
 
-Rental management is the wedge. Foreigner services is the business.
-
-Product: a Telegram-first app (low friction, no install for either side) backed by an ops team and a network of trusted handymen and licensed service partners.
+We begin with rental, because that's the recurring, trust-building relationship and the
+inventory our cofounder's agency already controls. Rental is the wedge. The unified account
+across verticals is the business.
 
 ## 2. The brand
 
-**Kluch** means "key" in the languages of roughly 80% of our target customers (Serbian, Montenegrin, Russian, Ukrainian). Every product line maps cleanly onto the metaphor: Rent Key, Residency Key, Tax Key, Company Key, Health Key. In English, "Kluch" reads near-identically to "clutch" — *reliable, comes through when it matters* — which is exactly the brand promise.
+**Kluche** means "key" in the languages of most of our target customers (Serbian,
+Montenegrin, Russian, Ukrainian) and reads near-identically to English "clutch" — *reliable,
+comes through when it matters*. The metaphor is literal in the product: **one master key
+(your account) opens every door (each vertical).**
 
-- Domain: `kluch.me`
-- Telegram: `@kluch_bot`
-- Pronounceable in EN / RU / SR / TR / DE without instruction
+- Hub: `kluche.me` — features all verticals, one login.
+- `rent.kluche.me`, `law.kluche.me`, `tax.kluche.me`, … — the doors.
+- Pronounceable in EN / RU / SR / TR / DE without instruction.
 
 ## 3. Problem
 
-- Most Montenegrin landlords don't speak English. Most foreign renters don't speak Montenegrin. Misunderstandings cause disputes, late payments, and broken trust.
-- Landlords are either hands-on (calls at midnight about a leaking tap) or pay traditional agencies 15–25% of rent.
-- Foreigners have no single trusted operator for the rest of their life logistics either — residency permits, tax filings, license conversions, school enrollment, banking. The market is fragmented across dozens of small lawyers and agencies, mostly local-language-only.
-- Bills (electricity, water, internet) are often paid late or in cash with no audit trail.
+- **Agencies have broken or no websites.** Most Montenegrin rental agencies market via
+  classifieds, Facebook, and word of mouth. The few sites that exist are dated, mono-lingual,
+  and invisible to the foreigners actually looking.
+- **Foreigners have no single trusted front door.** Finding a rental, then sorting residency,
+  company formation, and tax, means starting from scratch with a different fragmented set of
+  local-language-only providers each time.
+- **No aggregation.** A foreigner can't search across agencies in one place, and an agency
+  can't reach the foreigner audience without building distribution alone.
+- **Language and trust gaps** sit on top of all of it.
 
 ## 4. Solution
 
-A Telegram bot + light web dashboard with two sides.
+A web platform with two faces, unified by one account.
 
-**Landlord side**
-- Onboard once: apartment details, bills, photos, keys, banking.
-- Receive monthly statement and rent payout.
-- Optional services: regular inspection (photo report), handyman dispatch, deep clean between tenants, bill autopay.
+**For agencies (rent vertical, live first)**
+- A **free, white-label website** generated for the agency — their logo, their styling, their
+  listings, at `their-name.kluche.me` (or their own domain), "powered by Kluche" in the footer.
+- Import existing listings (e.g. from their current site) and manage them from a console.
+- Their listings are simultaneously **aggregated into the Kluche marketplace** at `kluche.me`.
 
-**Occupant side**
-- Pay rent + utilities in one place, in English (or German, Russian, Turkish).
-- Report issues with photo → triaged → handyman dispatched.
-- In-app perks: discounts at partner restaurants, transport, coastal weekend stays at other Kluch-managed apartments.
-- *(From year 2)* — Residency permits, tax filing, company formation, license conversion, school placement, banking introductions — all from inside the same app.
+**For foreigners (the marketplace + the account)**
+- Search rentals across every agency in one place, in their language.
+- One Kluche account that, over time, also opens the **law** and **tax** verticals — the same
+  login, the same trusted brand, the next service one click away.
 
-The cofounder's existing rental agency is the launch customer and source of the first inventory and operational know-how.
+The cofounder's existing agency is the launch customer and first inventory.
 
-## 5. Market sizing
+## 5. Architecture (how the pieces fit)
 
-Headline data points for Montenegro: population ~620k; ~1 in 6 residents is now Russian or Ukrainian (highest per-capita Russian/Ukrainian migrant population in Europe); 60,000+ Ukrainians registered as foreign residents; 5,000 on temporary protection; 653 digital nomad visas issued since 2022. AirDNA shows 6,100+ active short-term listings in Budva alone and 4,000+ in Kotor. Long-term rental supply across the country is in the tens of thousands of units. Average rents: €400–500 Podgorica outer, €600–1,200 Podgorica central 2BR, €750+ Budva, up to €1,500 prime Tivat.
+- **`kluche.me`** — the hub/landing that features all verticals and the aggregated rental
+  marketplace.
+- **`rent.kluche.me`** — the rental vertical: the agency website builder + the rental
+  marketplace.
+- **`law.kluche.me`**, **`tax.kluche.me`** — subsequent service verticals.
+- **One Kluche account (SSO)** — works across every vertical. This shared identity is the
+  thing competitors can't easily copy: it turns each foreigner's rental relationship into a
+  distribution channel for every other service.
 
-| Tier | Definition | Units | Subscription ARR (blended €25/mo) | + transactions / marketplace / services |
-|---|---|---|---|---|
-| **TAM** | All foreign-rented apartments in Montenegro | 30,000–50,000 | €9M–€15M | €15M–€25M |
-| **SAM** | Podgorica + coast, year-round foreign rentals | 15,000–25,000 | €4.5M–€7.5M | €7M–€12M |
-| **SOM (3 yr)** | Realistic capture as focused local operator | 200–400 | €60k–€120k | €280k–€380k total ARR |
+The platform is multi-tenant by host: the same backend serves the hub, each agency's
+white-label site (resolved from the request domain), and the per-vertical front ends.
 
-This is **not** a unicorn. It's a €500k–€1.5M ARR business at maturity, 40–60% EBITDA margin, profitable enough for two founders to run well in Montenegro and large enough to attract a strategic acquirer in 5–7 years.
+## 6. Go-to-market
 
-## 6. Competitive landscape
+1. **Land-grab rental agencies.** The free website is the hook — agencies get a modern,
+   multilingual site and marketplace distribution at no cost and near-zero effort (we import
+   their listings for them).
+2. **Open to all, with featured tiers.** Any agency can join. Paid **featured / exclusivity**
+   placement (per town or category) is the first monetization and creates urgency for the
+   strongest local players to lock in their position.
+3. **Foreigner demand follows inventory.** Once the marketplace has the best local listings,
+   the foreigner audience aggregates — and that audience is what we cross-sell the law and tax
+   verticals to.
+4. **Geographic rollout:** start in the capital with the cofounder's agency, then coast
+   (Budva, Tivat, Kotor) town by town.
 
-**In Montenegro: no direct competitor.** International landlord SaaS (TurboTenant, TenantCloud, DoorLoop, RentRedi) is US-only, doesn't translate, doesn't dispatch handymen, and has no Montenegro presence. Local agencies — like the cofounder's — do this manually but no one has wrapped it in software or Telegram.
+## 7. Revenue streams
 
-**Adjacent in the Balkans:**
+*(Model is qualitative; exact pricing to be set from pilot data.)*
 
-| Player | Country | What they do | Threat |
-|---|---|---|---|
-| Rentlio | Croatia | Channel manager SaaS for vacation rentals, hostels, hotels | Different segment (short-stay), not a direct competitor |
-| Saru Tech | Croatia | Generic tenant management portal | No service layer, low threat |
-| Rent Angels | Croatia | Property management *agency* | Service company, not a platform |
-| Flatio | Czech / multi | Marketplace for medium-term furnished rentals | Booking layer only — potential **partner** that feeds Kluch tenants |
+1. **Featured / exclusivity placement** — agencies pay for prominence or area exclusivity in
+   the marketplace. Primary early revenue.
+2. **Marketplace finder / lead fees** — a fee tied to qualified tenant introductions or
+   completed rentals sourced through Kluche.
+3. **Service-vertical commission** — law and tax verticals take a margin on services delivered
+   by vetted partners (or in-house, later).
+4. **Optional agency tooling** — premium console features (analytics, more sites, integrations)
+   as a later upsell.
 
-**Validation from comparable markets:** the "operating system for foreigners" thesis is proven elsewhere — **Emerhub** (Bali/Indonesia/Vietnam/Philippines) runs a multi-country, multi-million-revenue version of this model, starting from visas/company formation. **FRESH Portugal**, **BGI**, and **Lexidy** do the same in Iberia. Kluch's twist is starting with the *recurring* relationship (rental) before layering on the *transactional* services — the inverse of the Bali/Portugal playbook, and a stronger wedge.
+We are deliberately *not* charging landlords a management fee or taking a large rent cut — the
+market won't bear it, and the free builder is what wins the inventory.
 
-## 7. Pricing (Tiered)
+## 8. Expansion: the service verticals
 
-| Tier | Monthly fee per unit | Includes |
-|---|---|---|
-| **Basic** | €5 | Tenant chat in EN/RU/DE/TR, rent collection, bill reminders, monthly statement |
-| **Standard** | €25 | Basic + bill autopay, quarterly photo inspection, issue triage |
-| **Full Service** | €60–€80 (or 8% of rent) | Standard + monthly inspection, handyman dispatch (labor billed separately), tenant onboarding/offboarding, deep clean coordination |
+The rental relationship and the shared account create distribution nobody else in Montenegro
+has: a trusted, recurring relationship with foreigners who, predictably, need the same
+paperwork.
 
-Anchored well below traditional agency rates (15–25% of rent). The wedge is "set it and forget it for the price of a coffee."
+- **`law.kluche.me`** — residency permits (boravak), company formation (d.o.o.), contracts,
+  notary/apostille. Almost every long-term foreigner renews residency annually.
+- **`tax.kluche.me`** — accounting, tax filing, bookkeeping — recurring, high-margin.
+- *(later)* health insurance, bank-account introductions, driver's-licence conversion,
+  school placement.
 
-## 8. Revenue streams
+Kluche is the trusted front door and the account; licensed lawyers, accountants, and notaries
+do the regulated work under partnership/referral terms (and eventually as in-house hires).
 
-1. **Subscription** — primary. €5–€80/unit/month.
-2. **Transaction take** — 1–2% spread on rent/bill payments.
-3. **Handyman markup** — 20–30% on labor dispatched through Kluch.
-4. **Occupant marketplace** — discounts and partner promotions (restaurants, transport, tours). Commission or placement fee.
-5. **Cross-property promotion** — discounted weekend stays at other Kluch-managed coastal units; booking fee from host.
-6. **In-app advertising** — sponsored placements once base exceeds ~1,000 active occupants.
-7. **(From year 2) Foreigner services** — see section 9.
+## 9. Why now / unfair advantage
 
-## 9. Expansion: foreigner-services layer (the real business)
+- **Cofounder already runs a rental agency** → instant inventory, ops experience, and landlord
+  trust to seed the rent vertical.
+- **No one aggregates Montenegrin agencies** or wraps them in a free, multilingual web
+  presence.
+- **AI translation is finally good enough** to remove the language barrier across listings and
+  tenant communication at near-zero cost.
+- **Record-high foreign-resident population** in Montenegro — the customer base is here now.
+- **The account is a compounding moat** — each vertical we add makes the single login more
+  valuable and raises switching costs.
 
-The rental relationship creates the only thing nobody else in Montenegro has: a **trusted, verified, recurring monthly relationship with every foreigner in our apartments**. That distribution is more valuable than the rental fee itself.
+## 10. Operations
 
-| Service | Avg ticket | Notes |
-|---|---|---|
-| Residency permit assistance (boravak) | €200–500 | Almost every long-term foreigner renews annually |
-| Company formation (d.o.o.) | €500–1,500 | Huge for digital nomads and Russian/Turkish entrepreneurs |
-| Tax filing & accounting | €50–200/mo | Recurring — best margin |
-| Driver's license conversion | €100–300 | One-off but universal |
-| Health insurance enrollment | €50–150 commission | Insurance partners pay us |
-| School/kindergarten placement | €200–500 | Families |
-| Translation & apostille | €30–150/doc | High frequency |
-| Bank account opening | €100–300 + bank referral | Banks pay €50–200 per qualified intro |
-| Real estate purchase concierge | 0.5–1% of deal | Big-ticket — one deal pays for months |
+- **Tech:** multi-tenant web app (host-based routing for agency sites + verticals), Postgres,
+  object storage for listing media, LLM for translation, token auth shared across verticals.
+  Telegram remains available as a secondary tenant-comms channel, not the headline product.
+- **People (early):** 2 founders; ops/sales led by the cofounder; service specialists added
+  per vertical as it launches.
+- **Infrastructure:** runs on a small, scale-to-zero cloud stack provisioned with Terraform.
 
-If 300 occupants use just one paid service per year at €300 average: **+€90k/yr at very high margin** — the work is paperwork, not labor. With real estate and bank referrals layered in, this line realistically reaches €150–250k/yr by year 3.
+## 11. Ownership & legal structure
 
-Kluch acts as the trusted front door; licensed lawyers, accountants, and notaries do the regulated work under partnership/referral agreements (and eventually as in-house hires).
-
-## 10. Why now / unfair advantage
-
-- Cofounder already runs a rental agency → instant inventory, ops experience, landlord trust.
-- Telegram is the dominant chat app among Russian/Ukrainian/Serbian/Turkish renters in Montenegro → no install friction.
-- AI translation is finally good enough to remove the language barrier in real time at near-zero cost.
-- Foreign resident population is at record highs and Montenegro is still issuing digital nomad visas — the customer base is here, now.
-- No incumbent is doing this end-to-end in Montenegro.
-
-## 11. Operations
-
-- **Tech:** Telegram Bot API, lightweight web admin, Postgres, Stripe + local PSP for payments, LLM for translation and triage.
-- **People (Year 1):** 2 founders, 1 ops lead, 2–3 contracted handymen, 1 cleaner network partner.
-- **Geographic rollout:** Podgorica → Budva → Tivat/Kotor → Bar → Herceg Novi.
-
-## 12. Ownership & legal structure
-
-**Two separate companies.** The cofounder's existing rental agency remains 100% his — Kluch is a brand-new d.o.o., 50/50 owned by the two founders. The agency becomes Kluch's first customer at arm's length, not a contribution to the cap table.
+**Two separate companies.** The cofounder's existing rental agency remains 100% his — Kluche is
+a new d.o.o. owned by the two founders. The agency becomes Kluche's first customer at arm's
+length, not a contribution to the cap table.
 
 | Document | Purpose |
 |---|---|
 | Articles of Association (Statut) | Founding doc registered at CRPS |
-| Shareholders' Agreement | The real contract — vesting, deadlock, non-compete, ROFR/drag/tag, reserved matters, conflict-of-interest disclosures (since the cofounder's agency is also a customer) |
-| IP Assignment Agreement | Each founder formally assigns AgentSI/Kluch-related code, brand, and contracts to the new d.o.o. |
-| Service Agreement (agency ↔ Kluch) | Cofounder's agency signs on standard customer terms |
-| Director / Employment Agreements | Roles, salaries (€0 initially), exclusivity |
+| Shareholders' Agreement | Vesting, deadlock, non-compete, ROFR/drag/tag, reserved matters, conflict-of-interest disclosures (the cofounder's agency is also a customer) |
+| IP Assignment Agreement | Each founder assigns Kluche code, brand, and contracts to the d.o.o. |
+| Service Agreement (agency ↔ Kluche) | Cofounder's agency signs on standard customer terms |
+| Director / Employment Agreements | Roles, salaries, exclusivity |
 
-**Key 50/50 risks to bake into the Shareholders' Agreement:**
+Key risks to bake into the Shareholders' Agreement: founder **vesting** (with a cliff),
+**deadlock resolution** (split decision domains — product/tech vs ops/sales — plus a shotgun
+clause), an explicit **scope line** between the agency and Kluche, and **reserved matters**
+requiring both founders' approval. Engaging a Montenegrin corporate lawyer to do this properly
+is the single most important early investment.
 
-1. **Vesting** — 3–4 years with 1-year cliff, even at 50/50.
-2. **Deadlock resolution** — split decision domains (you = product/tech, cofounder = ops/sales, each has final say in their lane) plus a shotgun clause for true deadlock.
-3. **Scope definition** — explicit line between what the agency does and what Kluch does. Without it, every new client becomes a fight.
-4. **Reserved matters** — debt, sale, new shares, hires above €X/month require both founders' approval.
+## 12. Funding strategy
 
-Budget €1,000–2,000 for a Montenegrin corporate lawyer (BDK Advokati, Karanovic & Partners, or Prelevic) to do this properly. Single most important investment of the year.
+**Primary target: Innovation Fund of Montenegro — Early-Stage Startup Support** (grant for
+Montenegro-registered, founder-owned startups with a working MVP and an early business model).
+A pilot of real agencies with live white-label sites and aggregated listings is concrete
+evidence ahead of typical applicants.
 
-## 13. Funding strategy
+**Secondary:** Innovation Vouchers (R&D partnership, e.g. the translation/AI piece with a
+Montenegrin university); IRF loans/guarantees for working capital later; EU IPA / Western
+Balkans funds once larger.
 
-**Primary target: Innovation Fund of Montenegro — Early-Stage Startup Support**
+*(Exact grant amounts and timelines: confirm against the current open call — figures move
+year to year.)*
 
-- Up to **€30,000 grant**, covers up to 90% of project costs, 6-month implementation window.
-- Eligibility: Montenegro-registered d.o.o. < 2 years old, 100% founder-owned, working MVP/pilot, documented early business model.
-- **No user-count threshold.** Our pilot of 5 landlords with signed agreements and processed rent cycles puts us ahead of typical applicants.
+**Bootstrapped path if grants miss:** founders unpaid early, minimal burn, covered by featured
+placements and the cofounder's existing book.
 
-**Secondary:**
-- Innovation Vouchers — up to €8,000 (covers 80%) for engaging an R&D institution. Possible fit for the translation/AI integration piece if we partner with a Montenegrin university.
-- Investment & Development Fund (IRF) — loans/guarantees for working capital later.
-- EU IPA / Western Balkans funds — slower, revisit at €500k ARR.
+## 13. Roadmap
 
-**Application timeline:** Register d.o.o. → ship MVP with first 5 landlords → process one full rent cycle → apply at next open call → fund-out in months 4–9.
-
-**Bootstrapped path if grants miss:** founders unpaid year 1, ops lead ~€800/mo, total burn ~€20–30k — covered by early subscription + the cofounder's existing book.
-
-## 14. 12-month roadmap
-
-| Quarter | Milestone |
+| Phase | Milestone |
 |---|---|
-| Q3 2026 | Register d.o.o.; shareholders' agreement signed; MVP bot (rent + bills + chat); 20 apartments from cofounder's agency |
-| Q4 2026 | Inspections + handyman dispatch live; 75 apartments; first paying Standard/Full tier; Innovation Fund grant application submitted |
-| Q1 2027 | Occupant marketplace v1 (3–5 partners); 150 apartments; first foreigner-services pilot (residency permit assistance) |
-| Q2 2027 | Cross-property weekend discounts live; expand to Budva + Tivat; 300 apartments; foreigner-services live across 3–4 verticals |
+| **Now** | `rent.kluche.me` live: agency website builder + listing import + aggregated marketplace; cofounder's agency onboarded; first additional agencies via free sites |
+| **Next** | Featured/exclusivity tiers; multilingual marketplace search; more agencies across the capital + coast |
+| **Then** | `law.kluche.me` — residency + company formation with vetted partners, on the shared account |
+| **Later** | `tax.kluche.me`; then health / banking verticals; own-domain support for agencies |
 
-## 15. Realistic Year-3 economics
-
-Assumptions: 300 apartments, blended ARPU €25/unit/month, 60% of occupants engage one paid service per year.
-
-- Subscription: 300 × €25 × 12 = **€90k**
-- Transaction take + handyman markup: **~€40k**
-- Foreigner services (residency, tax, formation, referrals): **€150–250k**
-- **Total Year-3 ARR: €280k–€380k**
-- Gross margin: 50–60% (services are high-margin paperwork; handyman is the heaviest COGS line)
-- Headcount: 2 founders + 1 ops lead + 2–3 part-time service specialists
-- Break-even target: month 14–18
-
-**Year 5 ceiling for a market leader:** €1M–€2M ARR, with optional expansion into Croatia/Albania via the Adria-coast playbook.
-
-## 16. Risks & mitigations
+## 14. Risks & mitigations
 
 | Risk | Mitigation |
 |---|---|
-| **Trust** — landlords give up control | Cofounder's existing relationships; transparent monthly statements; escrow on rent |
-| **Regulatory** — payments, short-term rental rules, foreigner-services licensing | Legal review before scaling beyond pilot; partner with licensed PSP and licensed lawyers/accountants for regulated services |
-| **Handyman quality** | Small vetted pool, ratings after every job, photo proof of work |
-| **Telegram dependency** | Add WhatsApp + web fallback in year 2 |
-| **Foreign resident volatility** | Diversify across nationalities (RU/UA/SR/TR/DE) so one geopolitical shift doesn't kill the base |
-| **50/50 founder deadlock** | Shareholders' Agreement with split domains, shotgun clause, reserved matters |
-| **Digital nomad visa expires end 2026** | Loss of high-ARPU nomad segment is possible; offset by long-term residents and family relocations |
+| **Agency adoption** — will agencies put listings on us? | The site is free, we do the import for them, and they keep their brand; first featured slots create urgency |
+| **Chicken-and-egg** (inventory vs demand) | Seed inventory from the cofounder's agency before marketing to foreigners |
+| **Trust / control** | Agencies keep ownership of their listings and branding; transparent terms |
+| **Regulatory** (service verticals, payments) | Legal review before scaling; licensed partners do regulated work |
+| **Language quality** | Human-reviewed AI translation; native-language support for key markets |
+| **Founder deadlock (2 owners)** | Shareholders' Agreement with split domains, shotgun clause, reserved matters |
+| **Foreign-resident volatility** | Diversify across nationalities so one geopolitical shift doesn't kill the base |
 
-## 17. Next steps (next 30 days)
+## 15. Next steps (next 30 days)
 
-1. **Lock the domain** — buy `kluch.me` (5–10 year registration). Defensive: `kluch.com`, `kluch.app`, `@kluch_bot` on Telegram, social handles.
-2. **Register the d.o.o.** in Montenegro with a corporate lawyer; sign Shareholders' Agreement.
-3. **Lock the first 20 apartments** from cofounder's book as pilot inventory.
-4. **Build MVP Telegram bot:** rent reminder, bill reminder, chat with auto-translation, monthly statement.
-5. **Sign 1–2 handymen on retainer.**
-6. **Draft landlord T&Cs and a simple escrow flow** with a local bank or PSP.
-7. **Confirm next Innovation Fund call** — email `info@fondzainovacije.me` or visit in Podgorica.
-8. **Logo + brand kit** — Looka or Brandmark, key-themed wordmark, ~€50–150.
+1. **Onboard the first agencies** onto `rent.kluche.me` with free white-label sites (cofounder's
+   agency + 1–2 others), importing their listings.
+2. **Ship marketplace aggregation** at `kluche.me` across those agencies.
+3. **Define featured/exclusivity tiers** and price them from real conversations with agencies.
+4. **Register the d.o.o.** and sign the Shareholders' Agreement with a corporate lawyer.
+5. **Confirm the next Innovation Fund call** and prepare the application around the live pilot.
+6. **Scope `law.kluche.me`** — line up one residency/company-formation partner for the next vertical.

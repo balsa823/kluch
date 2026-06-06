@@ -81,10 +81,10 @@ importers:
       '@hono/node-server':
         specifier: ^1.12.0
         version: 1.19.14(hono@4.12.23)
-      '@kluch/core':
+      '@kluche/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@kluch/db':
+      '@kluche/db':
         specifier: workspace:*
         version: link:../../packages/db
       grammy:
@@ -99,10 +99,10 @@ importers:
       '@hono/node-server':
         specifier: ^1.12.0
         version: 1.19.14(hono@4.12.23)
-      '@kluch/core':
+      '@kluche/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@kluch/db':
+      '@kluche/db':
         specifier: workspace:*
         version: link:../../packages/db
       hono:
@@ -114,7 +114,7 @@ importers:
       '@azure/storage-blob':
         specifier: ^12.26.0
         version: 12.31.0
-      '@kluch/db':
+      '@kluche/db':
         specifier: workspace:*
         version: link:../db
       '@supabase/supabase-js':
