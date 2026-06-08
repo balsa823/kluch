@@ -37,6 +37,15 @@ test("createAgency disambiguates duplicate slugs", async () => {
   expect(c.slug).toBe("sea-view-3");
 });
 
+test("createAgency falls back to a usable slug for all-non-Latin names", async () => {
+  // Cyrillic / non-Latin names slugify to "" — must not produce an empty/unreachable slug.
+  expect(slugify("Стан")).toBe("");
+  const a = await createAgency(db, { name: "Стан" });
+  const b = await createAgency(db, { name: "Недвижимость" });
+  expect(a.slug).toBe("agency");
+  expect(b.slug).toBe("agency-2");
+});
+
 test("getAgencyBySlug returns the agency or null", async () => {
   await createAgency(db, { name: "Adriatic Homes" });
   const found = await getAgencyBySlug(db, "adriatic-homes");
