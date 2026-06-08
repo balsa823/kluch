@@ -16,13 +16,15 @@ import {
  */
 const { db, client } = createDb(process.env.DATABASE_URL);
 
-if (await getAgencyBySlug(db, "popovic")) {
+// Idempotency keyed on the STABLE name-derived slug. (Keying on a hardcoded "popovic"
+// previously re-created a blank duplicate once the real agency's slug was changed.)
+if (await getAgencyBySlug(db, "popovic-nekretnine")) {
   console.log("already seeded");
   await client.end();
   process.exit(0);
 }
 
-const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+const agency = await createAgency(db, { name: "Popović Nekretnine" }); // slug derives to popovic-nekretnine
 await updateAgencyConfig(db, agency.id, {
   colorPrimary: "#1F3A5C",
   colorAccent: "#4E827A",
