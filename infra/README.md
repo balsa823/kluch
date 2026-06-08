@@ -72,8 +72,11 @@ export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 22
 BACKEND_URL=$(terraform -chdir=infra output -raw backend_url)
 SWA_TOKEN=$(terraform -chdir=infra output -raw swa_api_token)
 
+# IMPORTANT: always pass --clear. Metro caches the inlined EXPO_PUBLIC_* values, and a
+# stale cache has twice baked in the localhost API URL (console then shows "Failed to fetch").
+rm -rf apps/app/dist apps/app/.expo
 EXPO_PUBLIC_API_URL="$BACKEND_URL" pnpm --filter @kluche/app exec \
-  expo export --platform web --output-dir dist
+  expo export --platform web --output-dir dist --clear
 
 npx @azure/static-web-apps-cli deploy apps/app/dist \
   --deployment-token "$SWA_TOKEN" \
@@ -81,6 +84,16 @@ npx @azure/static-web-apps-cli deploy apps/app/dist \
 ```
 
 Console default hostname: `terraform -chdir=infra output -raw swa_default_hostname`.
+
+**Verify after deploy:** fetch the entry JS and confirm the real backend URL is baked in,
+not `localhost:8080`:
+
+```sh
+JS=$(curl -s "https://$(terraform -chdir=infra output -raw swa_default_hostname)/" \
+  | grep -oE "/_expo/static/js/web/[A-Za-z0-9._-]+\.js" | head -1)
+curl -s "https://$(terraform -chdir=infra output -raw swa_default_hostname)${JS}" \
+  | grep -oE "https://kluch-backend[^\"']*azurecontainerapps\.io|http://localhost:8080" | sort -u
+```
 
 ### 5. Custom domain — `kluche.me` (phase 2)
 
