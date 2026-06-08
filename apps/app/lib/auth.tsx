@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const m = window.location.hash.match(/token=([^&]+)/);
           if (m) {
             await setToken(decodeURIComponent(m[1]));
-            history.replaceState(
+            window.history.replaceState(
               null,
               "",
               window.location.pathname + window.location.search,
