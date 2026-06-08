@@ -55,7 +55,7 @@ const listings: Omit<CreatePropertyInput, "agencyId">[] = [
     bedrooms: 2,
     bathrooms: 1,
     areaM2: 72,
-    type: "apartment",
+    type: "residential",
     photos: ["https://placehold.co/640x400/1F3A5C/F1ECE0?text=Old+Town+Apartment"],
   },
   {
@@ -66,7 +66,7 @@ const listings: Omit<CreatePropertyInput, "agencyId">[] = [
     bedrooms: 1,
     bathrooms: 1,
     areaM2: 38,
-    type: "studio",
+    type: "residential",
     photos: ["https://placehold.co/640x400/4E827A/F1ECE0?text=Bay+View+Studio"],
   },
   {
@@ -77,7 +77,7 @@ const listings: Omit<CreatePropertyInput, "agencyId">[] = [
     bedrooms: 4,
     bathrooms: 3,
     areaM2: 210,
-    type: "house",
+    type: "residential",
     photos: ["https://placehold.co/640x400/1F3A5C/F1ECE0?text=Seaside+Villa"],
   },
 ];

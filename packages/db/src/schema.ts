@@ -1,5 +1,5 @@
 import {
-  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date, jsonb,
+  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date, jsonb, uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -12,7 +12,7 @@ export const ticketStatusEnum = pgEnum("ticket_status", [
 ]);
 export const directionEnum = pgEnum("direction", ["in", "out"]);
 export const agencyRoleEnum = pgEnum("agency_role", ["admin", "agent"]);
-export const propertyTypeEnum = pgEnum("property_type", ["apartment", "studio", "house"]);
+export const propertyTypeEnum = pgEnum("property_type", ["residential", "land", "commercial"]);
 export const propertyStatusEnum = pgEnum("property_status", ["draft", "published"]);
 export const dealTypeEnum = pgEnum("deal_type", ["rent", "sale"]);
 
@@ -44,7 +44,10 @@ export const properties = pgTable("properties", {
   status: propertyStatusEnum("status").notNull().default("draft"),
   dealType: dealTypeEnum("deal_type").notNull().default("rent"),
   photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
-});
+  sourceId: text("source_id"),
+}, (table) => ({
+  agencySource: uniqueIndex("properties_agency_source").on(table.agencyId, table.sourceId),
+}));
 
 export const agencies = pgTable("agencies", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -22,7 +22,7 @@ import {
   type Property,
 } from "../lib/api";
 
-const TYPES = ["apartment", "studio", "house"] as const;
+const TYPES = ["residential", "land", "commercial"] as const;
 type ListingType = (typeof TYPES)[number];
 
 function isPublished(status: string): boolean {
@@ -85,7 +85,7 @@ export default function Agency() {
   const [city, setCity] = useState("");
   const [price, setPrice] = useState("");
   const [bedrooms, setBedrooms] = useState("");
-  const [type, setType] = useState<ListingType>("apartment");
+  const [type, setType] = useState<ListingType>("residential");
   const [dealType, setDealType] = useState<"rent" | "sale">("rent");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function Agency() {
     setCity("");
     setPrice("");
     setBedrooms("");
-    setType("apartment");
+    setType("residential");
     setDealType("rent");
     setFormError(null);
   }

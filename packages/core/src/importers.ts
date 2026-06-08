@@ -3,6 +3,7 @@ import {
   addPropertyPhotos,
   createProperty,
   getProperty,
+  getPropertyBySource,
   publishProperty,
   type Property,
   type PropertyType,
@@ -56,6 +57,7 @@ export interface ParsedListing {
   bathrooms?: number;
   areaM2?: number;
   type?: PropertyType;
+  dealType?: "rent" | "sale";
   photos: string[];
 }
 
@@ -69,6 +71,18 @@ export interface ListingParser {
 /** Capitalizes the first letter of a string. */
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/** Maps a source `type` string to our PropertyType, defaulting to "residential". */
+function mapPropertyType(raw: unknown): PropertyType {
+  switch (typeof raw === "string" ? raw.toLowerCase() : "") {
+    case "land":
+      return "land";
+    case "commercial":
+      return "commercial";
+    default:
+      return "residential";
+  }
 }
 
 /** Pure mapping from an unwrapped bestate4 listing document to a ParsedListing. */
@@ -85,15 +99,20 @@ export function mapBestate4(fields: Record<string, any>): ParsedListing {
   if (!city && locationDisplay) city = locationDisplay.split(",")[0]?.trim();
   city = city ? capitalize(city) : "";
 
-  const monthlyRent = Number(fields.monthlyRent) || 0;
-  const salePrice = Number(fields.price) || 0;
-  const amount = monthlyRent || salePrice || 0;
+  const dealType: "rent" | "sale" =
+    typeof fields.listingType === "string" && fields.listingType.toUpperCase() === "FOR_SALE"
+      ? "sale"
+      : "rent";
+
+  const amount = dealType === "rent"
+    ? Number(fields.monthlyRent) || 0
+    : Number(fields.price) || 0;
 
   const bedrooms = fields.bedrooms != null ? Number(fields.bedrooms) : undefined;
   const bathrooms = fields.bathrooms != null ? Number(fields.bathrooms) : undefined;
   const areaM2 = fields.area != null ? Number(fields.area) : undefined;
 
-  const type: PropertyType = bedrooms === 0 ? "studio" : "apartment";
+  const type = mapPropertyType(fields.type);
 
   const images = Array.isArray(fields.images) ? fields.images : [];
   const photos = images.filter((u: unknown): u is string => typeof u === "string");
@@ -108,6 +127,7 @@ export function mapBestate4(fields: Record<string, any>): ParsedListing {
     bathrooms,
     areaM2,
     type,
+    dealType,
     photos,
   };
 }
@@ -221,4 +241,130 @@ export async function importListing(
   await addPropertyPhotos(db, property.id, finalPhotos);
   const published = await publishProperty(db, property.id);
   return published.photos?.length ? published : (await getProperty(db, property.id))!;
+}
+
+/** A raw Firestore listing document scoped to one agent. */
+export interface AgentDoc {
+  id: string;
+  fields: Record<string, any>;
+}
+
+/**
+ * Fetches all bestate4 Firestore listing documents belonging to a given agent,
+ * paging through the collection until there are no more pages.
+ */
+export async function fetchAgentListings(
+  agentId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AgentDoc[]> {
+  const out: AgentDoc[] = [];
+  let pageToken: string | undefined;
+  do {
+    let url = `${FIRESTORE_BASE}?pageSize=300`;
+    if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+    const res = await fetchImpl(url);
+    if (!res.ok) throw new Error(`bestate4: failed to list listings (${res.status})`);
+    const body = (await res.json()) as {
+      documents?: Array<{ name?: string; fields?: Record<string, FirestoreValue> }>;
+      nextPageToken?: string;
+    };
+    for (const doc of body.documents ?? []) {
+      const fields = doc.fields ?? {};
+      if (fields.agentId?.stringValue !== agentId) continue;
+      const id = lastPathSegment(`https://x/${doc.name ?? ""}`);
+      out.push({ id, fields });
+    }
+    pageToken = body.nextPageToken;
+  } while (pageToken);
+  return out;
+}
+
+/** The tally returned by a bulk import run. */
+export interface BulkImportResult {
+  created: number;
+  skipped: number;
+  failed: number;
+}
+
+/**
+ * Bulk-imports every bestate4 listing for an agent into the given agency.
+ * Idempotent: docs already imported (matched by their Firestore id as sourceId)
+ * are skipped. Each doc is mapped, created, photo-imported (best-effort when a
+ * `storage` is given), and published. A doc that fails to map/create is counted
+ * as `failed` without aborting the rest of the run.
+ */
+export async function importAgentListings(
+  db: Database,
+  agencyId: string,
+  agentId: string,
+  storage?: Storage,
+  opts: { fetchImpl?: typeof fetch; onProgress?: (n: number) => void } = {},
+): Promise<BulkImportResult> {
+  const docs = await fetchAgentListings(agentId, opts.fetchImpl ?? fetch);
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (let i = 0; i < docs.length; i++) {
+    const { id, fields } = docs[i];
+    try {
+      const existing = await getPropertyBySource(db, agencyId, id);
+      // Skip only fully-imported (published) listings. A draft means a previous run
+      // crashed mid-listing (created but not yet photo'd/published) — resume it instead
+      // of skipping, so the import self-heals and nothing gets stuck invisible.
+      if (existing && existing.status === "published") {
+        skipped++;
+      } else {
+        const parsed = mapBestate4(unwrapFirestore(fields));
+        const property = existing ?? await createProperty(db, {
+          agencyId,
+          sourceId: id,
+          name: parsed.name,
+          address: parsed.address,
+          city: parsed.city,
+          priceMinor: parsed.priceMinor,
+          currency: parsed.currency,
+          bedrooms: parsed.bedrooms,
+          bathrooms: parsed.bathrooms,
+          areaM2: parsed.areaM2,
+          type: parsed.type,
+          dealType: parsed.dealType,
+          photos: [],
+        });
+
+        // Only fetch photos if this listing has none yet (avoids duplicates on resume).
+        if (storage && parsed.photos.length && (property.photos?.length ?? 0) === 0) {
+          const localUrls: string[] = [];
+          for (let p = 0; p < parsed.photos.length; p++) {
+            const remoteUrl = parsed.photos[p];
+            try {
+              const res = await fetch(remoteUrl);
+              if (!res.ok) continue;
+              const ct = res.headers.get("content-type") || "image/jpeg";
+              const bytes = new Uint8Array(await res.arrayBuffer());
+              if (bytes.length > MAX_IMAGE_BYTES || bytes.length < MIN_IMAGE_BYTES) continue;
+              const storedUrl = await storage.upload(
+                `properties/${property.id}/photo-${p}.${extFromContentType(ct)}`,
+                bytes,
+                ct,
+              );
+              localUrls.push(storedUrl);
+            } catch {
+              // Best-effort: skip this image, keep importing the rest.
+            }
+          }
+          const finalPhotos = localUrls.length ? localUrls : parsed.photos;
+          if (finalPhotos.length) await addPropertyPhotos(db, property.id, finalPhotos);
+        }
+
+        await publishProperty(db, property.id);
+        created++;
+      }
+    } catch {
+      failed++;
+    }
+    opts.onProgress?.(i + 1);
+  }
+
+  return { created, skipped, failed };
 }

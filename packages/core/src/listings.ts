@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
 import { properties, type Database } from "@kluche/db";
 
 export type Property = typeof properties.$inferSelect;
@@ -17,6 +17,7 @@ export interface CreatePropertyInput {
   type?: PropertyType;
   dealType?: "rent" | "sale";
   photos?: string[];
+  sourceId?: string;
 }
 
 export async function createProperty(db: Database, input: CreatePropertyInput): Promise<Property> {
@@ -34,6 +35,7 @@ export async function createProperty(db: Database, input: CreatePropertyInput): 
       type: input.type,
       dealType: input.dealType,
       photos: input.photos,
+      sourceId: input.sourceId,
       status: "draft",
     })
     .returning();
@@ -50,6 +52,17 @@ export async function publishProperty(db: Database, id: string): Promise<Propert
 
 export async function getProperty(db: Database, id: string): Promise<Property | null> {
   const [property] = await db.select().from(properties).where(eq(properties.id, id));
+  return property ?? null;
+}
+
+/** Looks up a property by its (agencyId, sourceId) pair for import idempotency. */
+export async function getPropertyBySource(
+  db: Database,
+  agencyId: string,
+  sourceId: string,
+): Promise<Property | null> {
+  const [property] = await db.select().from(properties)
+    .where(and(eq(properties.agencyId, agencyId), eq(properties.sourceId, sourceId)));
   return property ?? null;
 }
 
@@ -82,13 +95,11 @@ export interface SearchFilters {
   bedrooms?: number;
   type?: PropertyType;
   dealType?: "rent" | "sale";
+  page?: number;
 }
 
-export async function searchProperties(
-  db: Database,
-  agencyId: string,
-  filters: SearchFilters = {},
-): Promise<Property[]> {
+/** Builds the WHERE conditions shared by searchProperties and countProperties. */
+function searchConditions(agencyId: string, filters: SearchFilters): SQL[] {
   const conditions: SQL[] = [
     eq(properties.agencyId, agencyId),
     eq(properties.status, "published"),
@@ -99,6 +110,32 @@ export async function searchProperties(
   if (filters.bedrooms !== undefined) conditions.push(gte(properties.bedrooms, filters.bedrooms));
   if (filters.type !== undefined) conditions.push(eq(properties.type, filters.type));
   if (filters.dealType !== undefined) conditions.push(eq(properties.dealType, filters.dealType));
+  return conditions;
+}
 
-  return db.select().from(properties).where(and(...conditions));
+export async function searchProperties(
+  db: Database,
+  agencyId: string,
+  filters: SearchFilters = {},
+  opts: { limit?: number; offset?: number } = {},
+): Promise<Property[]> {
+  const conditions = searchConditions(agencyId, filters);
+  let query = db.select().from(properties)
+    .where(and(...conditions))
+    .orderBy(desc(properties.createdAt))
+    .$dynamic();
+  if (opts.limit !== undefined) query = query.limit(opts.limit);
+  if (opts.offset !== undefined) query = query.offset(opts.offset);
+  return query;
+}
+
+/** Counts published properties matching the same filters as searchProperties. */
+export async function countProperties(
+  db: Database,
+  agencyId: string,
+  filters: SearchFilters = {},
+): Promise<number> {
+  const conditions = searchConditions(agencyId, filters);
+  const [row] = await db.select({ value: count() }).from(properties).where(and(...conditions));
+  return row?.value ?? 0;
 }

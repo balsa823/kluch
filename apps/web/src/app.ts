@@ -27,6 +27,7 @@ import {
   type AgencyUser,
   type PartnerUser,
   type PropertyType,
+  countProperties,
   type SearchFilters,
   type Storage,
 } from "@kluche/core";
@@ -36,7 +37,10 @@ import { renderAgencySite } from "./render.js";
 
 type Vars = { site: Site };
 
-const PROPERTY_TYPES: PropertyType[] = ["apartment", "studio", "house"];
+const PROPERTY_TYPES: PropertyType[] = ["residential", "land", "commercial"];
+
+/** Number of listings shown per page on the agency white-label site. */
+const AGENCY_PAGE_SIZE = 24;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,6 +75,9 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
   if (type && (PROPERTY_TYPES as string[]).includes(type)) filters.type = type as PropertyType;
 
   if (query.dealType === "rent" || query.dealType === "sale") filters.dealType = query.dealType;
+
+  const page = toInt(query.page);
+  if (page !== undefined && page > 0) filters.page = page;
 
   return filters;
 }
@@ -289,8 +296,19 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const agency = await getAgencyBySlug(db, c.req.param("slug"));
     if (!agency) return c.text("Not found", 404);
     const filters = parseSearchFilters(c.req.query());
-    const listings = await searchProperties(db, agency.id, filters);
-    return c.html(renderAgencySite(agency, listings, filters, { sent: c.req.query("sent") === "1" }));
+    const pageSize = AGENCY_PAGE_SIZE;
+    const page = Math.max(1, filters.page ?? 1);
+    const offset = (page - 1) * pageSize;
+    const listings = await searchProperties(db, agency.id, filters, { limit: pageSize, offset });
+    const total = await countProperties(db, agency.id, filters);
+    return c.html(
+      renderAgencySite(agency, listings, filters, {
+        sent: c.req.query("sent") === "1",
+        page,
+        pageSize,
+        total,
+      }),
+    );
   });
 
   app.post("/a/:slug/inquiry", bodyLimit({ maxSize: 64 * 1024 }), async (c) => {
@@ -330,8 +348,22 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
         return c.html(CONSOLE);
       case "agency": {
         const filters = parseSearchFilters(c.req.query());
-        const listings = await searchProperties(db, site.agency.id, filters);
-        return c.html(renderAgencySite(site.agency, listings, filters, { sent: c.req.query("sent") === "1" }));
+        const pageSize = AGENCY_PAGE_SIZE;
+        const page = Math.max(1, filters.page ?? 1);
+        const offset = (page - 1) * pageSize;
+        const listings = await searchProperties(db, site.agency.id, filters, {
+          limit: pageSize,
+          offset,
+        });
+        const total = await countProperties(db, site.agency.id, filters);
+        return c.html(
+          renderAgencySite(site.agency, listings, filters, {
+            sent: c.req.query("sent") === "1",
+            page,
+            pageSize,
+            total,
+          }),
+        );
       }
       default:
         return c.text("Not found", 404);

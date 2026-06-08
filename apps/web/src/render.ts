@@ -83,11 +83,30 @@ function renderCard(listing: Property): string {
  * Renders a white-label agency website as a standalone, multilingual HTML document.
  * Themed by the agency's own colours via CSS variables, on Kluch's design language.
  */
+/**
+ * Builds a root-relative query string ("?city=...&page=2") from the active
+ * search filters plus a target page. Mirrors how the filter tabs build hrefs,
+ * but preserves every active filter (city, dealType, minPrice, maxPrice,
+ * bedrooms) so paging never drops the user's search. Returns an esc()'d string
+ * safe to drop straight into an href attribute.
+ */
+function pageHref(filters: SearchFilters, page: number): string {
+  const params = new URLSearchParams();
+  if (filters.city) params.set("city", filters.city);
+  if (filters.dealType) params.set("dealType", filters.dealType);
+  if (filters.minPrice !== undefined) params.set("minPrice", String(filters.minPrice));
+  if (filters.maxPrice !== undefined) params.set("maxPrice", String(filters.maxPrice));
+  if (filters.bedrooms !== undefined) params.set("bedrooms", String(filters.bedrooms));
+  if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return esc(qs ? `?${qs}` : "?");
+}
+
 export function renderAgencySite(
   agency: Agency,
   listings: Property[],
   filters: SearchFilters = {},
-  opts: { sent?: boolean } = {},
+  opts: { sent?: boolean; page?: number; pageSize?: number; total?: number } = {},
 ): string {
   const logoUrl = safeUrl(agency.logoUrl);
   const logo = logoUrl
@@ -110,6 +129,28 @@ export function renderAgencySite(
   const cards = listings.length
     ? listings.map(renderCard).join("")
     : `<p class="empty" data-i18n="properties.empty">No properties match your search.</p>`;
+
+  // Pager: only shown when there are more results than fit on one page.
+  const pageSize = opts.pageSize ?? 0;
+  const total = opts.total ?? 0;
+  const page = Math.max(1, opts.page ?? 1);
+  const pages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
+  const pager =
+    pageSize > 0 && total > pageSize
+      ? `<nav class="pager" aria-label="Pagination">
+        ${
+          page > 1
+            ? `<a class="pager-link pager-prev" href="${pageHref(filters, page - 1)}" data-i18n="pager.prev">Previous</a>`
+            : ""
+        }
+        <span class="pager-info">Page ${esc(page)} of ${esc(pages)}</span>
+        ${
+          page < pages
+            ? `<a class="pager-link pager-next" href="${pageHref(filters, page + 1)}" data-i18n="pager.next">Next</a>`
+            : ""
+        }
+      </nav>`
+      : "";
 
   const contactInner = opts.sent
     ? `<p class="thankyou" data-i18n="contact.thankyou">Thank you — we'll be in touch shortly.</p>`
@@ -215,6 +256,15 @@ export function renderAgencySite(
     }
     .tabs a.is-active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 
+    /* Pager */
+    .pager { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; }
+    .pager-link {
+      text-decoration: none; padding: 0.45rem 0.95rem; border-radius: 999px;
+      border: 1px solid var(--color-accent); color: var(--color-primary); font-size: 0.9rem;
+    }
+    .pager-link:hover { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+    .pager-info { color: #6b6557; font-size: 0.9rem; }
+
     /* Cards */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.4rem; }
     .card {
@@ -316,6 +366,7 @@ export function renderAgencySite(
         <a href="?dealType=sale" class="${tabActive("sale")}" data-i18n="tab.sale">For sale</a>
       </div>
       <div class="grid">${cards}</div>
+      ${pager}
     </section>
 
     <section class="about" id="about">
@@ -340,6 +391,7 @@ export function renderAgencySite(
       "search.city":"City","search.cityPh":"Any city","search.dealType":"Type","search.dealAny":"Any","search.dealRent":"Rent","search.dealSale":"Sale",
       "search.minPrice":"Min price","search.maxPrice":"Max price","search.bedrooms":"Bedrooms","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
+      "pager.prev":"Previous","pager.next":"Next",
       "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo",
       "properties.heading":"Available properties","properties.empty":"No properties match your search.",
       "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
@@ -352,6 +404,7 @@ export function renderAgencySite(
       "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja",
       "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.submit":"Pretraga",
       "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju",
+      "pager.prev":"Prethodno","pager.next":"Sljedeće",
       "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.",
       "properties.heading":"Dostupne nekretnine","properties.empty":"Nema nekretnina za vašu pretragu.",
       "about.body":"Pomažemo vam da pronađete pravi dom — za najam ili kupovinu. Javite nam se i naš tim će vas voditi, na vašem jeziku, na svakom koraku.",
@@ -364,6 +417,7 @@ export function renderAgencySite(
       "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа",
       "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.submit":"Поиск",
       "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа",
+      "pager.prev":"Назад","pager.next":"Вперёд",
       "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.",
       "properties.heading":"Доступные объекты","properties.empty":"Нет объектов по вашему запросу.",
       "about.body":"Мы поможем найти подходящее жильё — в аренду или для покупки. Свяжитесь с нами, и наша команда поможет вам на вашем языке на каждом шаге.",
@@ -376,6 +430,7 @@ export function renderAgencySite(
       "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık",
       "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.submit":"Ara",
       "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık",
+      "pager.prev":"Önceki","pager.next":"Sonraki",
       "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay",
       "properties.heading":"Mevcut ilanlar","properties.empty":"Aramanıza uygun ilan yok.",
       "about.body":"Doğru evi bulmanıza yardımcı oluyoruz — kiralık ya da satılık. Bize ulaşın, ekibimiz her adımda kendi dilinizde size yardımcı olsun.",

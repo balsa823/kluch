@@ -4,6 +4,8 @@ import { createAgency } from "../agencies.js";
 import { FakeStorage } from "../storage.js";
 import {
   bestate4Parser,
+  fetchAgentListings,
+  importAgentListings,
   importListing,
   mapBestate4,
   PARSERS,
@@ -11,6 +13,7 @@ import {
   unwrapFirestore,
   type ListingParser,
 } from "../importers.js";
+import { searchProperties, createProperty, getPropertyBySource } from "../listings.js";
 
 // A representative Firestore typed-value `fields` object.
 const FIXTURE = {
@@ -87,7 +90,8 @@ test("mapBestate4 maps fixture fields to a ParsedListing", () => {
   expect(parsed.bedrooms).toBe(1);
   expect(parsed.bathrooms).toBe(1);
   expect(parsed.areaM2).toBe(46);
-  expect(parsed.type).toBe("apartment");
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
   expect(parsed.photos).toEqual([
     "https://firebasestorage.googleapis.com/one.jpg",
     "https://firebasestorage.googleapis.com/two.jpg",
@@ -95,16 +99,54 @@ test("mapBestate4 maps fixture fields to a ParsedListing", () => {
   expect(parsed.address).toBe("Podgorica, Ljubović, Montenegro");
 });
 
-test("mapBestate4 uses sale price when no monthlyRent and marks studio for 0 bedrooms", () => {
+test("mapBestate4 uses sale price for FOR_SALE listings", () => {
   const parsed = mapBestate4({
-    title: "Studio for sale",
+    title: "Flat for sale",
+    listingType: "FOR_SALE",
     price: 80000,
     bedrooms: 0,
     locationDisplay: "Budva, Center, Montenegro",
   });
   expect(parsed.priceMinor).toBe(8000000);
-  expect(parsed.type).toBe("studio");
+  expect(parsed.dealType).toBe("sale");
   expect(parsed.city).toBe("Budva");
+});
+
+test("mapBestate4 maps type and dealType from source, using monthlyRent for rent", () => {
+  const parsed = mapBestate4({
+    title: "Rental home",
+    listingType: "FOR_RENT",
+    type: "Residential",
+    monthlyRent: 500,
+    price: 999999,
+  });
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
+  expect(parsed.priceMinor).toBe(50000);
+});
+
+test("mapBestate4 maps land + FOR_SALE using sale price", () => {
+  const parsed = mapBestate4({
+    title: "Plot of land",
+    listingType: "FOR_SALE",
+    type: "Land",
+    price: 250000,
+  });
+  expect(parsed.type).toBe("land");
+  expect(parsed.dealType).toBe("sale");
+  expect(parsed.priceMinor).toBe(25000000);
+});
+
+test("mapBestate4 defaults type to residential and price to 0 when missing", () => {
+  const parsed = mapBestate4({ title: "Mystery listing" });
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
+  expect(parsed.priceMinor).toBe(0);
+});
+
+test("mapBestate4 maps commercial type", () => {
+  const parsed = mapBestate4({ title: "Shop", type: "Commercial", listingType: "FOR_SALE", price: 100 });
+  expect(parsed.type).toBe("commercial");
 });
 
 test("mapBestate4 throws when title is missing", () => {
@@ -132,7 +174,7 @@ const fakeParser: ListingParser = {
     city: "Budva",
     priceMinor: 100000,
     currency: "EUR",
-    type: "apartment",
+    type: "residential",
     photos: REMOTE_PHOTOS,
   }),
 };
@@ -206,4 +248,100 @@ test("importListing falls back to remote photos when every download fails", asyn
     globalThis.fetch = realFetch;
     PARSERS.splice(PARSERS.indexOf(fakeParser), 1);
   }
+});
+
+// --- importAgentListings (idempotent bulk import) ---------------------------
+
+/** Builds a Firestore document with the given id + a typed-value fields object. */
+function fsDoc(id: string, fields: Record<string, unknown>) {
+  return { name: `projects/x/databases/(default)/documents/listings/${id}`, fields };
+}
+
+/** A fetchImpl that returns one Firestore-shaped page of docs (no nextPageToken). */
+function pageFetch(docs: unknown[]): typeof fetch {
+  return vi.fn(async () =>
+    new Response(JSON.stringify({ documents: docs }), {
+      headers: { "content-type": "application/json" },
+    }),
+  ) as unknown as typeof fetch;
+}
+
+const AGENT_DOC_A = fsDoc("listing-a", {
+  title: { stringValue: "Agent A Flat" },
+  listingType: { stringValue: "FOR_RENT" },
+  type: { stringValue: "Residential" },
+  monthlyRent: { integerValue: "500" },
+  locationDisplay: { stringValue: "Budva, Center, Montenegro" },
+  agentId: { stringValue: "AGENT" },
+});
+const AGENT_DOC_B = fsDoc("listing-b", {
+  title: { stringValue: "Agent B House" },
+  listingType: { stringValue: "FOR_SALE" },
+  type: { stringValue: "Residential" },
+  price: { integerValue: "250000" },
+  locationDisplay: { stringValue: "Kotor, Old Town, Montenegro" },
+  agentId: { stringValue: "AGENT" },
+});
+const OTHER_AGENT_DOC = fsDoc("listing-c", {
+  title: { stringValue: "Someone Else" },
+  agentId: { stringValue: "OTHER" },
+});
+
+test("fetchAgentListings returns only docs for the requested agent with ids", async () => {
+  const fetchImpl = pageFetch([AGENT_DOC_A, AGENT_DOC_B, OTHER_AGENT_DOC]);
+  const docs = await fetchAgentListings("AGENT", fetchImpl);
+  expect(docs.map((d) => d.id).sort()).toEqual(["listing-a", "listing-b"]);
+});
+
+test("importAgentListings imports + publishes the agent's listings, idempotently", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Bulk Agency" });
+  const fetchImpl = pageFetch([AGENT_DOC_A, AGENT_DOC_B, OTHER_AGENT_DOC]);
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(result).toEqual({ created: 2, skipped: 0, failed: 0 });
+
+  const published = await searchProperties(db, agency.id, {});
+  expect(published).toHaveLength(2);
+  expect(published.every((p) => p.status === "published")).toBe(true);
+
+  // Re-running skips the already-imported docs.
+  const rerun = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(rerun).toEqual({ created: 0, skipped: 2, failed: 0 });
+});
+
+test("importAgentListings resumes a half-imported draft instead of skipping it", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Resume Agency" });
+  // Simulate a previous run that created the property but crashed before publishing.
+  const draft = await createProperty(db, {
+    agencyId: agency.id, sourceId: "listing-a", name: "Agent A Flat",
+    address: "Budva", city: "Budva", priceMinor: 50000, photos: [],
+  });
+  expect(draft.status).toBe("draft");
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), {
+    fetchImpl: pageFetch([AGENT_DOC_A]),
+  });
+  // Resumed (published) — not skipped, and no duplicate created.
+  expect(result).toEqual({ created: 1, skipped: 0, failed: 0 });
+  const published = await searchProperties(db, agency.id, {});
+  expect(published).toHaveLength(1);
+  expect(published[0].id).toBe(draft.id); // same row, now published
+  // a second run now skips it (published)
+  const rerun = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), {
+    fetchImpl: pageFetch([AGENT_DOC_A]),
+  });
+  expect(rerun).toEqual({ created: 0, skipped: 1, failed: 0 });
+});
+
+test("importAgentListings counts unmappable docs as failed but imports the good ones", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Mixed Agency" });
+  const bad = fsDoc("listing-bad", { agentId: { stringValue: "AGENT" } }); // missing title → mapBestate4 throws
+  const fetchImpl = pageFetch([AGENT_DOC_A, bad]);
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(result).toEqual({ created: 1, skipped: 0, failed: 1 });
+  expect(await searchProperties(db, agency.id, {})).toHaveLength(1);
 });
