@@ -119,7 +119,7 @@ test("POST /api/listings creates a listing scoped to the token's agency and it a
     // Attempt to spoof another agency — must be ignored.
     body: JSON.stringify({
       agencyId: agencyB.id,
-      name: "Lake House", address: "Jezero 1", city: "Podgorica", priceMinor: 150000, bedrooms: 3, type: "house",
+      name: "Lake House", address: "Jezero 1", city: "Podgorica", priceMinor: 150000, bedrooms: 3, type: "residential",
     }),
   }));
   expect(created.status).toBe(201);

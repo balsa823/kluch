@@ -31,16 +31,16 @@ async function seed() {
 
   const a = await createProperty(db, {
     agencyId: agency.id, name: "Old Town Flat", address: "Trg 1",
-    city: "Podgorica", priceMinor: 45000, bedrooms: 2, type: "apartment",
+    city: "Podgorica", priceMinor: 45000, bedrooms: 2, type: "residential",
     photos: ["https://cdn.example/a.jpg"],
   });
   const b = await createProperty(db, {
     agencyId: agency.id, name: "Kotor Villa", address: "Obala 2",
-    city: "Kotor", priceMinor: 90000, bedrooms: 4, type: "house",
+    city: "Kotor", priceMinor: 90000, bedrooms: 4, type: "residential",
   });
   const draft = await createProperty(db, {
     agencyId: agency.id, name: "Hidden Draft", address: "Secret 3",
-    city: "Podgorica", priceMinor: 30000, type: "apartment",
+    city: "Podgorica", priceMinor: 30000, type: "residential",
   });
   await publishProperty(db, a.id);
   await publishProperty(db, b.id);
@@ -163,7 +163,7 @@ test("create draft property is hidden until published, then appears on agency ho
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       name: "Brand New Flat", address: "Nova 1", city: "Bar",
-      priceMinor: 55000, bedrooms: 2, type: "apartment",
+      priceMinor: 55000, bedrooms: 2, type: "residential",
     }),
   }));
   expect(created.status).toBe(201);
@@ -299,7 +299,7 @@ test("POST /api/properties/:id/photos uploads multiple files and persists them",
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const property = await createProperty(db, {
     agencyId: agency.id, name: "Photo Flat", address: "Slika 1",
-    city: "Tivat", priceMinor: 40000, type: "apartment",
+    city: "Tivat", priceMinor: 40000, type: "residential",
   });
   const storage = new FakeStorage();
   const app = createApp(db, { storage });

@@ -28,7 +28,7 @@ const listings: Property[] = [
     bedrooms: 1,
     bathrooms: 1,
     areaM2: 40,
-    type: "studio",
+    type: "residential",
     dealType: "sale",
     status: "published",
     photos: ["https://cdn.example/p1.jpg"],
@@ -47,7 +47,7 @@ const listings: Property[] = [
     bedrooms: 2,
     bathrooms: 1,
     areaM2: 70,
-    type: "apartment",
+    type: "residential",
     dealType: "rent",
     status: "published",
     photos: [],
@@ -173,4 +173,38 @@ test("drops a javascript: photo URL", () => {
 test("drops a javascript: logo URL", () => {
   const html = renderAgencySite({ ...agency, logoUrl: "javascript:alert(1)" }, listings);
   expect(html).not.toContain("javascript:alert(1)");
+});
+
+test("page 1 of multiple shows a Next link and no Prev link", () => {
+  const html = renderAgencySite(agency, listings, {}, { page: 1, pageSize: 24, total: 30 });
+  expect(html).toContain(`href="?page=2"`);
+  expect(html).toContain("Page 1 of 2");
+  expect(html).not.toContain("pager-prev");
+});
+
+test("last page shows a Prev link and no Next link", () => {
+  const html = renderAgencySite(agency, listings, {}, { page: 2, pageSize: 24, total: 30 });
+  expect(html).toContain(`href="?"`);
+  expect(html).toContain(`class="pager-link pager-prev"`);
+  expect(html).toContain("Page 2 of 2");
+  expect(html).not.toContain("pager-next");
+});
+
+test("pager links preserve the active filters", () => {
+  const html = renderAgencySite(
+    agency,
+    listings,
+    { city: "Kotor", dealType: "rent", maxPrice: 50000 },
+    { page: 1, pageSize: 24, total: 30 },
+  );
+  const next = html.match(/pager-next" href="([^"]+)"/)?.[1] ?? "";
+  expect(next).toContain("city=Kotor");
+  expect(next).toContain("dealType=rent");
+  expect(next).toContain("maxPrice=50000");
+  expect(next).toContain("page=2");
+});
+
+test("no pager when total fits on one page", () => {
+  const html = renderAgencySite(agency, listings, {}, { page: 1, pageSize: 24, total: 20 });
+  expect(html).not.toContain(`<nav class="pager"`);
 });
