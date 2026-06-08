@@ -39,6 +39,7 @@ export type CreateListingInput = {
   priceMinor: number;
   bedrooms?: number;
   type?: string;
+  dealType: "rent" | "sale";
 };
 
 function headers(token?: string): Record<string, string> {
