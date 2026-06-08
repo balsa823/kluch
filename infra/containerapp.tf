@@ -61,8 +61,8 @@ resource "azurerm_container_app" "backend" {
     container {
       name   = "kluch-backend"
       image  = var.backend_image
-      cpu    = 0.25
-      memory = "0.5Gi"
+      cpu    = 0.5
+      memory = "1.0Gi"
 
       env {
         name        = "DATABASE_URL"

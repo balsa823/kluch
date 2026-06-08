@@ -14,9 +14,12 @@ COPY apps/web/package.json apps/web/
 COPY apps/bot/package.json apps/bot/
 RUN pnpm install --frozen-lockfile
 
-# App source
+# App source. Only the backend apps (web + bot) — NOT apps/app (the Expo/RN console),
+# whose heavy dep tree isn't needed here and, if copied in uninstalled, makes pnpm run a
+# full install at boot (which OOM-kills the small container).
 COPY packages ./packages
-COPY apps ./apps
+COPY apps/web ./apps/web
+COPY apps/bot ./apps/bot
 
 ENV NODE_ENV=production
 ENV PORT=8080
