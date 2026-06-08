@@ -67,6 +67,17 @@ test("agency host renders published listings, not drafts", async () => {
   expect(body).not.toContain("Hidden Draft");
 });
 
+test("/a/:slug renders the agency site, 404 for unknown", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine" });
+  const p = await createProperty(db, { agencyId: agency.id, name: "Flat", address: "x", city: "Kotor", priceMinor: 1000 });
+  await publishProperty(db, p.id);
+  const app = createApp(db);
+  const ok = await app.request(new Request("http://kluche.me/a/popovic-nekretnine"));
+  expect(ok.status).toBe(200);
+  expect(await ok.text()).toContain("Popović Nekretnine");
+  expect((await app.request(new Request("http://kluche.me/a/nope"))).status).toBe(404);
+});
+
 test("query filters narrow the rendered listings", async () => {
   await seed();
   const app = createApp(db);

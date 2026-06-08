@@ -9,6 +9,7 @@ import {
   createProperty,
   dashboardKeys,
   getAgency,
+  getAgencyBySlug,
   getAgencyUserById,
   getPartnerUserById,
   getProperty,
@@ -279,6 +280,14 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       }
     });
   }
+
+  app.get("/a/:slug", async (c) => {
+    const agency = await getAgencyBySlug(db, c.req.param("slug"));
+    if (!agency) return c.text("Not found", 404);
+    const filters = parseSearchFilters(c.req.query());
+    const listings = await searchProperties(db, agency.id, filters);
+    return c.html(renderAgencySite(agency, listings, filters));
+  });
 
   app.use("*", async (c, next) => {
     // Prefer the Host header; fall back to the request URL's host (e.g. in unit
