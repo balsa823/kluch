@@ -31,39 +31,93 @@ function safeUrl(u: unknown): string {
   return "";
 }
 
+/** Renders a single property card: photo, deal price, city, badge row and type. */
 function renderCard(listing: Property): string {
   const photo = safeUrl(listing.photos?.[0]);
   const image = photo
-    ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" />`
+    ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" loading="lazy" />`
     : `<div class="card-photo card-photo--empty"></div>`;
+
+  const price = esc(formatMoney(listing.priceMinor ?? 0, listing.currency));
+  const isRent = listing.dealType === "rent";
+  const priceBlock = isRent
+    ? `<p class="card-price">${price}<span class="card-permo" data-i18n="card.perMonth"> / mo</span></p>
+          <span class="card-tag card-tag--rent" data-i18n="card.forRent">For rent</span>`
+    : `<p class="card-price">${price}</p>
+          <span class="card-tag card-tag--sale" data-i18n="card.forSale">For sale</span>`;
+
+  const badges: string[] = [];
+  if (listing.bedrooms != null) badges.push(`<span>${esc(listing.bedrooms)} bd</span>`);
+  if (listing.bathrooms != null) badges.push(`<span>${esc(listing.bathrooms)} ba</span>`);
+  if (listing.areaM2 != null) badges.push(`<span>${esc(listing.areaM2)} m²</span>`);
+  const badgeRow = badges.length
+    ? `<div class="card-badges">${badges.join('<i aria-hidden="true">·</i>')}</div>`
+    : "";
+
+  const typeLabel = listing.type ? `<p class="card-type">${esc(listing.type)}</p>` : "";
+
   return `
       <article class="card">
         ${image}
         <div class="card-body">
+          ${priceBlock}
           <h3 class="card-title">${esc(listing.name)}</h3>
-          <p class="card-price">${esc(formatMoney(listing.priceMinor ?? 0, listing.currency))}</p>
           <p class="card-city">${esc(listing.city)}</p>
+          ${badgeRow}
+          ${typeLabel}
         </div>
       </article>`;
 }
 
 /**
- * Renders a white-label agency website as a standalone HTML document.
+ * Renders a white-label agency website as a standalone, multilingual HTML document.
  * Themed by the agency's own colours via CSS variables, on Kluch's design language.
  */
 export function renderAgencySite(
   agency: Agency,
   listings: Property[],
   filters: SearchFilters = {},
+  opts: { sent?: boolean } = {},
 ): string {
   const logoUrl = safeUrl(agency.logoUrl);
   const logo = logoUrl
     ? `<img class="logo" src="${esc(logoUrl)}" alt="${esc(agency.name)}" />`
     : "";
 
+  const slug = esc(agency.slug);
+  const heroTitle = esc(agency.tagline || agency.name);
+
+  const heroPhoto = safeUrl(listings[0]?.photos?.[0]);
+  const heroStyle = heroPhoto
+    ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${esc(heroPhoto)}'); background-size: cover; background-position: center;`
+    : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
+
+  const sel = (v: "rent" | "sale" | "") =>
+    (filters.dealType ?? "") === v ? " selected" : "";
+  const tabActive = (v: "" | "rent" | "sale") =>
+    (filters.dealType ?? "") === v ? "tab is-active" : "tab";
+
   const cards = listings.length
     ? listings.map(renderCard).join("")
-    : `<p class="empty">No properties match your search.</p>`;
+    : `<p class="empty" data-i18n="properties.empty">No properties match your search.</p>`;
+
+  const contactInner = opts.sent
+    ? `<p class="thankyou" data-i18n="contact.thankyou">Thank you — we'll be in touch shortly.</p>`
+    : `<form class="contact-form" method="post" action="/a/${slug}/inquiry">
+          <label class="hp" aria-hidden="true">Company
+            <input type="text" name="company" tabindex="-1" autocomplete="off" />
+          </label>
+          <label data-i18n="contact.name">Your name
+            <input type="text" name="name" maxlength="120" required />
+          </label>
+          <label data-i18n="contact.contact">Email or phone
+            <input type="text" name="contact" maxlength="200" required />
+          </label>
+          <label data-i18n="contact.message">Message
+            <textarea name="message" rows="4" maxlength="2000"></textarea>
+          </label>
+          <button type="submit" data-i18n="contact.submit">Send request</button>
+        </form>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -79,111 +133,266 @@ export function renderAgencySite(
       --color-primary: ${cssColor(agency.colorPrimary, "#1F3A5C")};
       --color-accent: ${cssColor(agency.colorAccent, "#4E827A")};
       --color-cream: #F1ECE0;
-      --color-navy: #1F3A5C;
-      --color-teal: #4E827A;
+      --color-ink: #1F2937;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Inter", system-ui, sans-serif;
-      color: var(--color-navy);
+      color: var(--color-ink);
       background: var(--color-cream);
     }
     h1, h2, h3, .logo-text { font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
-    header.site {
+    a { color: inherit; }
+
+    /* Nav */
+    nav.site {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
       background: var(--color-primary);
       color: #fff;
-      padding: 2.25rem 1rem 1.9rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 0.65rem;
       border-bottom: 3px solid var(--color-accent);
     }
-    .logo { height: 84px; width: auto; border-radius: 8px; }
-    .logo-text { font-size: 1.5rem; margin: 0; letter-spacing: 0.02em; }
-    .tagline { margin: 0; opacity: 0.85; font-size: 0.95rem; }
-    main { padding: clamp(1rem, 4vw, 3rem); max-width: 1100px; margin: 0 auto; }
+    nav.site .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; }
+    nav.site .logo { height: 38px; width: auto; border-radius: 6px; }
+    nav.site .nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; }
+    nav.site .nav-links a { text-decoration: none; opacity: 0.9; font-size: 0.92rem; }
+    nav.site .nav-links a:hover { opacity: 1; }
+    .langmenu { display: flex; gap: 0.25rem; }
+    .langmenu button {
+      background: rgba(255,255,255,0.12); color: #fff; border: 0;
+      padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; font: inherit; font-size: 0.82rem;
+    }
+    .langmenu button.active { background: var(--color-accent); }
+
+    /* Hero */
+    header.hero {
+      ${heroStyle}
+      color: #fff;
+      padding: clamp(3rem, 12vw, 7rem) clamp(1rem, 4vw, 2.5rem) clamp(4rem, 9vw, 6rem);
+      text-align: center;
+    }
+    header.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 auto 1.5rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
     form.search {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 0.75rem;
-      align-items: end;
-      background: #fff;
-      padding: 1rem;
-      border-radius: 12px;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.6rem; align-items: end;
+      background: rgba(255,255,255,0.96);
+      color: var(--color-ink);
+      padding: 1rem; border-radius: 14px;
+      max-width: 880px; margin: 0 auto;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
     }
-    form.search label { display: flex; flex-direction: column; font-size: 0.8rem; gap: 0.25rem; }
-    form.search input {
-      padding: 0.5rem 0.65rem;
-      border: 1px solid #d8d2c4;
-      border-radius: 8px;
-      font: inherit;
+    form.search label { display: flex; flex-direction: column; font-size: 0.72rem; gap: 0.2rem; text-align: left; text-transform: uppercase; letter-spacing: .04em; color: #6b6557; }
+    form.search input, form.search select {
+      padding: 0.5rem 0.6rem; border: 1px solid #d8d2c4; border-radius: 8px; font: inherit; background: #fff;
     }
     form.search button {
-      background: var(--color-accent);
-      color: #fff;
-      border: 0;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      font: inherit;
-      cursor: pointer;
+      background: var(--color-accent); color: #fff; border: 0;
+      padding: 0.62rem 1rem; border-radius: 8px; font: inherit; cursor: pointer; font-weight: 600;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 1.25rem;
+
+    main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
+    section { scroll-margin-top: 80px; }
+    .section-head { margin: 0 0 1.2rem; }
+
+    /* Filter tabs */
+    .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .tabs a {
+      text-decoration: none; padding: 0.45rem 0.95rem; border-radius: 999px;
+      border: 1px solid var(--color-accent); color: var(--color-primary); font-size: 0.9rem;
     }
+    .tabs a.is-active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+    /* Cards */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.4rem; }
     .card {
-      background: #fff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(31, 58, 92, 0.12);
+      background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(31, 58, 92, 0.12);
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .card-photo { width: 100%; height: 170px; object-fit: cover; display: block; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(31, 58, 92, 0.18); }
+    .card-photo { width: 100%; height: 180px; object-fit: cover; display: block; }
     .card-photo--empty { background: var(--color-accent); opacity: 0.25; }
-    .card-body { padding: 0.9rem 1rem 1.1rem; }
-    .card-title { margin: 0 0 0.35rem; font-size: 1.05rem; }
-    .card-price { margin: 0 0 0.2rem; color: var(--color-accent); font-weight: 600; }
-    .card-city { margin: 0; color: #6b6557; font-size: 0.9rem; }
-    .empty { color: #6b6557; }
-    footer.site {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: #6b6557;
-      font-size: 0.85rem;
+    .card-body { padding: 0.9rem 1rem 1.1rem; position: relative; }
+    .card-tag {
+      display: inline-block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .05em; padding: 0.2rem 0.5rem; border-radius: 6px; margin-bottom: 0.5rem;
     }
+    .card-tag--rent { background: var(--color-accent); color: #fff; }
+    .card-tag--sale { background: var(--color-primary); color: #fff; }
+    .card-price { margin: 0 0 0.35rem; color: var(--color-primary); font-weight: 700; font-size: 1.15rem; }
+    .card-permo { font-size: 0.8rem; font-weight: 500; color: #6b6557; }
+    .card-title { margin: 0 0 0.25rem; font-size: 1.02rem; }
+    .card-city { margin: 0 0 0.5rem; color: #6b6557; font-size: 0.9rem; }
+    .card-badges { display: flex; align-items: center; gap: 0.45rem; color: #6b6557; font-size: 0.85rem; }
+    .card-badges i { opacity: 0.5; font-style: normal; }
+    .card-type { margin: 0.5rem 0 0; color: #9a937f; font-size: 0.78rem; text-transform: capitalize; }
+    .empty { color: #6b6557; }
+
+    /* About */
+    section.about {
+      background: var(--color-primary); color: #fff; border-radius: 16px;
+      padding: clamp(2rem, 6vw, 3.5rem); margin: 3rem 0; text-align: center;
+    }
+    section.about h2 { margin: 0 0 0.6rem; }
+    section.about p { margin: 0.4rem auto; max-width: 60ch; opacity: 0.9; }
+
+    /* Contact */
+    section.contact { max-width: 620px; margin: 3rem auto; }
+    .contact-form { display: grid; gap: 0.85rem; background: #fff; padding: 1.5rem; border-radius: 16px; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    .contact-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 500; }
+    .contact-form input, .contact-form textarea { padding: 0.6rem 0.7rem; border: 1px solid #d8d2c4; border-radius: 8px; font: inherit; }
+    .contact-form button { background: var(--color-accent); color: #fff; border: 0; padding: 0.7rem; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+    .thankyou { background: #fff; padding: 1.5rem; border-radius: 16px; border-left: 4px solid var(--color-accent); font-size: 1.05rem; }
+    /* visually-hidden honeypot */
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+    footer.site { text-align: center; padding: 2.5rem 1rem; color: #6b6557; font-size: 0.85rem; }
   </style>
 </head>
 <body>
-  <header class="site">
-    ${logo}
-    <div>
-      <h1 class="logo-text">${esc(agency.name)}</h1>
-      ${agency.tagline ? `<p class="tagline">${esc(agency.tagline)}</p>` : ""}
+  <nav class="site">
+    <a class="brand" href="#top">
+      ${logo}
+      <span>${esc(agency.name)}</span>
+    </a>
+    <div class="nav-links">
+      <a href="#properties" data-i18n="nav.properties">Properties</a>
+      <a href="#about" data-i18n="nav.about">About</a>
+      <a href="#contact" data-i18n="nav.contact">Contact</a>
+      <div class="langmenu" id="langMenu">
+        <button data-code="en">EN</button>
+        <button data-code="sr">SR</button>
+        <button data-code="ru">RU</button>
+        <button data-code="tr">TR</button>
+      </div>
     </div>
-  </header>
-  <main>
+  </nav>
+
+  <header class="hero" id="top">
+    <h1>${heroTitle}</h1>
     <form class="search" method="get">
-      <label>City
-        <input type="text" name="city" value="${attr(filters.city)}" placeholder="Any city" />
+      <label data-i18n="search.city">City
+        <input type="text" name="city" value="${attr(filters.city)}" data-i18n-ph="search.cityPh" placeholder="Any city" />
       </label>
-      <label>Min price (€)
+      <label data-i18n="search.dealType">Type
+        <select name="dealType">
+          <option value=""${sel("")} data-i18n="search.dealAny">Any</option>
+          <option value="rent"${sel("rent")} data-i18n="search.dealRent">Rent</option>
+          <option value="sale"${sel("sale")} data-i18n="search.dealSale">Sale</option>
+        </select>
+      </label>
+      <label data-i18n="search.minPrice">Min price
         <input type="number" name="minPrice" value="${attr(filters.minPrice)}" />
       </label>
-      <label>Max price (€)
+      <label data-i18n="search.maxPrice">Max price
         <input type="number" name="maxPrice" value="${attr(filters.maxPrice)}" />
       </label>
-      <label>Min bedrooms
+      <label data-i18n="search.bedrooms">Bedrooms
         <input type="number" name="bedrooms" value="${attr(filters.bedrooms)}" />
       </label>
-      <button type="submit">Search</button>
+      <button type="submit" data-i18n="search.submit">Search</button>
     </form>
-    <section class="grid">${cards}</section>
+  </header>
+
+  <main>
+    <section id="properties">
+      <h2 class="section-head" data-i18n="properties.heading">Available properties</h2>
+      <div class="tabs">
+        <a href="?" class="${tabActive("")}" data-i18n="tab.all">All</a>
+        <a href="?dealType=rent" class="${tabActive("rent")}" data-i18n="tab.rent">For rent</a>
+        <a href="?dealType=sale" class="${tabActive("sale")}" data-i18n="tab.sale">For sale</a>
+      </div>
+      <div class="grid">${cards}</div>
+    </section>
+
+    <section class="about" id="about">
+      <h2>${esc(agency.name)}</h2>
+      ${agency.tagline ? `<p>${esc(agency.tagline)}</p>` : ""}
+      <p data-i18n="about.body">We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.</p>
+    </section>
+
+    <section class="contact" id="contact">
+      <h2 class="section-head" data-i18n="contact.heading">Request info / book a viewing</h2>
+      ${contactInner}
+    </section>
   </main>
-  <footer class="site">Powered by Kluch</footer>
+
+  <footer class="site">${esc(agency.name)} · <span data-i18n="footer.powered">Powered by Kluche</span></footer>
+
+  <script>
+  // SR/RU/TR are first-pass translations — review with a native speaker before launch.
+  const T = {
+    en: {
+      "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
+      "search.city":"City","search.cityPh":"Any city","search.dealType":"Type","search.dealAny":"Any","search.dealRent":"Rent","search.dealSale":"Sale",
+      "search.minPrice":"Min price","search.maxPrice":"Max price","search.bedrooms":"Bedrooms","search.submit":"Search",
+      "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
+      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo",
+      "properties.heading":"Available properties","properties.empty":"No properties match your search.",
+      "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
+      "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
+      "contact.thankyou":"Thank you — we'll be in touch shortly.",
+      "footer.powered":"Powered by Kluche"
+    },
+    sr: {
+      "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
+      "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja",
+      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.submit":"Pretraga",
+      "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju",
+      "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.",
+      "properties.heading":"Dostupne nekretnine","properties.empty":"Nema nekretnina za vašu pretragu.",
+      "about.body":"Pomažemo vam da pronađete pravi dom — za najam ili kupovinu. Javite nam se i naš tim će vas voditi, na vašem jeziku, na svakom koraku.",
+      "contact.heading":"Zatražite informacije / zakažite obilazak","contact.name":"Vaše ime","contact.contact":"E-pošta ili telefon","contact.message":"Poruka","contact.submit":"Pošalji upit",
+      "contact.thankyou":"Hvala — javićemo vam se uskoro.",
+      "footer.powered":"Pokreće Kluche"
+    },
+    ru: {
+      "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
+      "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа",
+      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.submit":"Поиск",
+      "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа",
+      "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.",
+      "properties.heading":"Доступные объекты","properties.empty":"Нет объектов по вашему запросу.",
+      "about.body":"Мы поможем найти подходящее жильё — в аренду или для покупки. Свяжитесь с нами, и наша команда поможет вам на вашем языке на каждом шаге.",
+      "contact.heading":"Запросить информацию / записаться на просмотр","contact.name":"Ваше имя","contact.contact":"Эл. почта или телефон","contact.message":"Сообщение","contact.submit":"Отправить запрос",
+      "contact.thankyou":"Спасибо — мы скоро свяжемся с вами.",
+      "footer.powered":"Работает на Kluche"
+    },
+    tr: {
+      "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
+      "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık",
+      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.submit":"Ara",
+      "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık",
+      "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay",
+      "properties.heading":"Mevcut ilanlar","properties.empty":"Aramanıza uygun ilan yok.",
+      "about.body":"Doğru evi bulmanıza yardımcı oluyoruz — kiralık ya da satılık. Bize ulaşın, ekibimiz her adımda kendi dilinizde size yardımcı olsun.",
+      "contact.heading":"Bilgi isteyin / randevu alın","contact.name":"Adınız","contact.contact":"E-posta veya telefon","contact.message":"Mesaj","contact.submit":"Gönder",
+      "contact.thankyou":"Teşekkürler — en kısa sürede sizinle iletişime geçeceğiz.",
+      "footer.powered":"Kluche tarafından sağlanır"
+    }
+  };
+  let LANG = "en";
+  function t(key) { return (T[LANG] && T[LANG][key]) != null ? T[LANG][key] : (T.en[key] != null ? T.en[key] : key); }
+  function applyLang() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.getAttribute("data-i18n")); });
+    document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
+    document.documentElement.lang = LANG;
+    document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
+  }
+  function setLang(code) {
+    if (!T[code]) return;
+    LANG = code;
+    try { localStorage.setItem("kluche_lang", code); } catch (e) {}
+    applyLang();
+  }
+  document.querySelectorAll("#langMenu button").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.code)));
+  let saved = "en";
+  try { saved = localStorage.getItem("kluche_lang") || "en"; } catch (e) {}
+  setLang(T[saved] ? saved : "en");
+  </script>
 </body>
 </html>`;
 }
