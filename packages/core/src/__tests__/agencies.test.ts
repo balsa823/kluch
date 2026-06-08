@@ -13,6 +13,8 @@ test("slugify lowercases, strips diacritics, and dashes non-alphanumerics", () =
   expect(slugify("Popović Nekretnine")).toBe("popovic-nekretnine");
   expect(slugify("  Hello,  World!! ")).toBe("hello-world");
   expect(slugify("Crème Brûlée")).toBe("creme-brulee");
+  expect(slugify("  Stam!! ")).toBe("stam");
+  expect(slugify("A & B  Co.")).toBe("a-b-co");
 });
 
 test("createAgency derives a slug from the name", async () => {
