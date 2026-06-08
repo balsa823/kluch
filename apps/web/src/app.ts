@@ -186,6 +186,8 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const u = await verifyPartnerUser(db, String(email ?? ""), String(password ?? ""));
     if (!u) return c.json({ error: "invalid credentials" }, 401);
     const dashboards = dashboardKeys(u.dashboards);
+    // `dashboards` in the token is informational for clients only; the server always
+    // re-derives access from the DB row (bearerPartner), never trusting this claim for authz.
     return c.json({
       token: signToken({ sub: u.id, dashboards }, sessionSecret, TOKEN_TTL),
       dashboards,

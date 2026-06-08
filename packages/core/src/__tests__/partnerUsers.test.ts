@@ -12,6 +12,8 @@ describe("partnerUsers", () => {
     });
     expect(u.email).toBe("p@agency.me");
     expect(await verifyPartnerUser(db, "p@agency.me", "secret123")).toMatchObject({ id: u.id });
+    // login is case-insensitive / trims, matching the normalized stored email
+    expect(await verifyPartnerUser(db, " P@Agency.me ", "secret123")).toMatchObject({ id: u.id });
     expect(await verifyPartnerUser(db, "p@agency.me", "wrong")).toBeNull();
     expect(await getPartnerUserById(db, u.id)).toMatchObject({ id: u.id });
   });

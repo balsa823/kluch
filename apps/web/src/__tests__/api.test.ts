@@ -264,3 +264,25 @@ test("GET /api/listings works with a partner token scoped to its agency", async 
   expect(listings).toHaveLength(1);
   expect(listings[0].id).toBe(listing.id);
 });
+
+test("partner without an agency dashboard is denied agency listings", async () => {
+  await createPartnerUser(db, {
+    email: "lawyer@firm.me", name: "Lex", password: "pw123",
+    dashboards: { law: { lawFirmId: "00000000-0000-0000-0000-000000000009" } },
+  });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "lawyer@firm.me", "pw123")).json()) as { token: string }).token;
+
+  const listings = await app.request(new Request("http://localhost/api/listings", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(listings.status).toBe(401);
+
+  const me = await app.request(new Request("http://localhost/api/platform/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(me.status).toBe(200);
+  const meBody = (await me.json()) as { dashboards: string[]; agency: unknown };
+  expect(meBody.dashboards).toEqual(["law"]);
+  expect(meBody.agency).toBeNull();
+});
