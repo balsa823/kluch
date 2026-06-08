@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import {
   addPropertyPhotos,
+  createInquiry,
   createProperty,
   dashboardKeys,
   getAgency,
@@ -67,6 +69,8 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
 
   const type = query.type?.trim();
   if (type && (PROPERTY_TYPES as string[]).includes(type)) filters.type = type as PropertyType;
+
+  if (query.dealType === "rent" || query.dealType === "sale") filters.dealType = query.dealType;
 
   return filters;
 }
@@ -286,7 +290,27 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     if (!agency) return c.text("Not found", 404);
     const filters = parseSearchFilters(c.req.query());
     const listings = await searchProperties(db, agency.id, filters);
-    return c.html(renderAgencySite(agency, listings, filters));
+    return c.html(renderAgencySite(agency, listings, filters, { sent: c.req.query("sent") === "1" }));
+  });
+
+  app.post("/a/:slug/inquiry", bodyLimit({ maxSize: 64 * 1024 }), async (c) => {
+    const agency = await getAgencyBySlug(db, c.req.param("slug"));
+    if (!agency) return c.text("Not found", 404);
+    const form = await c.req.parseBody();
+    const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    if (s(form.company)) return c.redirect(`/a/${agency.slug}?sent=1`, 303); // honeypot — drop silently
+    const name = s(form.name), contact = s(form.contact), message = s(form.message);
+    if (!name || !contact || name.length > 120 || contact.length > 200 || message.length > 2000)
+      return c.json({ error: "invalid" }, 400);
+    // Only attach propertyId if it's a real property belonging to THIS agency; else ignore it
+    // (avoids FK-violation 500s and cross-agency links from a forged field).
+    let propertyId: string | undefined = s(form.propertyId) || undefined;
+    if (propertyId) {
+      const prop = isUuid(propertyId) ? await getProperty(db, propertyId) : null;
+      if (!prop || prop.agencyId !== agency.id) propertyId = undefined;
+    }
+    await createInquiry(db, { agencyId: agency.id, propertyId, name, contact, message: message || undefined });
+    return c.redirect(`/a/${agency.slug}?sent=1`, 303);
   });
 
   app.use("*", async (c, next) => {
@@ -307,7 +331,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       case "agency": {
         const filters = parseSearchFilters(c.req.query());
         const listings = await searchProperties(db, site.agency.id, filters);
-        return c.html(renderAgencySite(site.agency, listings, filters));
+        return c.html(renderAgencySite(site.agency, listings, filters, { sent: c.req.query("sent") === "1" }));
       }
       default:
         return c.text("Not found", 404);

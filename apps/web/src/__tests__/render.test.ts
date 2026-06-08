@@ -29,6 +29,7 @@ const listings: Property[] = [
     bathrooms: 1,
     areaM2: 40,
     type: "studio",
+    dealType: "sale",
     status: "published",
     photos: ["https://cdn.example/p1.jpg"],
   },
@@ -47,10 +48,11 @@ const listings: Property[] = [
     bathrooms: 1,
     areaM2: 70,
     type: "apartment",
+    dealType: "rent",
     status: "published",
     photos: [],
   },
-];
+] as Property[];
 
 test("renders the agency name and logo", () => {
   const html = renderAgencySite(agency, listings);
@@ -73,6 +75,57 @@ test("renders one card per listing with title, price and city", () => {
   expect(html).toContain("€450.00");
   expect(html).toContain("Kotor");
   expect(html).toContain("Podgorica");
+});
+
+test("renders all four language buttons", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`data-code="en"`);
+  expect(html).toContain(`data-code="sr"`);
+  expect(html).toContain(`data-code="ru"`);
+  expect(html).toContain(`data-code="tr"`);
+});
+
+test("contact form posts to the slug inquiry endpoint with a honeypot", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`action="/a/popovic/inquiry"`);
+  expect(html).toContain(`method="post"`);
+  expect(html).toContain(`name="company"`);
+  expect(html).toContain(`name="name"`);
+  expect(html).toContain(`name="contact"`);
+  expect(html).toContain(`name="message"`);
+});
+
+test("rent listing shows a per-month label and the for-rent tag", () => {
+  const rent: Property = { ...listings[0], dealType: "rent" } as Property;
+  const html = renderAgencySite(agency, [rent]);
+  expect(html).toContain(`data-i18n="card.perMonth"`); // the per-month span on the card
+  expect(html).toContain("/ mo");
+  expect(html).toContain(`data-i18n="card.forRent"`);
+});
+
+test("sale listing shows the for-sale tag but no per-month label on its card", () => {
+  const sale: Property = { ...listings[0], dealType: "sale" } as Property;
+  const html = renderAgencySite(agency, [sale]);
+  expect(html).toContain(`data-i18n="card.forSale"`);
+  // The per-month span only appears on rent cards. Its data-i18n attribute is
+  // unique to the card markup (the bare key string also lives in the i18n dict).
+  expect(html).not.toContain(`data-i18n="card.perMonth"`);
+});
+
+test("renders deal-type filter tabs", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`href="?dealType=rent"`);
+  expect(html).toContain(`href="?dealType=sale"`);
+});
+
+test("pre-selects the deal type in the search select from filters", () => {
+  const html = renderAgencySite(agency, listings, { dealType: "rent" });
+  expect(html).toMatch(/<option value="rent"[^>]*selected/);
+});
+
+test("shows a thank-you message when sent", () => {
+  const html = renderAgencySite(agency, listings, {}, { sent: true });
+  expect(html).toContain(`data-i18n="contact.thankyou"`);
 });
 
 test("uses the first photo as the card image when present", () => {

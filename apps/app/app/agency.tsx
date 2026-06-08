@@ -86,6 +86,7 @@ export default function Agency() {
   const [price, setPrice] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [type, setType] = useState<ListingType>("apartment");
+  const [dealType, setDealType] = useState<"rent" | "sale">("rent");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -118,6 +119,7 @@ export default function Agency() {
     setPrice("");
     setBedrooms("");
     setType("apartment");
+    setDealType("rent");
     setFormError(null);
   }
 
@@ -149,6 +151,7 @@ export default function Agency() {
         priceMinor: Math.round(euros * 100),
         bedrooms: beds,
         type,
+        dealType,
       });
       resetForm();
       setShowForm(false);
@@ -291,6 +294,33 @@ export default function Agency() {
               placeholder="2"
               keyboardType="number-pad"
             />
+
+            <Text style={styles.fieldLabel}>Deal</Text>
+            <View style={styles.typeRow}>
+              {(["rent", "sale"] as const).map((d) => {
+                const active = dealType === d;
+                return (
+                  <Pressable
+                    key={d}
+                    accessibilityRole="button"
+                    onPress={() => setDealType(d)}
+                    style={[
+                      styles.typeChip,
+                      active && styles.typeChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.typeChipText,
+                        active && styles.typeChipTextActive,
+                      ]}
+                    >
+                      {d}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
             <Text style={styles.fieldLabel}>Type</Text>
             <View style={styles.typeRow}>

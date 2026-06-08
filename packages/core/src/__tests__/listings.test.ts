@@ -79,6 +79,24 @@ test("listAgencyProperties returns all properties incl. drafts, newest first, sc
   expect(results.map((r) => r.name)).toEqual([second.name, first.name]);
 });
 
+test("createProperty defaults dealType to rent", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Seaside Studio", address: "Obala 1", city: "Budva", priceMinor: 120000,
+  });
+  expect(p.dealType).toBe("rent");
+});
+
+test("searchProperties filters by dealType", async () => {
+  const a = await agency();
+  const sale = await createProperty(db, { agencyId: a.id, name: "For Sale", address: "A", city: "Budva", priceMinor: 500000, dealType: "sale" });
+  const rent = await createProperty(db, { agencyId: a.id, name: "For Rent", address: "B", city: "Budva", priceMinor: 100000 });
+  await publishProperty(db, sale.id);
+  await publishProperty(db, rent.id);
+  const results = await searchProperties(db, a.id, { dealType: "sale" });
+  expect(results.map((r) => r.name)).toEqual(["For Sale"]);
+});
+
 test("searchProperties is isolated per agency", async () => {
   const a = await agency("Agency A");
   const b = await agency("Agency B");

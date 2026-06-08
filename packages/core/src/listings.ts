@@ -15,6 +15,7 @@ export interface CreatePropertyInput {
   bathrooms?: number;
   areaM2?: number;
   type?: PropertyType;
+  dealType?: "rent" | "sale";
   photos?: string[];
 }
 
@@ -31,6 +32,7 @@ export async function createProperty(db: Database, input: CreatePropertyInput): 
       bathrooms: input.bathrooms,
       areaM2: input.areaM2,
       type: input.type,
+      dealType: input.dealType,
       photos: input.photos,
       status: "draft",
     })
@@ -79,6 +81,7 @@ export interface SearchFilters {
   maxPrice?: number;
   bedrooms?: number;
   type?: PropertyType;
+  dealType?: "rent" | "sale";
 }
 
 export async function searchProperties(
@@ -95,6 +98,7 @@ export async function searchProperties(
   if (filters.maxPrice !== undefined) conditions.push(lte(properties.priceMinor, filters.maxPrice));
   if (filters.bedrooms !== undefined) conditions.push(gte(properties.bedrooms, filters.bedrooms));
   if (filters.type !== undefined) conditions.push(eq(properties.type, filters.type));
+  if (filters.dealType !== undefined) conditions.push(eq(properties.dealType, filters.dealType));
 
   return db.select().from(properties).where(and(...conditions));
 }

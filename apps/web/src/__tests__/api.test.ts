@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty } from "@kluche/core";
+import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -263,6 +263,83 @@ test("GET /api/listings works with a partner token scoped to its agency", async 
   const { listings } = (await res.json()) as { listings: { id: string }[] };
   expect(listings).toHaveLength(1);
   expect(listings[0].id).toBe(listing.id);
+});
+
+// --- public inquiry endpoint ---
+
+test("POST /a/:slug/inquiry with a valid form stores an inquiry and redirects", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const body = new URLSearchParams({
+    name: "Jane Doe", contact: "jane@example.com", message: "I'd love a viewing.",
+  });
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  }));
+  expect(res.status).toBe(303);
+  expect(res.headers.get("location")).toBe(`/a/${agency.slug}?sent=1`);
+  const stored = await listInquiries(db, agency.id);
+  expect(stored).toHaveLength(1);
+  expect(stored[0].name).toBe("Jane Doe");
+  expect(stored[0].contact).toBe("jane@example.com");
+});
+
+test("POST /a/:slug/inquiry ignores a forged propertyId (no 500, stored with null)", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  for (const bad of ["not-a-uuid", "00000000-0000-0000-0000-000000000000"]) {
+    const body = new URLSearchParams({ name: "Jane", contact: "j@x.me", propertyId: bad });
+    const res = await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    }));
+    expect(res.status).toBe(303); // not 500
+  }
+  const stored = await listInquiries(db, agency.id);
+  expect(stored).toHaveLength(2);
+  expect(stored.every((i) => i.propertyId === null)).toBe(true);
+});
+
+test("POST /a/:slug/inquiry with the honeypot filled redirects but stores nothing", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const body = new URLSearchParams({
+    company: "spam-bot", name: "Bot", contact: "bot@x.me", message: "buy now",
+  });
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  }));
+  expect(res.status).toBe(303);
+  expect(await listInquiries(db, agency.id)).toHaveLength(0);
+});
+
+test("POST /a/:slug/inquiry missing name returns 400 and stores nothing", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const body = new URLSearchParams({ contact: "jane@example.com", message: "hi" });
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  }));
+  expect(res.status).toBe(400);
+  expect(await listInquiries(db, agency.id)).toHaveLength(0);
+});
+
+test("POST /a/:slug/inquiry for an unknown agency returns 404", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const body = new URLSearchParams({ name: "X", contact: "x@x.me" });
+  const res = await app.request(new Request("http://localhost/a/nope/inquiry", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  }));
+  expect(res.status).toBe(404);
 });
 
 // --- Task 3: scoped config/logo endpoints ---
