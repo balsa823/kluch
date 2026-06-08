@@ -265,6 +265,54 @@ test("GET /api/listings works with a partner token scoped to its agency", async 
   expect(listings[0].id).toBe(listing.id);
 });
 
+// --- Task 3: scoped config/logo endpoints ---
+
+test("owner partner token can POST /api/agency/:id/config and it persists", async () => {
+  const agency = await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/agency/${agency.id}/config`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ colorPrimary: "#101010", colorAccent: "#C9883C", tagline: "Hi" }),
+  }));
+  expect(res.status).toBe(200);
+
+  const me = await app.request(new Request("http://localhost/api/platform/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  const body = (await me.json()) as { agency: { colorPrimary: string; colorAccent: string; tagline: string } };
+  expect(body.agency.colorPrimary).toBe("#101010");
+  expect(body.agency.colorAccent).toBe("#C9883C");
+  expect(body.agency.tagline).toBe("Hi");
+});
+
+test("POST /api/agency/:id/config without an Authorization header returns 403", async () => {
+  const agency = await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request(`http://localhost/api/agency/${agency.id}/config`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tagline: "Hi" }),
+  }));
+  expect(res.status).toBe(403);
+});
+
+test("a partner token scoped to another agency is forbidden from configuring this one", async () => {
+  await seedPartner(); // partner is scoped to this first agency
+  const other = await createAgency(db, { name: "Other Agency", slug: "other" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/agency/${other.id}/config`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ tagline: "Hi" }),
+  }));
+  expect(res.status).toBe(403);
+});
+
 test("partner without an agency dashboard is denied agency listings", async () => {
   await createPartnerUser(db, {
     email: "lawyer@firm.me", name: "Lex", password: "pw123",

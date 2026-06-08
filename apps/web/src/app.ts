@@ -314,10 +314,11 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     }
   });
 
-  // TODO: auth (admin only)
   app.post("/api/agency/:id/config", async (c) => {
     const id = c.req.param("id");
     if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const scope = await agencyScope(c);
+    if (!scope || scope !== id) return c.json({ error: "forbidden" }, 403);
     if (!(await getAgency(db, id))) return c.json({ error: "not found" }, 404);
     const body = await c.req.json();
     try {
@@ -347,10 +348,11 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return c.json(property);
   });
 
-  // TODO: auth (admin only)
   app.post("/api/agency/:id/logo", async (c) => {
     const id = c.req.param("id");
     if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const scope = await agencyScope(c);
+    if (!scope || scope !== id) return c.json({ error: "forbidden" }, 403);
     if (!storage) return c.json({ error: "storage not configured" }, 500);
     if (!(await getAgency(db, id))) return c.json({ error: "not found" }, 404);
     const form = await c.req.parseBody();
