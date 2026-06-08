@@ -57,6 +57,17 @@ export const agencies = pgTable("agencies", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const inquiries = pgTable("inquiries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agencyId: uuid("agency_id").notNull().references(() => agencies.id),
+  propertyId: uuid("property_id").references(() => properties.id),
+  name: text("name").notNull(),
+  contact: text("contact").notNull(),
+  message: text("message"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const agencyDomains = pgTable("agency_domains", {
   id: uuid("id").defaultRandom().primaryKey(),
   agencyId: uuid("agency_id").notNull().references(() => agencies.id),
