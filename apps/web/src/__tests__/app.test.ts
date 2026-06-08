@@ -83,11 +83,11 @@ test("unknown agency host returns 404", async () => {
   expect(res.status).toBe(404);
 });
 
-test("apex host renders the marketplace placeholder", async () => {
+test("apex host renders the marketing landing page", async () => {
   const app = createApp(db);
   const res = await app.request(new Request("http://kluche.me/"));
   expect(res.status).toBe(200);
-  expect(await res.text()).toContain("Kluch marketplace");
+  expect(await res.text()).toContain("Your keys to Montenegro");
 });
 
 test("agency console host renders the console placeholder", async () => {
