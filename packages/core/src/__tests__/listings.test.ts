@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, createProperty, getProperty, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
+import { addPropertyPhotos, createProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -62,7 +62,7 @@ test("searchProperties filters by city, maxPrice, bedrooms", async () => {
   expect((await searchProperties(db, a.id, { city: "budv" })).map((r) => r.name)).toEqual(["Budva 2BR"]);
   expect((await searchProperties(db, a.id, { maxPrice: 100000 })).map((r) => r.name)).toEqual(["Kotor 1BR"]);
   expect((await searchProperties(db, a.id, { bedrooms: 2 })).map((r) => r.name).sort()).toEqual(["Budva 2BR", "Tivat 3BR"]);
-  expect((await searchProperties(db, a.id, { minPrice: 120000, type: "apartment" }))).toEqual([]);
+  expect((await searchProperties(db, a.id, { minPrice: 120000, type: "land" }))).toEqual([]);
 });
 
 test("listAgencyProperties returns all properties incl. drafts, newest first, scoped to agency", async () => {
@@ -95,6 +95,26 @@ test("searchProperties filters by dealType", async () => {
   await publishProperty(db, rent.id);
   const results = await searchProperties(db, a.id, { dealType: "sale" });
   expect(results.map((r) => r.name)).toEqual(["For Sale"]);
+});
+
+test("getPropertyBySource finds a property created with a sourceId", async () => {
+  const a = await agency();
+  const created = await createProperty(db, {
+    agencyId: a.id, name: "Sourced", address: "A", city: "Budva", priceMinor: 100000,
+    sourceId: "ext-123",
+  });
+  const found = await getPropertyBySource(db, a.id, "ext-123");
+  expect(found?.id).toBe(created.id);
+  expect(await getPropertyBySource(db, a.id, "nope")).toBeNull();
+});
+
+test("multiple properties with null sourceId in the same agency are allowed", async () => {
+  const a = await agency();
+  await createProperty(db, { agencyId: a.id, name: "One", address: "A", city: "Budva", priceMinor: 100000 });
+  // A second null-sourceId property must not trip the unique index.
+  await expect(
+    createProperty(db, { agencyId: a.id, name: "Two", address: "B", city: "Budva", priceMinor: 200000 }),
+  ).resolves.toBeDefined();
 });
 
 test("searchProperties is isolated per agency", async () => {

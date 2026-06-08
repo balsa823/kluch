@@ -17,6 +17,7 @@ export interface CreatePropertyInput {
   type?: PropertyType;
   dealType?: "rent" | "sale";
   photos?: string[];
+  sourceId?: string;
 }
 
 export async function createProperty(db: Database, input: CreatePropertyInput): Promise<Property> {
@@ -34,6 +35,7 @@ export async function createProperty(db: Database, input: CreatePropertyInput): 
       type: input.type,
       dealType: input.dealType,
       photos: input.photos,
+      sourceId: input.sourceId,
       status: "draft",
     })
     .returning();
@@ -50,6 +52,17 @@ export async function publishProperty(db: Database, id: string): Promise<Propert
 
 export async function getProperty(db: Database, id: string): Promise<Property | null> {
   const [property] = await db.select().from(properties).where(eq(properties.id, id));
+  return property ?? null;
+}
+
+/** Looks up a property by its (agencyId, sourceId) pair for import idempotency. */
+export async function getPropertyBySource(
+  db: Database,
+  agencyId: string,
+  sourceId: string,
+): Promise<Property | null> {
+  const [property] = await db.select().from(properties)
+    .where(and(eq(properties.agencyId, agencyId), eq(properties.sourceId, sourceId)));
   return property ?? null;
 }
 
