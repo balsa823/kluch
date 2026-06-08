@@ -13,7 +13,7 @@ import {
   unwrapFirestore,
   type ListingParser,
 } from "../importers.js";
-import { searchProperties } from "../listings.js";
+import { searchProperties, createProperty, getPropertyBySource } from "../listings.js";
 
 // A representative Firestore typed-value `fields` object.
 const FIXTURE = {
@@ -308,6 +308,31 @@ test("importAgentListings imports + publishes the agent's listings, idempotently
   // Re-running skips the already-imported docs.
   const rerun = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
   expect(rerun).toEqual({ created: 0, skipped: 2, failed: 0 });
+});
+
+test("importAgentListings resumes a half-imported draft instead of skipping it", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Resume Agency" });
+  // Simulate a previous run that created the property but crashed before publishing.
+  const draft = await createProperty(db, {
+    agencyId: agency.id, sourceId: "listing-a", name: "Agent A Flat",
+    address: "Budva", city: "Budva", priceMinor: 50000, photos: [],
+  });
+  expect(draft.status).toBe("draft");
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), {
+    fetchImpl: pageFetch([AGENT_DOC_A]),
+  });
+  // Resumed (published) — not skipped, and no duplicate created.
+  expect(result).toEqual({ created: 1, skipped: 0, failed: 0 });
+  const published = await searchProperties(db, agency.id, {});
+  expect(published).toHaveLength(1);
+  expect(published[0].id).toBe(draft.id); // same row, now published
+  // a second run now skips it (published)
+  const rerun = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), {
+    fetchImpl: pageFetch([AGENT_DOC_A]),
+  });
+  expect(rerun).toEqual({ created: 0, skipped: 1, failed: 0 });
 });
 
 test("importAgentListings counts unmappable docs as failed but imports the good ones", async () => {

@@ -308,11 +308,15 @@ export async function importAgentListings(
   for (let i = 0; i < docs.length; i++) {
     const { id, fields } = docs[i];
     try {
-      if (await getPropertyBySource(db, agencyId, id)) {
+      const existing = await getPropertyBySource(db, agencyId, id);
+      // Skip only fully-imported (published) listings. A draft means a previous run
+      // crashed mid-listing (created but not yet photo'd/published) — resume it instead
+      // of skipping, so the import self-heals and nothing gets stuck invisible.
+      if (existing && existing.status === "published") {
         skipped++;
       } else {
         const parsed = mapBestate4(unwrapFirestore(fields));
-        const property = await createProperty(db, {
+        const property = existing ?? await createProperty(db, {
           agencyId,
           sourceId: id,
           name: parsed.name,
@@ -328,7 +332,8 @@ export async function importAgentListings(
           photos: [],
         });
 
-        if (storage && parsed.photos.length) {
+        // Only fetch photos if this listing has none yet (avoids duplicates on resume).
+        if (storage && parsed.photos.length && (property.photos?.length ?? 0) === 0) {
           const localUrls: string[] = [];
           for (let p = 0; p < parsed.photos.length; p++) {
             const remoteUrl = parsed.photos[p];
