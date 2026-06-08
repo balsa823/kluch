@@ -4,6 +4,8 @@ import {
   getAgencyBySlug,
   updateAgencyConfig,
   createAgencyUser,
+  createPartnerUser,
+  verifyPartnerUser,
   createProperty,
   publishProperty,
   type CreatePropertyInput,
@@ -35,6 +37,13 @@ await createAgencyUser(db, {
   role: "admin",
   password: "kluch1234",
 });
+
+if (!(await verifyPartnerUser(db, "admin@popovic.me", "kluch1234"))) {
+  await createPartnerUser(db, {
+    email: "admin@popovic.me", name: "Balša", password: "kluch1234",
+    dashboards: { agency: { agencyId: agency.id } },
+  });
+}
 
 const listings: Omit<CreatePropertyInput, "agencyId">[] = [
   {

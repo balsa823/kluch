@@ -199,7 +199,7 @@ async function seedPartner() {
   return agency;
 }
 
-function platformLogin(app: ReturnType<typeof createApp>, email: string, password: string): Promise<Response> {
+async function platformLogin(app: ReturnType<typeof createApp>, email: string, password: string): Promise<Response> {
   return app.request(new Request("http://localhost/api/platform/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
