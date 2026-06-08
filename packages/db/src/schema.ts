@@ -12,7 +12,7 @@ export const ticketStatusEnum = pgEnum("ticket_status", [
 ]);
 export const directionEnum = pgEnum("direction", ["in", "out"]);
 export const agencyRoleEnum = pgEnum("agency_role", ["admin", "agent"]);
-export const propertyTypeEnum = pgEnum("property_type", ["apartment", "studio", "house"]);
+export const propertyTypeEnum = pgEnum("property_type", ["residential", "land", "commercial"]);
 export const propertyStatusEnum = pgEnum("property_status", ["draft", "published"]);
 export const dealTypeEnum = pgEnum("deal_type", ["rent", "sale"]);
 
