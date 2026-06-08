@@ -6,6 +6,7 @@ import type { Context } from "hono";
 import { cors } from "hono/cors";
 import {
   addPropertyPhotos,
+  createInquiry,
   createProperty,
   dashboardKeys,
   getAgency,
@@ -288,7 +289,21 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     if (!agency) return c.text("Not found", 404);
     const filters = parseSearchFilters(c.req.query());
     const listings = await searchProperties(db, agency.id, filters);
-    return c.html(renderAgencySite(agency, listings, filters));
+    return c.html(renderAgencySite(agency, listings, filters, { sent: c.req.query("sent") === "1" }));
+  });
+
+  app.post("/a/:slug/inquiry", async (c) => {
+    const agency = await getAgencyBySlug(db, c.req.param("slug"));
+    if (!agency) return c.text("Not found", 404);
+    const form = await c.req.parseBody();
+    const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    if (s(form.company)) return c.redirect(`/a/${agency.slug}?sent=1`, 303); // honeypot — drop silently
+    const name = s(form.name), contact = s(form.contact), message = s(form.message);
+    const propertyId = s(form.propertyId) || undefined;
+    if (!name || !contact || name.length > 120 || contact.length > 200 || message.length > 2000)
+      return c.json({ error: "invalid" }, 400);
+    await createInquiry(db, { agencyId: agency.id, propertyId, name, contact, message: message || undefined });
+    return c.redirect(`/a/${agency.slug}?sent=1`, 303);
   });
 
   app.use("*", async (c, next) => {
@@ -309,7 +324,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       case "agency": {
         const filters = parseSearchFilters(c.req.query());
         const listings = await searchProperties(db, site.agency.id, filters);
-        return c.html(renderAgencySite(site.agency, listings, filters));
+        return c.html(renderAgencySite(site.agency, listings, filters, { sent: c.req.query("sent") === "1" }));
       }
       default:
         return c.text("Not found", 404);
