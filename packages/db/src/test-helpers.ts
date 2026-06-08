@@ -11,6 +11,6 @@ export async function migrateTestDb() {
 
 export async function resetDb() {
   await db.execute(sql`
-    TRUNCATE messages, tickets, payments, leases, properties, users, agency_users, agency_domains, agencies RESTART IDENTITY CASCADE;
+    TRUNCATE messages, tickets, payments, leases, properties, users, partner_users, agency_users, agency_domains, agencies RESTART IDENTITY CASCADE;
   `);
 }
