@@ -68,6 +68,8 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
   const type = query.type?.trim();
   if (type && (PROPERTY_TYPES as string[]).includes(type)) filters.type = type as PropertyType;
 
+  if (query.dealType === "rent" || query.dealType === "sale") filters.dealType = query.dealType;
+
   return filters;
 }
 
