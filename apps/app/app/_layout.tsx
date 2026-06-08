@@ -16,7 +16,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!token && !onLogin) {
       router.replace("/login");
     } else if (token && onLogin) {
-      router.replace("/dashboard");
+      router.replace("/");
     }
   }, [token, loading, segments, router]);
 
@@ -44,7 +44,8 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
-          <Stack.Screen name="dashboard" />
+          <Stack.Screen name="agency" />
+          <Stack.Screen name="law" />
         </Stack>
       </AuthGate>
     </AuthProvider>

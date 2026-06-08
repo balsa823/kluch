@@ -76,6 +76,36 @@ export function me(token: string): Promise<{ user: User; agency: Agency }> {
   });
 }
 
+export type PartnerUser = { id: string; email: string; name: string | null };
+
+export type PartnerLogin = {
+  token: string;
+  dashboards: string[];
+  user: PartnerUser;
+};
+
+export function platformLogin(
+  email: string,
+  password: string,
+): Promise<PartnerLogin> {
+  return request("/api/platform/login", {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function platformMe(token: string): Promise<{
+  user: PartnerUser;
+  dashboards: string[];
+  agency: Agency | null;
+}> {
+  return request("/api/platform/me", {
+    method: "GET",
+    headers: headers(token),
+  });
+}
+
 export async function listListings(token: string): Promise<Property[]> {
   const data = await request<{ listings: Property[] }>("/api/listings", {
     method: "GET",

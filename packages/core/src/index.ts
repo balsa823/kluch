@@ -7,6 +7,7 @@ export * from "./messages.js";
 export * from "./rent.js";
 export * from "./agencies.js";
 export * from "./agencyUsers.js";
+export * from "./partnerUsers.js";
 export * from "./auth.js";
 export * from "./token.js";
 export * from "./listings.js";

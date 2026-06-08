@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createAgencyUser, createProperty, publishProperty } from "@kluche/core";
+import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -186,4 +186,103 @@ test("POST /api/listings/import with an unsupported host returns 400 with an err
   }));
   expect(res.status).toBe(400);
   expect(((await res.json()) as { error: string }).error).toBe("Unsupported listing site");
+});
+
+// --- partner platform login + me ---
+
+async function seedPartner() {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  await createPartnerUser(db, {
+    email: "partner@popovic.me", name: "Balša", password: "pw123",
+    dashboards: { agency: { agencyId: agency.id } },
+  });
+  return agency;
+}
+
+async function platformLogin(app: ReturnType<typeof createApp>, email: string, password: string): Promise<Response> {
+  return app.request(new Request("http://localhost/api/platform/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  }));
+}
+
+test("POST /api/platform/login returns a token, dashboards and user", async () => {
+  await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await platformLogin(app, "partner@popovic.me", "pw123");
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { token: string; dashboards: string[]; user: { email: string; name: string } };
+  expect(typeof body.token).toBe("string");
+  expect(body.dashboards).toEqual(["agency"]);
+  expect(body.user.email).toBe("partner@popovic.me");
+  expect(body.user.name).toBe("Balša");
+});
+
+test("POST /api/platform/login with wrong creds returns 401", async () => {
+  await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await platformLogin(app, "partner@popovic.me", "wrong");
+  expect(res.status).toBe(401);
+});
+
+test("GET /api/platform/me returns the user, dashboards and agency", async () => {
+  const agency = await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request("http://localhost/api/platform/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { user: { email: string }; dashboards: string[]; agency: { id: string } };
+  expect(body.user.email).toBe("partner@popovic.me");
+  expect(body.dashboards).toEqual(["agency"]);
+  expect(body.agency.id).toBe(agency.id);
+});
+
+test("GET /api/platform/me without a token returns 401", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request("http://localhost/api/platform/me"));
+  expect(res.status).toBe(401);
+});
+
+test("GET /api/listings works with a partner token scoped to its agency", async () => {
+  const agency = await seedPartner();
+  const listing = await createProperty(db, {
+    agencyId: agency.id, name: "P Flat", address: "P St", city: "Podgorica", priceMinor: 2000, bedrooms: 1,
+  });
+  await publishProperty(db, listing.id);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request("http://localhost/api/listings", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  const { listings } = (await res.json()) as { listings: { id: string }[] };
+  expect(listings).toHaveLength(1);
+  expect(listings[0].id).toBe(listing.id);
+});
+
+test("partner without an agency dashboard is denied agency listings", async () => {
+  await createPartnerUser(db, {
+    email: "lawyer@firm.me", name: "Lex", password: "pw123",
+    dashboards: { law: { lawFirmId: "00000000-0000-0000-0000-000000000009" } },
+  });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "lawyer@firm.me", "pw123")).json()) as { token: string }).token;
+
+  const listings = await app.request(new Request("http://localhost/api/listings", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(listings.status).toBe(401);
+
+  const me = await app.request(new Request("http://localhost/api/platform/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(me.status).toBe(200);
+  const meBody = (await me.json()) as { dashboards: string[]; agency: unknown };
+  expect(meBody.dashboards).toEqual(["law"]);
+  expect(meBody.agency).toBeNull();
 });

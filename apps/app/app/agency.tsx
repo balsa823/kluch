@@ -70,7 +70,7 @@ function ListingRow({ p }: { p: Property }) {
   );
 }
 
-export default function Dashboard() {
+export default function Agency() {
   const { token } = useAuth();
 
   const [listings, setListings] = useState<Property[]>([]);

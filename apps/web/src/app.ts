@@ -7,8 +7,10 @@ import { cors } from "hono/cors";
 import {
   addPropertyPhotos,
   createProperty,
+  dashboardKeys,
   getAgency,
   getAgencyUserById,
+  getPartnerUserById,
   getProperty,
   importListing,
   listAgencyProperties,
@@ -17,8 +19,10 @@ import {
   signToken,
   updateAgencyConfig,
   verifyAgencyUser,
+  verifyPartnerUser,
   verifyToken,
   type AgencyUser,
+  type PartnerUser,
   type PropertyType,
   type SearchFilters,
   type Storage,
@@ -143,6 +147,26 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return getAgencyUserById(db, payload.sub);
   }
 
+  /** Resolves the partner user from a `Authorization: Bearer <token>` header, or null. */
+  async function bearerPartner(c: Context): Promise<PartnerUser | null> {
+    const header = c.req.header("Authorization");
+    if (!header?.startsWith("Bearer ")) return null;
+    const payload = verifyToken<{ sub?: string }>(header.slice("Bearer ".length), sessionSecret);
+    if (!payload?.sub) return null;
+    return getPartnerUserById(db, payload.sub);
+  }
+
+  /**
+   * Resolves the agency id from whichever token is present: an agency-user token
+   * takes precedence, falling back to a partner token's `agency` dashboard.
+   */
+  async function agencyScope(c: Context): Promise<string | null> {
+    const user = await bearerUser(c);
+    if (user) return user.agencyId;
+    const partner = await bearerPartner(c);
+    return partner?.dashboards?.agency?.agencyId ?? null;
+  }
+
   app.get("/health", (c) => c.text("ok"));
 
   app.use("/api/*", cors());
@@ -157,6 +181,31 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     });
   });
 
+  app.post("/api/platform/login", async (c) => {
+    const { email, password } = await c.req.json();
+    const u = await verifyPartnerUser(db, String(email ?? ""), String(password ?? ""));
+    if (!u) return c.json({ error: "invalid credentials" }, 401);
+    const dashboards = dashboardKeys(u.dashboards);
+    // `dashboards` in the token is informational for clients only; the server always
+    // re-derives access from the DB row (bearerPartner), never trusting this claim for authz.
+    return c.json({
+      token: signToken({ sub: u.id, dashboards }, sessionSecret, TOKEN_TTL),
+      dashboards,
+      user: { id: u.id, email: u.email, name: u.name },
+    });
+  });
+
+  app.get("/api/platform/me", async (c) => {
+    const u = await bearerPartner(c);
+    if (!u) return c.json({ error: "unauthorized" }, 401);
+    const agencyId = u.dashboards?.agency?.agencyId;
+    return c.json({
+      user: { id: u.id, email: u.email, name: u.name },
+      dashboards: dashboardKeys(u.dashboards),
+      agency: agencyId ? await getAgency(db, agencyId) : null,
+    });
+  });
+
   app.get("/api/me", async (c) => {
     const user = await bearerUser(c);
     if (!user) return c.json({ error: "unauthorized" }, 401);
@@ -164,18 +213,18 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   });
 
   app.get("/api/listings", async (c) => {
-    const user = await bearerUser(c);
-    if (!user) return c.json({ error: "unauthorized" }, 401);
-    const listings = await listAgencyProperties(db, user.agencyId);
+    const agencyId = await agencyScope(c);
+    if (!agencyId) return c.json({ error: "unauthorized" }, 401);
+    const listings = await listAgencyProperties(db, agencyId);
     return c.json({ listings });
   });
 
   app.post("/api/listings", async (c) => {
-    const user = await bearerUser(c);
-    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const agencyId = await agencyScope(c);
+    if (!agencyId) return c.json({ error: "unauthorized" }, 401);
     const body = await c.req.json();
     // Always scope to the token's agency; ignore any agencyId in the body.
-    const property = await createProperty(db, { ...body, agencyId: user.agencyId });
+    const property = await createProperty(db, { ...body, agencyId });
     const published = await publishProperty(db, property.id);
     return c.json(published, 201);
   });

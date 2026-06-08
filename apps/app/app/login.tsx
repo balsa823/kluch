@@ -1,17 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen, Card, Button, Pill, TextField } from "../components/ui";
 import { colors, space } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { routeToDashboard } from "../lib/platform";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, token, dashboards } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Once a successful submit lands a token + dashboards in the auth context,
+  // route the partner to their first dashboard (cross-subdomain on *.kluche.me,
+  // in-app navigation otherwise).
+  useEffect(() => {
+    if (!submitted || !token) return;
+    routeToDashboard(token, dashboards, (p) => router.replace(p));
+  }, [submitted, token, dashboards, router]);
 
   async function onSubmit() {
     if (submitting) return;
@@ -19,7 +29,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(email.trim(), password);
-      router.replace("/dashboard");
+      setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {

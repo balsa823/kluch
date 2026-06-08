@@ -4,6 +4,7 @@ import {
   getAgencyBySlug,
   updateAgencyConfig,
   createAgencyUser,
+  createPartnerUser,
   createProperty,
   publishProperty,
   type CreatePropertyInput,
@@ -34,6 +35,13 @@ await createAgencyUser(db, {
   name: "Balša",
   role: "admin",
   password: "kluch1234",
+});
+
+// The script early-exits above if the agency already exists, so this runs only on a
+// fresh seed — create the partner login unconditionally (matches createAgencyUser above).
+await createPartnerUser(db, {
+  email: "admin@popovic.me", name: "Balša", password: "kluch1234",
+  dashboards: { agency: { agencyId: agency.id } },
 });
 
 const listings: Omit<CreatePropertyInput, "agencyId">[] = [
