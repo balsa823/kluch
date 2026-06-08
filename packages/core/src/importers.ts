@@ -3,6 +3,7 @@ import {
   addPropertyPhotos,
   createProperty,
   getProperty,
+  getPropertyBySource,
   publishProperty,
   type Property,
   type PropertyType,
@@ -240,4 +241,125 @@ export async function importListing(
   await addPropertyPhotos(db, property.id, finalPhotos);
   const published = await publishProperty(db, property.id);
   return published.photos?.length ? published : (await getProperty(db, property.id))!;
+}
+
+/** A raw Firestore listing document scoped to one agent. */
+export interface AgentDoc {
+  id: string;
+  fields: Record<string, any>;
+}
+
+/**
+ * Fetches all bestate4 Firestore listing documents belonging to a given agent,
+ * paging through the collection until there are no more pages.
+ */
+export async function fetchAgentListings(
+  agentId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AgentDoc[]> {
+  const out: AgentDoc[] = [];
+  let pageToken: string | undefined;
+  do {
+    let url = `${FIRESTORE_BASE}?pageSize=300`;
+    if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+    const res = await fetchImpl(url);
+    if (!res.ok) throw new Error(`bestate4: failed to list listings (${res.status})`);
+    const body = (await res.json()) as {
+      documents?: Array<{ name?: string; fields?: Record<string, FirestoreValue> }>;
+      nextPageToken?: string;
+    };
+    for (const doc of body.documents ?? []) {
+      const fields = doc.fields ?? {};
+      if (fields.agentId?.stringValue !== agentId) continue;
+      const id = lastPathSegment(`https://x/${doc.name ?? ""}`);
+      out.push({ id, fields });
+    }
+    pageToken = body.nextPageToken;
+  } while (pageToken);
+  return out;
+}
+
+/** The tally returned by a bulk import run. */
+export interface BulkImportResult {
+  created: number;
+  skipped: number;
+  failed: number;
+}
+
+/**
+ * Bulk-imports every bestate4 listing for an agent into the given agency.
+ * Idempotent: docs already imported (matched by their Firestore id as sourceId)
+ * are skipped. Each doc is mapped, created, photo-imported (best-effort when a
+ * `storage` is given), and published. A doc that fails to map/create is counted
+ * as `failed` without aborting the rest of the run.
+ */
+export async function importAgentListings(
+  db: Database,
+  agencyId: string,
+  agentId: string,
+  storage?: Storage,
+  opts: { fetchImpl?: typeof fetch; onProgress?: (n: number) => void } = {},
+): Promise<BulkImportResult> {
+  const docs = await fetchAgentListings(agentId, opts.fetchImpl ?? fetch);
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (let i = 0; i < docs.length; i++) {
+    const { id, fields } = docs[i];
+    try {
+      if (await getPropertyBySource(db, agencyId, id)) {
+        skipped++;
+      } else {
+        const parsed = mapBestate4(unwrapFirestore(fields));
+        const property = await createProperty(db, {
+          agencyId,
+          sourceId: id,
+          name: parsed.name,
+          address: parsed.address,
+          city: parsed.city,
+          priceMinor: parsed.priceMinor,
+          currency: parsed.currency,
+          bedrooms: parsed.bedrooms,
+          bathrooms: parsed.bathrooms,
+          areaM2: parsed.areaM2,
+          type: parsed.type,
+          dealType: parsed.dealType,
+          photos: [],
+        });
+
+        if (storage && parsed.photos.length) {
+          const localUrls: string[] = [];
+          for (let p = 0; p < parsed.photos.length; p++) {
+            const remoteUrl = parsed.photos[p];
+            try {
+              const res = await fetch(remoteUrl);
+              if (!res.ok) continue;
+              const ct = res.headers.get("content-type") || "image/jpeg";
+              const bytes = new Uint8Array(await res.arrayBuffer());
+              if (bytes.length > MAX_IMAGE_BYTES || bytes.length < MIN_IMAGE_BYTES) continue;
+              const storedUrl = await storage.upload(
+                `properties/${property.id}/photo-${p}.${extFromContentType(ct)}`,
+                bytes,
+                ct,
+              );
+              localUrls.push(storedUrl);
+            } catch {
+              // Best-effort: skip this image, keep importing the rest.
+            }
+          }
+          const finalPhotos = localUrls.length ? localUrls : parsed.photos;
+          if (finalPhotos.length) await addPropertyPhotos(db, property.id, finalPhotos);
+        }
+
+        await publishProperty(db, property.id);
+        created++;
+      }
+    } catch {
+      failed++;
+    }
+    opts.onProgress?.(i + 1);
+  }
+
+  return { created, skipped, failed };
 }

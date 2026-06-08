@@ -4,6 +4,8 @@ import { createAgency } from "../agencies.js";
 import { FakeStorage } from "../storage.js";
 import {
   bestate4Parser,
+  fetchAgentListings,
+  importAgentListings,
   importListing,
   mapBestate4,
   PARSERS,
@@ -11,6 +13,7 @@ import {
   unwrapFirestore,
   type ListingParser,
 } from "../importers.js";
+import { searchProperties } from "../listings.js";
 
 // A representative Firestore typed-value `fields` object.
 const FIXTURE = {
@@ -245,4 +248,75 @@ test("importListing falls back to remote photos when every download fails", asyn
     globalThis.fetch = realFetch;
     PARSERS.splice(PARSERS.indexOf(fakeParser), 1);
   }
+});
+
+// --- importAgentListings (idempotent bulk import) ---------------------------
+
+/** Builds a Firestore document with the given id + a typed-value fields object. */
+function fsDoc(id: string, fields: Record<string, unknown>) {
+  return { name: `projects/x/databases/(default)/documents/listings/${id}`, fields };
+}
+
+/** A fetchImpl that returns one Firestore-shaped page of docs (no nextPageToken). */
+function pageFetch(docs: unknown[]): typeof fetch {
+  return vi.fn(async () =>
+    new Response(JSON.stringify({ documents: docs }), {
+      headers: { "content-type": "application/json" },
+    }),
+  ) as unknown as typeof fetch;
+}
+
+const AGENT_DOC_A = fsDoc("listing-a", {
+  title: { stringValue: "Agent A Flat" },
+  listingType: { stringValue: "FOR_RENT" },
+  type: { stringValue: "Residential" },
+  monthlyRent: { integerValue: "500" },
+  locationDisplay: { stringValue: "Budva, Center, Montenegro" },
+  agentId: { stringValue: "AGENT" },
+});
+const AGENT_DOC_B = fsDoc("listing-b", {
+  title: { stringValue: "Agent B House" },
+  listingType: { stringValue: "FOR_SALE" },
+  type: { stringValue: "Residential" },
+  price: { integerValue: "250000" },
+  locationDisplay: { stringValue: "Kotor, Old Town, Montenegro" },
+  agentId: { stringValue: "AGENT" },
+});
+const OTHER_AGENT_DOC = fsDoc("listing-c", {
+  title: { stringValue: "Someone Else" },
+  agentId: { stringValue: "OTHER" },
+});
+
+test("fetchAgentListings returns only docs for the requested agent with ids", async () => {
+  const fetchImpl = pageFetch([AGENT_DOC_A, AGENT_DOC_B, OTHER_AGENT_DOC]);
+  const docs = await fetchAgentListings("AGENT", fetchImpl);
+  expect(docs.map((d) => d.id).sort()).toEqual(["listing-a", "listing-b"]);
+});
+
+test("importAgentListings imports + publishes the agent's listings, idempotently", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Bulk Agency" });
+  const fetchImpl = pageFetch([AGENT_DOC_A, AGENT_DOC_B, OTHER_AGENT_DOC]);
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(result).toEqual({ created: 2, skipped: 0, failed: 0 });
+
+  const published = await searchProperties(db, agency.id, {});
+  expect(published).toHaveLength(2);
+  expect(published.every((p) => p.status === "published")).toBe(true);
+
+  // Re-running skips the already-imported docs.
+  const rerun = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(rerun).toEqual({ created: 0, skipped: 2, failed: 0 });
+});
+
+test("importAgentListings counts unmappable docs as failed but imports the good ones", async () => {
+  await resetDb();
+  const agency = await createAgency(db, { name: "Mixed Agency" });
+  const bad = fsDoc("listing-bad", { agentId: { stringValue: "AGENT" } }); // missing title → mapBestate4 throws
+  const fetchImpl = pageFetch([AGENT_DOC_A, bad]);
+
+  const result = await importAgentListings(db, agency.id, "AGENT", new FakeStorage(), { fetchImpl });
+  expect(result).toEqual({ created: 1, skipped: 0, failed: 1 });
+  expect(await searchProperties(db, agency.id, {})).toHaveLength(1);
 });
