@@ -1,5 +1,5 @@
 import {
-  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date,
+  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date, jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -70,6 +70,17 @@ export const agencyUsers = pgTable("agency_users", {
   name: text("name"),
   passwordHash: text("password_hash"),
   role: agencyRoleEnum("role").notNull().default("agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Unified partner login (agencies + lawyers). `dashboards` maps a dashboard key
+// ("agency" | "law") to its metadata, e.g. { agency: { agencyId } } or { law: { lawFirmId } }.
+export const partnerUsers = pgTable("partner_users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  passwordHash: text("password_hash"),
+  dashboards: jsonb("dashboards").$type<Record<string, Record<string, string>>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
