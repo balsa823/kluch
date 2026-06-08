@@ -31,6 +31,16 @@ function safeUrl(u: unknown): string {
   return "";
 }
 
+/**
+ * A URL safe to embed inside a CSS `url('...')`. esc() does not escape `'`/`)`,
+ * so a crafted (e.g. scraped) photo URL could break out of the CSS string and
+ * inject rules — reject any URL containing quotes, parens, backslash or whitespace.
+ */
+function cssUrl(u: unknown): string {
+  const s = safeUrl(u);
+  return /["'()\\\s]/.test(s) ? "" : s;
+}
+
 /** Renders a single property card: photo, deal price, city, badge row and type. */
 function renderCard(listing: Property): string {
   const photo = safeUrl(listing.photos?.[0]);
@@ -87,9 +97,9 @@ export function renderAgencySite(
   const slug = esc(agency.slug);
   const heroTitle = esc(agency.tagline || agency.name);
 
-  const heroPhoto = safeUrl(listings[0]?.photos?.[0]);
+  const heroPhoto = cssUrl(listings[0]?.photos?.[0]);
   const heroStyle = heroPhoto
-    ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${esc(heroPhoto)}'); background-size: cover; background-position: center;`
+    ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroPhoto}'); background-size: cover; background-position: center;`
     : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
 
   const sel = (v: "rent" | "sale" | "") =>

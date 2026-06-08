@@ -286,6 +286,23 @@ test("POST /a/:slug/inquiry with a valid form stores an inquiry and redirects", 
   expect(stored[0].contact).toBe("jane@example.com");
 });
 
+test("POST /a/:slug/inquiry ignores a forged propertyId (no 500, stored with null)", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  for (const bad of ["not-a-uuid", "00000000-0000-0000-0000-000000000000"]) {
+    const body = new URLSearchParams({ name: "Jane", contact: "j@x.me", propertyId: bad });
+    const res = await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    }));
+    expect(res.status).toBe(303); // not 500
+  }
+  const stored = await listInquiries(db, agency.id);
+  expect(stored).toHaveLength(2);
+  expect(stored.every((i) => i.propertyId === null)).toBe(true);
+});
+
 test("POST /a/:slug/inquiry with the honeypot filled redirects but stores nothing", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const app = createApp(db, { sessionSecret: SECRET });
