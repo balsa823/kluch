@@ -56,6 +56,7 @@ export interface ParsedListing {
   bathrooms?: number;
   areaM2?: number;
   type?: PropertyType;
+  dealType?: "rent" | "sale";
   photos: string[];
 }
 
@@ -69,6 +70,18 @@ export interface ListingParser {
 /** Capitalizes the first letter of a string. */
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/** Maps a source `type` string to our PropertyType, defaulting to "residential". */
+function mapPropertyType(raw: unknown): PropertyType {
+  switch (typeof raw === "string" ? raw.toLowerCase() : "") {
+    case "land":
+      return "land";
+    case "commercial":
+      return "commercial";
+    default:
+      return "residential";
+  }
 }
 
 /** Pure mapping from an unwrapped bestate4 listing document to a ParsedListing. */
@@ -85,15 +98,20 @@ export function mapBestate4(fields: Record<string, any>): ParsedListing {
   if (!city && locationDisplay) city = locationDisplay.split(",")[0]?.trim();
   city = city ? capitalize(city) : "";
 
-  const monthlyRent = Number(fields.monthlyRent) || 0;
-  const salePrice = Number(fields.price) || 0;
-  const amount = monthlyRent || salePrice || 0;
+  const dealType: "rent" | "sale" =
+    typeof fields.listingType === "string" && fields.listingType.toUpperCase() === "FOR_SALE"
+      ? "sale"
+      : "rent";
+
+  const amount = dealType === "rent"
+    ? Number(fields.monthlyRent) || 0
+    : Number(fields.price) || 0;
 
   const bedrooms = fields.bedrooms != null ? Number(fields.bedrooms) : undefined;
   const bathrooms = fields.bathrooms != null ? Number(fields.bathrooms) : undefined;
   const areaM2 = fields.area != null ? Number(fields.area) : undefined;
 
-  const type: PropertyType = bedrooms === 0 ? "studio" : "apartment";
+  const type = mapPropertyType(fields.type);
 
   const images = Array.isArray(fields.images) ? fields.images : [];
   const photos = images.filter((u: unknown): u is string => typeof u === "string");
@@ -108,6 +126,7 @@ export function mapBestate4(fields: Record<string, any>): ParsedListing {
     bathrooms,
     areaM2,
     type,
+    dealType,
     photos,
   };
 }

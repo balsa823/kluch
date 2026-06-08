@@ -87,7 +87,8 @@ test("mapBestate4 maps fixture fields to a ParsedListing", () => {
   expect(parsed.bedrooms).toBe(1);
   expect(parsed.bathrooms).toBe(1);
   expect(parsed.areaM2).toBe(46);
-  expect(parsed.type).toBe("apartment");
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
   expect(parsed.photos).toEqual([
     "https://firebasestorage.googleapis.com/one.jpg",
     "https://firebasestorage.googleapis.com/two.jpg",
@@ -95,16 +96,54 @@ test("mapBestate4 maps fixture fields to a ParsedListing", () => {
   expect(parsed.address).toBe("Podgorica, Ljubović, Montenegro");
 });
 
-test("mapBestate4 uses sale price when no monthlyRent and marks studio for 0 bedrooms", () => {
+test("mapBestate4 uses sale price for FOR_SALE listings", () => {
   const parsed = mapBestate4({
-    title: "Studio for sale",
+    title: "Flat for sale",
+    listingType: "FOR_SALE",
     price: 80000,
     bedrooms: 0,
     locationDisplay: "Budva, Center, Montenegro",
   });
   expect(parsed.priceMinor).toBe(8000000);
-  expect(parsed.type).toBe("studio");
+  expect(parsed.dealType).toBe("sale");
   expect(parsed.city).toBe("Budva");
+});
+
+test("mapBestate4 maps type and dealType from source, using monthlyRent for rent", () => {
+  const parsed = mapBestate4({
+    title: "Rental home",
+    listingType: "FOR_RENT",
+    type: "Residential",
+    monthlyRent: 500,
+    price: 999999,
+  });
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
+  expect(parsed.priceMinor).toBe(50000);
+});
+
+test("mapBestate4 maps land + FOR_SALE using sale price", () => {
+  const parsed = mapBestate4({
+    title: "Plot of land",
+    listingType: "FOR_SALE",
+    type: "Land",
+    price: 250000,
+  });
+  expect(parsed.type).toBe("land");
+  expect(parsed.dealType).toBe("sale");
+  expect(parsed.priceMinor).toBe(25000000);
+});
+
+test("mapBestate4 defaults type to residential and price to 0 when missing", () => {
+  const parsed = mapBestate4({ title: "Mystery listing" });
+  expect(parsed.type).toBe("residential");
+  expect(parsed.dealType).toBe("rent");
+  expect(parsed.priceMinor).toBe(0);
+});
+
+test("mapBestate4 maps commercial type", () => {
+  const parsed = mapBestate4({ title: "Shop", type: "Commercial", listingType: "FOR_SALE", price: 100 });
+  expect(parsed.type).toBe("commercial");
 });
 
 test("mapBestate4 throws when title is missing", () => {
@@ -132,7 +171,7 @@ const fakeParser: ListingParser = {
     city: "Budva",
     priceMinor: 100000,
     currency: "EUR",
-    type: "apartment",
+    type: "residential",
     photos: REMOTE_PHOTOS,
   }),
 };
