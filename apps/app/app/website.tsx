@@ -31,7 +31,7 @@ const PRESETS = [
 ] as const;
 
 export default function Website() {
-  const { token, agency } = useAuth();
+  const { token, agency, setAgency } = useAuth();
   const router = useRouter();
 
   const [primary, setPrimary] = useState(agency?.colorPrimary ?? "#1F3A5C");
@@ -75,6 +75,7 @@ export default function Website() {
       try {
         const { logoUrl: url } = await uploadAgencyLogo(authToken, agencyId, file);
         setLogoUrl(url);
+        if (agency) setAgency({ ...agency, logoUrl: url });
       } catch (e) {
         setLogoError(e instanceof Error ? e.message : "Failed to upload logo");
       } finally {
@@ -90,11 +91,12 @@ export default function Website() {
     setSaveMsg(null);
     setSaveError(null);
     try {
-      await updateAgencyConfig(authToken, agencyId, {
+      const updated = await updateAgencyConfig(authToken, agencyId, {
         colorPrimary: primary,
         colorAccent: accent,
         tagline: tagline.trim() === "" ? null : tagline.trim(),
       });
+      setAgency(updated);
       setSaveMsg("Saved");
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save");
