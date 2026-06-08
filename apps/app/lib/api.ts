@@ -25,6 +25,11 @@ export type User = {
 export type Agency = {
   id: string;
   name: string;
+  slug: string;
+  colorPrimary: string;
+  colorAccent: string;
+  logoUrl: string | null;
+  tagline: string | null;
 };
 
 export type CreateListingInput = {
@@ -138,6 +143,53 @@ export function importListing(token: string, url: string): Promise<Property> {
 export function mediaUrl(path: string): string {
   if (!path) return path;
   return /^https?:\/\//i.test(path) ? path : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+export type AgencyConfig = {
+  colorPrimary: string;
+  colorAccent: string;
+  tagline: string | null;
+};
+
+export function updateAgencyConfig(
+  token: string,
+  agencyId: string,
+  cfg: AgencyConfig,
+): Promise<Agency> {
+  return request(`/api/agency/${agencyId}/config`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify(cfg),
+  });
+}
+
+export async function uploadAgencyLogo(
+  token: string,
+  agencyId: string,
+  file: File,
+): Promise<{ logoUrl: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/api/agency/${agencyId}/logo`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    throw new Error(
+      ((await res.json().catch(() => ({}))) as { error?: string }).error ??
+        res.statusText,
+    );
+  }
+  return res.json() as Promise<{ logoUrl: string }>;
+}
+
+export function agencySiteUrl(slug: string): string {
+  const origin = /^https?:\/\/[^/]+/.exec(BASE)?.[0] ?? "";
+  const host = /kluche\.me|azurecontainerapps\.io/.test(origin)
+    ? "https://kluche.me"
+    : origin;
+  return `${host}/a/${slug}`;
 }
 
 export function formatMoney(minor: number, currency = "EUR"): string {
