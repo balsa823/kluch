@@ -14,7 +14,10 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function uniqueSlug(db: Database, base: string): Promise<string> {
+async function uniqueSlug(db: Database, rawBase: string): Promise<string> {
+  // Names that are entirely non-Latin (e.g. Cyrillic "Стан") or punctuation slugify to "",
+  // which would be an unreachable public URL — fall back to a usable base.
+  const base = rawBase || "agency";
   let candidate = base;
   let n = 1;
   while (true) {
@@ -29,7 +32,7 @@ export async function createAgency(
   db: Database,
   input: { name: string; slug?: string },
 ): Promise<Agency> {
-  const slug = await uniqueSlug(db, input.slug ?? slugify(input.name));
+  const slug = await uniqueSlug(db, input.slug || slugify(input.name));
   const [agency] = await db.insert(agencies)
     .values({ name: input.name, slug })
     .returning();
@@ -68,7 +71,13 @@ export async function updateAgencyConfig(
       throw new Error("Invalid color");
     }
   }
-  const [agency] = await db.update(agencies).set(patch).where(eq(agencies.id, agencyId)).returning();
+  // Whitelist updatable columns — never trust the raw patch to set slug/name/etc.
+  const safe: Partial<typeof agencies.$inferInsert> = {};
+  if (patch.logoUrl !== undefined) safe.logoUrl = patch.logoUrl;
+  if (patch.colorPrimary !== undefined) safe.colorPrimary = patch.colorPrimary;
+  if (patch.colorAccent !== undefined) safe.colorAccent = patch.colorAccent;
+  if (patch.tagline !== undefined) safe.tagline = patch.tagline;
+  const [agency] = await db.update(agencies).set(safe).where(eq(agencies.id, agencyId)).returning();
   return agency;
 }
 

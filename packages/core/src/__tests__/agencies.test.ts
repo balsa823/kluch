@@ -13,6 +13,8 @@ test("slugify lowercases, strips diacritics, and dashes non-alphanumerics", () =
   expect(slugify("Popović Nekretnine")).toBe("popovic-nekretnine");
   expect(slugify("  Hello,  World!! ")).toBe("hello-world");
   expect(slugify("Crème Brûlée")).toBe("creme-brulee");
+  expect(slugify("  Stam!! ")).toBe("stam");
+  expect(slugify("A & B  Co.")).toBe("a-b-co");
 });
 
 test("createAgency derives a slug from the name", async () => {
@@ -33,6 +35,15 @@ test("createAgency disambiguates duplicate slugs", async () => {
   expect(a.slug).toBe("sea-view");
   expect(b.slug).toBe("sea-view-2");
   expect(c.slug).toBe("sea-view-3");
+});
+
+test("createAgency falls back to a usable slug for all-non-Latin names", async () => {
+  // Cyrillic / non-Latin names slugify to "" — must not produce an empty/unreachable slug.
+  expect(slugify("Стан")).toBe("");
+  const a = await createAgency(db, { name: "Стан" });
+  const b = await createAgency(db, { name: "Недвижимость" });
+  expect(a.slug).toBe("agency");
+  expect(b.slug).toBe("agency-2");
 });
 
 test("getAgencyBySlug returns the agency or null", async () => {

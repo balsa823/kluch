@@ -17,6 +17,8 @@ type AuthState = {
   token: string | null;
   user: PartnerUser | null;
   agency: Agency | null;
+  /** Replace the cached agency (e.g. after editing site settings) so the UI stays fresh. */
+  setAgency: (agency: Agency) => void;
   dashboards: string[];
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, user, agency, dashboards, loading, login, logout }}
+      value={{ token, user, agency, setAgency, dashboards, loading, login, logout }}
     >
       {children}
     </AuthContext.Provider>

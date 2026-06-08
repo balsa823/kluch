@@ -3,12 +3,28 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluche/core";
+import { createAgency, createPartnerUser, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
 afterAll(async () => { await client.end(); });
+
+const SECRET = "test";
+
+/** Creates a partner scoped to `agencyId` and returns a Bearer token for it. */
+async function ownerToken(app: ReturnType<typeof createApp>, agencyId: string): Promise<string> {
+  await createPartnerUser(db, {
+    email: `owner-${agencyId}@x.me`, name: "Owner", password: "pw123",
+    dashboards: { agency: { agencyId } },
+  });
+  const res = await app.request(new Request("http://kluche.me/api/platform/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: `owner-${agencyId}@x.me`, password: "pw123" }),
+  }));
+  return ((await res.json()) as { token: string }).token;
+}
 
 async function seed() {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
@@ -67,6 +83,17 @@ test("agency host renders published listings, not drafts", async () => {
   expect(body).not.toContain("Hidden Draft");
 });
 
+test("/a/:slug renders the agency site, 404 for unknown", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine" });
+  const p = await createProperty(db, { agencyId: agency.id, name: "Flat", address: "x", city: "Kotor", priceMinor: 1000 });
+  await publishProperty(db, p.id);
+  const app = createApp(db);
+  const ok = await app.request(new Request("http://kluche.me/a/popovic-nekretnine"));
+  expect(ok.status).toBe(200);
+  expect(await ok.text()).toContain("Popović Nekretnine");
+  expect((await app.request(new Request("http://kluche.me/a/nope"))).status).toBe(404);
+});
+
 test("query filters narrow the rendered listings", async () => {
   await seed();
   const app = createApp(db);
@@ -99,10 +126,11 @@ test("agency console host renders the console placeholder", async () => {
 
 test("POST /api/agency/:id/config persists a valid color", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
-  const app = createApp(db);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = await ownerToken(app, agency.id);
   const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/config`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({ colorPrimary: "#aa0000" }),
   }));
   expect(res.status).toBe(200);
@@ -114,10 +142,11 @@ test("POST /api/agency/:id/config persists a valid color", async () => {
 
 test("POST /api/agency/:id/config rejects an invalid color with 400", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
-  const app = createApp(db);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = await ownerToken(app, agency.id);
   const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/config`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({ colorPrimary: "red} x" }),
   }));
   expect(res.status).toBe(400);
@@ -164,12 +193,14 @@ test("POST /api/properties/:id/publish on unknown id returns 404", async () => {
 test("POST /api/agency/:id/logo uploads and persists the logo", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const storage = new FakeStorage();
-  const app = createApp(db, { storage });
+  const app = createApp(db, { storage, sessionSecret: SECRET });
+  const token = await ownerToken(app, agency.id);
 
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1, 2, 3])], "l.jpg", { type: "image/jpeg" }));
   const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   }));
   expect(res.status).toBe(200);
@@ -207,26 +238,28 @@ test("POST /api/agency/:id/config with a non-uuid id returns 400", async () => {
   expect((await res.json() as any).error).toBe("invalid id");
 });
 
-test("POST /api/agency/:id/logo for an unknown agency returns 404 and uploads nothing", async () => {
+test("POST /api/agency/:id/logo for an unknown agency returns 403 and uploads nothing", async () => {
   const storage = new FakeStorage();
-  const app = createApp(db, { storage });
+  const app = createApp(db, { storage, sessionSecret: SECRET });
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1, 2, 3])], "l.jpg", { type: "image/jpeg" }));
   const res = await app.request(new Request(
     "http://kluche.me/api/agency/00000000-0000-0000-0000-000000000000/logo",
     { method: "POST", body: form },
   ));
-  expect(res.status).toBe(404);
-  expect((await res.json() as any).error).toBe("not found");
+  expect(res.status).toBe(403);
+  expect((await res.json() as any).error).toBe("forbidden");
   expect(storage.calls).toHaveLength(0);
 });
 
 test("POST /api/agency/:id/logo with no file returns 400 (not 500)", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const storage = new FakeStorage();
-  const app = createApp(db, { storage });
+  const app = createApp(db, { storage, sessionSecret: SECRET });
+  const token = await ownerToken(app, agency.id);
   const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
     body: new FormData(),
   }));
   expect(res.status).toBe(400);
@@ -249,11 +282,13 @@ test("POST /api/properties/:id/photos for an unknown property returns 404 and up
 
 test("POST /api/agency/:id/logo without storage returns 500", async () => {
   const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
-  const app = createApp(db);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = await ownerToken(app, agency.id);
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1])], "l.jpg", { type: "image/jpeg" }));
   const res = await app.request(new Request(`http://kluche.me/api/agency/${agency.id}/logo`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   }));
   expect(res.status).toBe(500);
