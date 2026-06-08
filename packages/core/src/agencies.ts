@@ -71,7 +71,13 @@ export async function updateAgencyConfig(
       throw new Error("Invalid color");
     }
   }
-  const [agency] = await db.update(agencies).set(patch).where(eq(agencies.id, agencyId)).returning();
+  // Whitelist updatable columns — never trust the raw patch to set slug/name/etc.
+  const safe: Partial<typeof agencies.$inferInsert> = {};
+  if (patch.logoUrl !== undefined) safe.logoUrl = patch.logoUrl;
+  if (patch.colorPrimary !== undefined) safe.colorPrimary = patch.colorPrimary;
+  if (patch.colorAccent !== undefined) safe.colorAccent = patch.colorAccent;
+  if (patch.tagline !== undefined) safe.tagline = patch.tagline;
+  const [agency] = await db.update(agencies).set(safe).where(eq(agencies.id, agencyId)).returning();
   return agency;
 }
 

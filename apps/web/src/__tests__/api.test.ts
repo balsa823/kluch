@@ -288,6 +288,23 @@ test("owner partner token can POST /api/agency/:id/config and it persists", asyn
   expect(body.agency.tagline).toBe("Hi");
 });
 
+test("POST /api/agency/:id/config cannot mass-assign slug or name", async () => {
+  const agency = await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/agency/${agency.id}/config`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ slug: "hijacked", name: "Hijacked", tagline: "ok" }),
+  }));
+  expect(res.status).toBe(200);
+  const after = (await res.json()) as { slug: string; name: string; tagline: string };
+  expect(after.slug).toBe(agency.slug); // unchanged
+  expect(after.name).toBe(agency.name); // unchanged
+  expect(after.tagline).toBe("ok"); // whitelisted field still applied
+});
+
 test("POST /api/agency/:id/config without an Authorization header returns 403", async () => {
   const agency = await seedPartner();
   const app = createApp(db, { sessionSecret: SECRET });
