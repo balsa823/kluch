@@ -36,7 +36,7 @@ import { renderAgencySite } from "./render.js";
 
 type Vars = { site: Site };
 
-const PROPERTY_TYPES: PropertyType[] = ["apartment", "studio", "house"];
+const PROPERTY_TYPES: PropertyType[] = ["residential", "land", "commercial"];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,6 +71,9 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
   if (type && (PROPERTY_TYPES as string[]).includes(type)) filters.type = type as PropertyType;
 
   if (query.dealType === "rent" || query.dealType === "sale") filters.dealType = query.dealType;
+
+  const page = toInt(query.page);
+  if (page !== undefined && page > 0) filters.page = page;
 
   return filters;
 }

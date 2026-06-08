@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, createProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
+import { addPropertyPhotos, countProperties, createProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -115,6 +115,25 @@ test("multiple properties with null sourceId in the same agency are allowed", as
   await expect(
     createProperty(db, { agencyId: a.id, name: "Two", address: "B", city: "Budva", priceMinor: 200000 }),
   ).resolves.toBeDefined();
+});
+
+test("searchProperties paginates and countProperties counts the full match set", async () => {
+  const a = await agency();
+  for (let i = 0; i < 30; i++) {
+    const p = await createProperty(db, {
+      agencyId: a.id, name: `L${i}`, address: "A", city: "Budva", priceMinor: 100000,
+      dealType: i < 10 ? "sale" : "rent",
+    });
+    await publishProperty(db, p.id);
+  }
+
+  expect((await searchProperties(db, a.id, {}, { limit: 24, offset: 0 }))).toHaveLength(24);
+  expect((await searchProperties(db, a.id, {}, { limit: 24, offset: 24 }))).toHaveLength(6);
+  expect(await countProperties(db, a.id, {})).toBe(30);
+
+  // A filter narrows both the page and the count.
+  expect((await searchProperties(db, a.id, { dealType: "sale" }, { limit: 24, offset: 0 }))).toHaveLength(10);
+  expect(await countProperties(db, a.id, { dealType: "sale" })).toBe(10);
 });
 
 test("searchProperties is isolated per agency", async () => {
