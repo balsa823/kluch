@@ -46,6 +46,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="agency" />
           <Stack.Screen name="website" />
+          <Stack.Screen name="settings" />
           <Stack.Screen name="law" />
         </Stack>
       </AuthGate>

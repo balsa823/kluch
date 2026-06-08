@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-import { colors, space, radius } from "../theme/tokens";
+import { useRouter, usePathname } from "expo-router";
+import { colors } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
 
 type NavItemProps = {
@@ -31,12 +31,18 @@ function NavItem({ label, icon, active = false, onPress }: NavItemProps) {
 }
 
 export function Sidebar() {
-  const { agency, logout } = useAuth();
+  const { user, agency, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const agencyName = agency?.name ?? "Your agency";
   const agencyCity = "Podgorica";
   const initial = agencyName.charAt(0).toUpperCase() || "K";
+  const userName = user?.name || user?.email || "Account";
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  const isAgency = pathname?.startsWith("/agency") ?? false;
+  const isWebsite = pathname?.startsWith("/website") ?? false;
 
   async function onLogout() {
     await logout();
@@ -50,7 +56,7 @@ export function Sidebar() {
           <Text style={styles.brandIconText}>K</Text>
         </View>
         <View>
-          <Text style={styles.brandName}>Kluch</Text>
+          <Text style={styles.brandName}>Kluche</Text>
           <Text style={styles.brandTag}>for Agencies</Text>
         </View>
       </View>
@@ -68,10 +74,44 @@ export function Sidebar() {
       </View>
 
       <View style={styles.menu}>
-        <NavItem label="Listings" icon="🏠" active />
+        <NavItem
+          label="Listings"
+          icon="🏠"
+          active={isAgency}
+          onPress={() => router.push("/agency")}
+        />
+      </View>
+
+      {/* push the Website tab + footer to the bottom of the sidebar */}
+      <View style={styles.spacer} />
+
+      <View style={styles.menu}>
+        <NavItem
+          label="Website"
+          icon="🌐"
+          active={isWebsite}
+          onPress={() => router.push("/website")}
+        />
       </View>
 
       <View style={styles.foot}>
+        <View style={styles.userRow}>
+          <View style={styles.userPic}>
+            <Text style={styles.userPicText}>{userInitial}</Text>
+          </View>
+          <Text style={styles.userName} numberOfLines={1}>
+            {userName}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            onPress={() => router.push("/settings")}
+            style={({ pressed }) => [styles.cog, pressed && styles.cogHover]}
+          >
+            <Text style={styles.cogIcon}>⚙</Text>
+            <Text style={styles.cogText}>Settings</Text>
+          </Pressable>
+        </View>
         <Pressable
           accessibilityRole="button"
           onPress={onLogout}
@@ -168,6 +208,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 3,
   },
+  spacer: {
+    flex: 1,
+  },
   navItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -196,10 +239,54 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   foot: {
-    marginTop: "auto",
     padding: 14,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
+    gap: 12,
+  },
+  userRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  userPic: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userPicText: {
+    color: colors.white,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  userName: {
+    flex: 1,
+    color: colors.white,
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  cog: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  cogHover: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  cogIcon: {
+    color: colors.navy200,
+    fontSize: 14,
+  },
+  cogText: {
+    color: colors.navy200,
+    fontSize: 12,
+    fontWeight: "600",
   },
   logout: {
     flexDirection: "row",

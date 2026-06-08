@@ -8,7 +8,6 @@ import {
   Pressable,
   Image,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { ConsoleLayout } from "../components/ConsoleLayout";
 import { Pill, TextField } from "../components/ui";
 import { colors, space, radius } from "../theme/tokens";
@@ -73,7 +72,6 @@ function ListingRow({ p }: { p: Property }) {
 
 export default function Agency() {
   const { token } = useAuth();
-  const router = useRouter();
 
   const [listings, setListings] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,17 +192,6 @@ export default function Agency() {
           <Text style={styles.title}>Listings</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/website")}
-          style={({ pressed }) => [
-            styles.ghostBtn,
-            styles.websiteBtn,
-            pressed && styles.addBtnPressed,
-          ]}
-        >
-          <Text style={styles.ghostBtnText}>Website</Text>
-        </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={() => setShowForm((s) => !s)}
