@@ -121,10 +121,9 @@ export function renderAgencySite(
     ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroPhoto}'); background-size: cover; background-position: center;`
     : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
 
-  const sel = (v: "rent" | "sale" | "") =>
-    (filters.dealType ?? "") === v ? " selected" : "";
   const tabActive = (v: "" | "rent" | "sale") =>
     (filters.dealType ?? "") === v ? "tab is-active" : "tab";
+  const typeSel = (v: string) => ((filters.type ?? "") === v ? " selected" : "");
 
   const cards = listings.length
     ? listings.map(renderCard).join("")
@@ -334,21 +333,23 @@ export function renderAgencySite(
   <header class="hero" id="top">
     <h1>${heroTitle}</h1>
     <form class="search" method="get">
+      <input type="hidden" name="dealType" value="${attr(filters.dealType)}" />
       <label data-i18n="search.city">City
         <input type="text" name="city" value="${attr(filters.city)}" data-i18n-ph="search.cityPh" placeholder="Any city" />
       </label>
-      <label data-i18n="search.dealType">Type
-        <select name="dealType">
-          <option value=""${sel("")} data-i18n="search.dealAny">Any</option>
-          <option value="rent"${sel("rent")} data-i18n="search.dealRent">Rent</option>
-          <option value="sale"${sel("sale")} data-i18n="search.dealSale">Sale</option>
+      <label data-i18n="search.type">Type
+        <select name="type">
+          <option value=""${typeSel("")} data-i18n="search.typeAny">Any type</option>
+          <option value="residential"${typeSel("residential")} data-i18n="search.typeResidential">Residential</option>
+          <option value="land"${typeSel("land")} data-i18n="search.typeLand">Land</option>
+          <option value="commercial"${typeSel("commercial")} data-i18n="search.typeCommercial">Commercial</option>
         </select>
       </label>
-      <label data-i18n="search.minPrice">Min price
-        <input type="number" name="minPrice" value="${attr(filters.minPrice)}" />
+      <label data-i18n="search.minPrice">Min price (€)
+        <input type="number" name="minPrice" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
       </label>
-      <label data-i18n="search.maxPrice">Max price
-        <input type="number" name="maxPrice" value="${attr(filters.maxPrice)}" />
+      <label data-i18n="search.maxPrice">Max price (€)
+        <input type="number" name="maxPrice" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
       </label>
       <label data-i18n="search.bedrooms">Bedrooms
         <input type="number" name="bedrooms" value="${attr(filters.bedrooms)}" />
@@ -388,8 +389,8 @@ export function renderAgencySite(
   const T = {
     en: {
       "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
-      "search.city":"City","search.cityPh":"Any city","search.dealType":"Type","search.dealAny":"Any","search.dealRent":"Rent","search.dealSale":"Sale",
-      "search.minPrice":"Min price","search.maxPrice":"Max price","search.bedrooms":"Bedrooms","search.submit":"Search",
+      "search.city":"City","search.cityPh":"Any city","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
+      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
       "pager.prev":"Previous","pager.next":"Next",
       "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo",

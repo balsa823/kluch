@@ -118,9 +118,10 @@ test("renders deal-type filter tabs", () => {
   expect(html).toContain(`href="?dealType=sale"`);
 });
 
-test("pre-selects the deal type in the search select from filters", () => {
-  const html = renderAgencySite(agency, listings, { dealType: "rent" });
-  expect(html).toMatch(/<option value="rent"[^>]*selected/);
+test("preserves dealType (hidden) + pre-selects the property type", () => {
+  const html = renderAgencySite(agency, listings, { dealType: "rent", type: "land" });
+  expect(html).toContain(`name="dealType" value="rent"`); // preserved across search
+  expect(html).toMatch(/<option value="land"[^>]*selected/); // property-type filter
 });
 
 test("shows a thank-you message when sent", () => {
@@ -142,10 +143,10 @@ test("renders a GET search form with the expected inputs", () => {
   expect(html).toContain(`name="bedrooms"`);
 });
 
-test("pre-fills the form from the given filters", () => {
+test("pre-fills the form from the given filters (price shown in euros)", () => {
   const html = renderAgencySite(agency, listings, { city: "Kotor", maxPrice: 50000 });
   expect(html).toContain(`value="Kotor"`);
-  expect(html).toContain(`value="50000"`);
+  expect(html).toContain(`value="500"`); // 50000 cents → €500 in the form
 });
 
 test("includes a Powered by Kluch footer", () => {

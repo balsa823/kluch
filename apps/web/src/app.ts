@@ -62,11 +62,12 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
   const city = query.city?.trim();
   if (city) filters.city = city;
 
+  // The search form takes euros; prices are stored in cents (priceMinor) — convert.
   const minPrice = toInt(query.minPrice);
-  if (minPrice !== undefined) filters.minPrice = minPrice;
+  if (minPrice !== undefined) filters.minPrice = minPrice * 100;
 
   const maxPrice = toInt(query.maxPrice);
-  if (maxPrice !== undefined) filters.maxPrice = maxPrice;
+  if (maxPrice !== undefined) filters.maxPrice = maxPrice * 100;
 
   const bedrooms = toInt(query.bedrooms);
   if (bedrooms !== undefined) filters.bedrooms = bedrooms;
