@@ -9,12 +9,14 @@ import {
   addPropertyPhotos,
   createInquiry,
   createProperty,
+  createVisitor,
   dashboardKeys,
   getAgency,
   getAgencyBySlug,
   getAgencyUserById,
   getPartnerUserById,
   getProperty,
+  getVisitorById,
   importListing,
   listAgencyProperties,
   listInquiries,
@@ -25,8 +27,10 @@ import {
   verifyAgencyUser,
   verifyPartnerUser,
   verifyToken,
+  verifyVisitor,
   type AgencyUser,
   type PartnerUser,
+  type Visitor,
   type PropertyType,
   countProperties,
   type SearchFilters,
@@ -171,6 +175,19 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   }
 
   /**
+   * Resolves the visitor from a `Authorization: Bearer <token>` header, or null.
+   * Requires the token to carry the `t: "visitor"` claim so a visitor token can
+   * never be mistaken for an agency/partner token (and vice versa).
+   */
+  async function bearerVisitor(c: Context): Promise<Visitor | null> {
+    const header = c.req.header("Authorization");
+    if (!header?.startsWith("Bearer ")) return null;
+    const payload = verifyToken<{ sub?: string; t?: string }>(header.slice("Bearer ".length), sessionSecret);
+    if (payload?.t !== "visitor" || !payload.sub) return null;
+    return getVisitorById(db, payload.sub);
+  }
+
+  /**
    * Resolves the agency id from whichever token is present: an agency-user token
    * takes precedence, falling back to a partner token's `agency` dashboard.
    */
@@ -224,6 +241,46 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const user = await bearerUser(c);
     if (!user) return c.json({ error: "unauthorized" }, 401);
     return c.json({ user, agency: await getAgency(db, user.agencyId) });
+  });
+
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  app.post("/api/visitor/signup", bodyLimit({ maxSize: 8 * 1024 }), async (c) => {
+    const body = await c.req.json().catch(() => ({})) as { email?: unknown; password?: unknown; name?: unknown };
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!EMAIL_RE.test(email)) return c.json({ error: "invalid email" }, 400);
+    if (password.length < 8 || password.length > 200) return c.json({ error: "invalid password" }, 400);
+    if (name.length > 120) return c.json({ error: "invalid name" }, 400);
+    let v: Visitor;
+    try {
+      v = await createVisitor(db, { email, name: name || undefined, password });
+    } catch (e) {
+      // 409 only for a duplicate email (unique violation); anything else surfaces as 500.
+      if ((e as { code?: string })?.code === "23505") return c.json({ error: "email already registered" }, 409);
+      throw e;
+    }
+    return c.json({
+      token: signToken({ sub: v.id, t: "visitor" }, sessionSecret, TOKEN_TTL),
+      visitor: { id: v.id, email: v.email, name: v.name },
+    });
+  });
+
+  app.post("/api/visitor/login", bodyLimit({ maxSize: 8 * 1024 }), async (c) => {
+    const body = await c.req.json().catch(() => ({})) as { email?: unknown; password?: unknown };
+    const v = await verifyVisitor(db, String(body.email ?? ""), String(body.password ?? ""));
+    if (!v) return c.json({ error: "invalid credentials" }, 401);
+    return c.json({
+      token: signToken({ sub: v.id, t: "visitor" }, sessionSecret, TOKEN_TTL),
+      visitor: { id: v.id, email: v.email, name: v.name },
+    });
+  });
+
+  app.get("/api/visitor/me", async (c) => {
+    const v = await bearerVisitor(c);
+    if (!v) return c.json({ error: "unauthorized" }, 401);
+    return c.json({ visitor: { id: v.id, email: v.email, name: v.name } });
   });
 
   app.get("/api/listings", async (c) => {
@@ -349,6 +406,39 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     }
     await createInquiry(db, { agencyId: agency.id, propertyId, kind: "phone_click" });
     return c.json({ phone: agency.phone ?? null });
+  });
+
+  // Authenticated visitor requests a tour of a listing belonging to this agency.
+  app.post("/a/:slug/tour", bodyLimit({ maxSize: 8 * 1024 }), async (c) => {
+    const agency = await getAgencyBySlug(db, c.req.param("slug"));
+    if (!agency) return c.text("Not found", 404);
+    const visitor = await bearerVisitor(c);
+    if (!visitor) return c.json({ error: "unauthorized" }, 401);
+    const body = await c.req.json().catch(() => ({})) as {
+      propertyId?: unknown; tourDate?: unknown; note?: unknown;
+    };
+    const tourDate = typeof body.tourDate === "string" ? body.tourDate.trim() : "";
+    if (!tourDate || tourDate.length > 40) return c.json({ error: "invalid tourDate" }, 400);
+    const note = typeof body.note === "string" ? body.note.trim() : "";
+    if (note.length > 2000) return c.json({ error: "invalid note" }, 400);
+    // A tour must target a real listing of THIS agency, if a propertyId is given.
+    let propertyId: string | undefined =
+      (typeof body.propertyId === "string" ? body.propertyId.trim() : "") || undefined;
+    if (propertyId) {
+      const prop = isUuid(propertyId) ? await getProperty(db, propertyId) : null;
+      if (!prop || prop.agencyId !== agency.id) return c.json({ error: "invalid propertyId" }, 400);
+    }
+    await createInquiry(db, {
+      agencyId: agency.id,
+      propertyId,
+      kind: "tour",
+      visitorId: visitor.id,
+      tourDate,
+      message: note || undefined,
+      name: visitor.name ?? null,
+      contact: visitor.email,
+    });
+    return c.json({ ok: true }, 201);
   });
 
   app.use("*", async (c, next) => {

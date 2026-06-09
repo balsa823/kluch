@@ -223,3 +223,39 @@ test("renders no call button when the agency has no phone", () => {
   const html = renderAgencySite(agency, listings);
   expect(html).not.toContain(`class="call-btn"`);
 });
+
+test("emits a listings JSON blob, modal container and tour panel", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`id="kluche-listings"`);
+  expect(html).toContain(`id="kluche-modal"`);
+  expect(html).toContain(`id="kluche-tour"`);
+});
+
+test("cards carry a data-id and are keyboard-activatable", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`data-id="p1"`);
+  expect(html).toContain(`data-id="p2"`);
+  expect(html).toMatch(/class="card" data-id="p1" role="button" tabindex="0"/);
+});
+
+test("call control is a phone icon button with stopPropagation", () => {
+  const withPhone = { ...agency, phone: "+382 67 111 222" };
+  const html = renderAgencySite(withPhone, listings);
+  expect(html).toContain(`data-i18n="card.call"`);
+  expect(html).toContain(`onclick="event.stopPropagation()"`);
+  expect(html).toContain("📞");
+});
+
+test("listings JSON blob escapes < to avoid breaking out of the script tag", () => {
+  const evil: Property = { ...listings[0], name: "</script><b>x" };
+  const html = renderAgencySite(agency, [evil]);
+  expect(html).not.toContain("</script><b>x");
+  expect(html).toContain("\\u003c/script>");
+});
+
+test("only safe photo URLs are embedded in the listings blob", () => {
+  const evil: Property = { ...listings[0], photos: ["javascript:alert(1)", "https://cdn.example/ok.jpg"] };
+  const html = renderAgencySite(agency, [evil]);
+  expect(html).not.toContain("javascript:alert(1)");
+  expect(html).toContain("https://cdn.example/ok.jpg");
+});
