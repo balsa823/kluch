@@ -9,6 +9,11 @@ function esc(value: unknown): string {
     .replace(/"/g, "&quot;");
 }
 
+/** JSON value safe to embed inside a <script> tag (escapes `<` so `</script>` can't break out). */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value ?? "").replace(/</g, "\\u003c");
+}
+
 function attr(value: unknown): string {
   return value === undefined || value === null || value === "" ? "" : esc(value);
 }
@@ -42,7 +47,7 @@ function cssUrl(u: unknown): string {
 }
 
 /** Renders a single property card: photo, deal price, city, badge row and type. */
-function renderCard(listing: Property): string {
+function renderCard(listing: Property, hasPhone: boolean): string {
   const photo = safeUrl(listing.photos?.[0]);
   const image = photo
     ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" loading="lazy" />`
@@ -66,6 +71,10 @@ function renderCard(listing: Property): string {
 
   const typeLabel = listing.type ? `<p class="card-type">${esc(listing.type)}</p>` : "";
 
+  const callBtn = hasPhone
+    ? `<button class="call-btn" type="button" data-pid="${esc(listing.id)}" data-i18n="card.showNumber">Show number</button>`
+    : "";
+
   return `
       <article class="card">
         ${image}
@@ -75,6 +84,7 @@ function renderCard(listing: Property): string {
           <p class="card-city">${esc(listing.city)}</p>
           ${badgeRow}
           ${typeLabel}
+          ${callBtn}
         </div>
       </article>`;
 }
@@ -125,8 +135,9 @@ export function renderAgencySite(
     (filters.dealType ?? "") === v ? "tab is-active" : "tab";
   const typeSel = (v: string) => ((filters.type ?? "") === v ? " selected" : "");
 
+  const hasPhone = !!agency.phone;
   const cards = listings.length
-    ? listings.map(renderCard).join("")
+    ? listings.map((l) => renderCard(l, hasPhone)).join("")
     : `<p class="empty" data-i18n="properties.empty">No properties match your search.</p>`;
 
   // Pager: only shown when there are more results than fit on one page.
@@ -288,6 +299,11 @@ export function renderAgencySite(
     .card-badges { display: flex; align-items: center; gap: 0.45rem; color: #6b6557; font-size: 0.85rem; }
     .card-badges i { opacity: 0.5; font-style: normal; }
     .card-type { margin: 0.5rem 0 0; color: #9a937f; font-size: 0.78rem; text-transform: capitalize; }
+    .call-btn {
+      margin-top: 0.75rem; width: 100%; background: var(--color-accent); color: #fff; border: 0;
+      padding: 0.55rem 0.7rem; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .call-btn:hover { filter: brightness(0.95); }
     .empty { color: #6b6557; }
 
     /* About */
@@ -393,7 +409,7 @@ export function renderAgencySite(
       "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
       "pager.prev":"Previous","pager.next":"Next",
-      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo",
+      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number","card.calling":"Call",
       "properties.heading":"Available properties","properties.empty":"No properties match your search.",
       "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
       "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
@@ -458,6 +474,25 @@ export function renderAgencySite(
   let saved = "en";
   try { saved = localStorage.getItem("kluche_lang") || "en"; } catch (e) {}
   setLang(T[saved] ? saved : "en");
+
+  // "Show number" → log a phone-click (fire-and-forget) then reveal + dial.
+  (function () {
+    var SLUG = ${jsonForScript(agency.slug)};
+    var PHONE = ${jsonForScript(agency.phone ?? "")};
+    document.querySelectorAll(".call-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        fetch("/a/" + encodeURIComponent(SLUG) + "/phone-click", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ propertyId: btn.dataset.pid })
+        }).catch(function () {});
+        if (PHONE) {
+          btn.textContent = PHONE;
+          if (/^[+0-9 ]+$/.test(PHONE)) window.location.href = "tel:" + PHONE.replace(/ /g, "");
+        }
+      });
+    });
+  })();
   </script>
 </body>
 </html>`;

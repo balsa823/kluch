@@ -10,6 +10,7 @@ const agency: Agency = {
   colorPrimary: "#1F3A5C",
   colorAccent: "#4E827A",
   tagline: "Your home on the Adriatic",
+  phone: null,
   createdAt: new Date(),
 };
 
@@ -208,4 +209,17 @@ test("pager links preserve the active filters", () => {
 test("no pager when total fits on one page", () => {
   const html = renderAgencySite(agency, listings, {}, { page: 1, pageSize: 24, total: 20 });
   expect(html).not.toContain(`<nav class="pager"`);
+});
+
+test("renders a call button per listing when the agency has a phone", () => {
+  const withPhone = { ...agency, phone: "+382 67 111 222" };
+  const html = renderAgencySite(withPhone, listings);
+  expect(html).toContain(`class="call-btn"`);
+  expect(html).toContain(`data-pid="p1"`);
+  expect(html).toContain(`data-pid="p2"`);
+});
+
+test("renders no call button when the agency has no phone", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).not.toContain(`class="call-btn"`);
 });
