@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries } from "@kluche/core";
+import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries, createInquiry, updateAgencyConfig } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -340,6 +340,112 @@ test("POST /a/:slug/inquiry for an unknown agency returns 404", async () => {
     body: body.toString(),
   }));
   expect(res.status).toBe(404);
+});
+
+// --- phone-click endpoint + leads list ---
+
+test("POST /a/:slug/phone-click returns the agency phone and stores a phone_click lead", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  await updateAgencyConfig(db, agency.id, { phone: "+382 67 111 222" });
+  const prop = await createProperty(db, {
+    agencyId: agency.id, name: "Studio", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await publishProperty(db, prop.id);
+  const app = createApp(db, { sessionSecret: SECRET });
+
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/phone-click`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ propertyId: prop.id }),
+  }));
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { phone: string | null };
+  expect(body.phone).toBe("+382 67 111 222");
+
+  const clicks = await listInquiries(db, agency.id, { kind: "phone_click" });
+  expect(clicks).toHaveLength(1);
+  expect(clicks[0].propertyId).toBe(prop.id);
+  expect(clicks[0].name).toBeNull();
+});
+
+test("POST /a/:slug/phone-click for an unknown agency returns 404", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request("http://localhost/a/nope/phone-click", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  }));
+  expect(res.status).toBe(404);
+});
+
+test("POST /a/:slug/phone-click drops a forged propertyId (no 500, stored null)", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  for (const bad of ["not-a-uuid", "00000000-0000-0000-0000-000000000000"]) {
+    const res = await app.request(new Request(`http://localhost/a/${agency.slug}/phone-click`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ propertyId: bad }),
+    }));
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { phone: string | null }).phone).toBeNull();
+  }
+  const clicks = await listInquiries(db, agency.id, { kind: "phone_click" });
+  expect(clicks).toHaveLength(2);
+  expect(clicks.every((c) => c.propertyId === null)).toBe(true);
+});
+
+test("GET /api/agency/leads?kind=phone_click returns only phone_click leads with propertyName", async () => {
+  const agency = await seedPartner();
+  const prop = await createProperty(db, {
+    agencyId: agency.id, name: "Seaside Studio", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await publishProperty(db, prop.id);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  // one inquiry + one phone_click
+  await app.request(new Request(`http://localhost/a/${agency.slug}/inquiry`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ name: "Jane", contact: "j@x.me" }).toString(),
+  }));
+  await app.request(new Request(`http://localhost/a/${agency.slug}/phone-click`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ propertyId: prop.id }),
+  }));
+
+  const res = await app.request(new Request("http://localhost/api/agency/leads?kind=phone_click", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  const { leads } = (await res.json()) as { leads: { kind: string; propertyId: string | null; propertyName: string | null }[] };
+  expect(leads).toHaveLength(1);
+  expect(leads[0].kind).toBe("phone_click");
+  expect(leads[0].propertyName).toBe("Seaside Studio");
+});
+
+test("GET /api/agency/leads without a token returns 403", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request("http://localhost/api/agency/leads"));
+  expect(res.status).toBe(403);
+});
+
+test("GET /api/agency/leads is scoped: a partner sees only its own agency's leads", async () => {
+  const agency = await seedPartner();
+  const other = await createAgency(db, { name: "Other Agency", slug: "other" });
+  await createInquiry(db, { agencyId: other.id, kind: "phone_click" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request("http://localhost/api/agency/leads", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  const { leads } = (await res.json()) as { leads: { agencyId: string }[] };
+  expect(leads).toHaveLength(0);
+  void agency;
 });
 
 // --- Task 3: scoped config/logo endpoints ---

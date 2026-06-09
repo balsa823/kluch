@@ -17,6 +17,7 @@ import {
   getProperty,
   importListing,
   listAgencyProperties,
+  listInquiries,
   publishProperty,
   searchProperties,
   signToken,
@@ -332,6 +333,24 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return c.redirect(`/a/${agency.slug}?sent=1`, 303);
   });
 
+  // Public: logs a "show number" click and returns the agency phone to reveal.
+  app.post("/a/:slug/phone-click", bodyLimit({ maxSize: 8 * 1024 }), async (c) => {
+    const agency = await getAgencyBySlug(db, c.req.param("slug"));
+    if (!agency) return c.text("Not found", 404);
+    // The client posts JSON; tolerate a missing/garbled body.
+    const body = await c.req.json().catch(() => ({})) as { propertyId?: unknown };
+    // Only attach a real property belonging to THIS agency; else drop it
+    // (mirrors the inquiry endpoint's forged-propertyId guard).
+    let propertyId: string | undefined =
+      (typeof body.propertyId === "string" ? body.propertyId.trim() : "") || undefined;
+    if (propertyId) {
+      const prop = isUuid(propertyId) ? await getProperty(db, propertyId) : null;
+      if (!prop || prop.agencyId !== agency.id) propertyId = undefined;
+    }
+    await createInquiry(db, { agencyId: agency.id, propertyId, kind: "phone_click" });
+    return c.json({ phone: agency.phone ?? null });
+  });
+
   app.use("*", async (c, next) => {
     // Prefer the Host header; fall back to the request URL's host (e.g. in unit
     // tests where `app.request(new Request(url))` doesn't set a Host header).
@@ -369,6 +388,26 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       default:
         return c.text("Not found", 404);
     }
+  });
+
+  app.get("/api/agency/leads", async (c) => {
+    const scope = await agencyScope(c);
+    if (!scope) return c.json({ error: "forbidden" }, 403);
+    const raw = c.req.query("kind");
+    const kind = raw === "inquiry" || raw === "tour" || raw === "phone_click" ? raw : undefined;
+    const leads = await listInquiries(db, scope, { kind });
+    // Enrich each lead with its property name (one lookup per distinct property).
+    const ids = [...new Set(leads.map((l) => l.propertyId).filter((id): id is string => !!id))];
+    const names = new Map<string, string>();
+    for (const id of ids) {
+      const prop = await getProperty(db, id);
+      if (prop) names.set(id, prop.name);
+    }
+    const enriched = leads.map((l) => ({
+      ...l,
+      propertyName: l.propertyId ? names.get(l.propertyId) ?? null : null,
+    }));
+    return c.json({ leads: enriched });
   });
 
   app.post("/api/agency/:id/config", async (c) => {
