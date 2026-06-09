@@ -448,6 +448,149 @@ test("GET /api/agency/leads is scoped: a partner sees only its own agency's lead
   void agency;
 });
 
+// --- Phase 3: visitor auth + tour endpoints ---
+
+async function visitorSignup(app: ReturnType<typeof createApp>, body: object): Promise<Response> {
+  return app.request(new Request("http://localhost/api/visitor/signup", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }));
+}
+
+test("POST /api/visitor/signup returns a token and visitor", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await visitorSignup(app, { email: "vera@example.com", password: "secret123", name: "Vera" });
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { token: string; visitor: { id: string; email: string; name: string } };
+  expect(typeof body.token).toBe("string");
+  expect(body.visitor.email).toBe("vera@example.com");
+  expect(body.visitor.name).toBe("Vera");
+});
+
+test("POST /api/visitor/signup with a duplicate email returns 409", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  await visitorSignup(app, { email: "dup@example.com", password: "secret123" });
+  const res = await visitorSignup(app, { email: "dup@example.com", password: "secret123" });
+  expect(res.status).toBe(409);
+});
+
+test("POST /api/visitor/signup with a bad email returns 400", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await visitorSignup(app, { email: "not-an-email", password: "secret123" });
+  expect(res.status).toBe(400);
+});
+
+test("POST /api/visitor/signup with a 5-char password returns 400", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await visitorSignup(app, { email: "short@example.com", password: "12345" });
+  expect(res.status).toBe(400);
+});
+
+test("POST /api/visitor/login with wrong creds returns 401, good creds returns a token", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  await visitorSignup(app, { email: "log@example.com", password: "secret123", name: "Log" });
+
+  const bad = await app.request(new Request("http://localhost/api/visitor/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "log@example.com", password: "wrong" }),
+  }));
+  expect(bad.status).toBe(401);
+
+  const good = await app.request(new Request("http://localhost/api/visitor/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "log@example.com", password: "secret123" }),
+  }));
+  expect(good.status).toBe(200);
+  const body = (await good.json()) as { token: string; visitor: { email: string } };
+  expect(typeof body.token).toBe("string");
+  expect(body.visitor.email).toBe("log@example.com");
+});
+
+test("GET /api/visitor/me without a token returns 401, with a token returns the visitor", async () => {
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await visitorSignup(app, { email: "me@example.com", password: "secret123", name: "Me" })).json()) as { token: string }).token;
+
+  const no = await app.request(new Request("http://localhost/api/visitor/me"));
+  expect(no.status).toBe(401);
+
+  const res = await app.request(new Request("http://localhost/api/visitor/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { visitor: { email: string; name: string } };
+  expect(body.visitor.email).toBe("me@example.com");
+  expect(body.visitor.name).toBe("Me");
+});
+
+test("POST /a/:slug/tour without a visitor token returns 401", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/tour`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tourDate: "2026-07-01" }),
+  }));
+  expect(res.status).toBe(401);
+});
+
+test("POST /a/:slug/tour with a visitor token + valid propertyId stores a tour lead", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const prop = await createProperty(db, {
+    agencyId: agency.id, name: "Sea View", address: "A", city: "Budva", priceMinor: 200000,
+  });
+  await publishProperty(db, prop.id);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await visitorSignup(app, { email: "tour@example.com", password: "secret123", name: "Tess" })).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/tour`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ propertyId: prop.id, tourDate: "2026-07-01", note: "Afternoon please" }),
+  }));
+  expect(res.status).toBe(201);
+  expect((await res.json()) as { ok: boolean }).toEqual({ ok: true });
+
+  const tours = await listInquiries(db, agency.id, { kind: "tour" });
+  expect(tours).toHaveLength(1);
+  expect(tours[0].propertyId).toBe(prop.id);
+  expect(tours[0].visitorId).toBeTruthy();
+  expect(tours[0].tourDate).toBe("2026-07-01");
+  expect(tours[0].contact).toBe("tour@example.com");
+});
+
+test("POST /a/:slug/tour with a propertyId from another agency returns 400", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const other = await createAgency(db, { name: "Other Agency", slug: "other" });
+  const otherProp = await createProperty(db, {
+    agencyId: other.id, name: "Not Yours", address: "B", city: "Bar", priceMinor: 100000,
+  });
+  await publishProperty(db, otherProp.id);
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await visitorSignup(app, { email: "x@example.com", password: "secret123" })).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/tour`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ propertyId: otherProp.id, tourDate: "2026-07-01" }),
+  }));
+  expect(res.status).toBe(400);
+  expect(await listInquiries(db, agency.id, { kind: "tour" })).toHaveLength(0);
+});
+
+test("a visitor token does NOT satisfy agencyScope: GET /api/agency/leads returns 403", async () => {
+  await seedPartner(); // creates an agency so leads endpoint has data to scope against
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await visitorSignup(app, { email: "intruder@example.com", password: "secret123" })).json()) as { token: string }).token;
+
+  const res = await app.request(new Request("http://localhost/api/agency/leads", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(403);
+});
+
 // --- Task 3: scoped config/logo endpoints ---
 
 test("owner partner token can POST /api/agency/:id/config and it persists", async () => {

@@ -6,7 +6,7 @@ export type Inquiry = typeof inquiries.$inferSelect;
 export interface CreateInquiryInput {
   agencyId: string;
   propertyId?: string;
-  name?: string;
+  name?: string | null;
   contact?: string;
   message?: string;
   kind?: string;
