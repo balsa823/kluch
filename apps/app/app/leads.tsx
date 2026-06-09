@@ -31,6 +31,14 @@ function fmt(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
+/** Date-only (no time) — for the visitor's preferred tour date, which is a plain date string. */
+function fmtDate(value: string): string {
+  // Parse "YYYY-MM-DD" as a local date (avoid UTC midnight shifting the day).
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+}
+
 function LeadRow({ lead }: { lead: Lead }) {
   return (
     <View style={styles.row}>
@@ -49,7 +57,7 @@ function LeadRow({ lead }: { lead: Lead }) {
             ) : null}
             {lead.kind === "tour" && lead.tourDate ? (
               <Text style={styles.rowMeta} numberOfLines={1}>
-                Tour: {fmt(lead.tourDate)}
+                Tour: {fmtDate(lead.tourDate)}
               </Text>
             ) : null}
             {lead.message ? (
