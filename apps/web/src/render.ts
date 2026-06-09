@@ -409,7 +409,7 @@ export function renderAgencySite(
       "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
       "pager.prev":"Previous","pager.next":"Next",
-      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number","card.calling":"Call",
+      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number",
       "properties.heading":"Available properties","properties.empty":"No properties match your search.",
       "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
       "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
