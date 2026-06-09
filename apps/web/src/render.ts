@@ -467,7 +467,7 @@ export function renderAgencySite(
         <p class="modal-city"></p>
         <div class="modal-badges"></div>
         <p class="modal-type"></p>
-        <button class="call-btn modal-call" type="button" aria-label="Call">
+        <button class="call-btn modal-call" type="button" aria-label="Call"${agency.phone ? "" : ' style="display:none"'}>
           <span aria-hidden="true">📞</span> <span data-i18n="card.call">Call</span>
         </button>
         <div id="kluche-tour" class="modal-tour"></div>
