@@ -72,11 +72,13 @@ function renderCard(listing: Property, hasPhone: boolean): string {
   const typeLabel = listing.type ? `<p class="card-type">${esc(listing.type)}</p>` : "";
 
   const callBtn = hasPhone
-    ? `<button class="call-btn" type="button" data-pid="${esc(listing.id)}" data-i18n="card.showNumber">Show number</button>`
+    ? `<button class="call-btn" type="button" data-pid="${esc(listing.id)}" onclick="event.stopPropagation()" aria-label="Call">
+            <span aria-hidden="true">📞</span> <span data-i18n="card.call">Call</span>
+          </button>`
     : "";
 
   return `
-      <article class="card">
+      <article class="card" data-id="${esc(listing.id)}" role="button" tabindex="0">
         ${image}
         <div class="card-body">
           ${priceBlock}
@@ -325,6 +327,54 @@ export function renderAgencySite(
     .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
     footer.site { text-align: center; padding: 2.5rem 1rem; color: #6b6557; font-size: 0.85rem; }
+    .call-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
+    .card .call-btn { width: auto; }
+    .card[role="button"] { cursor: pointer; }
+    .card[role="button"]:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+    .modal-card {
+      position: relative; z-index: 1; background: #fff; border-radius: 16px;
+      width: 100%; max-width: 860px; max-height: 92vh; overflow-y: auto;
+      display: grid; grid-template-columns: 1.1fr 1fr; gap: 0;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+    @media (max-width: 720px) { .modal-card { grid-template-columns: 1fr; } }
+    .modal-close {
+      position: absolute; top: 0.5rem; right: 0.6rem; z-index: 2;
+      background: rgba(255,255,255,0.92); border: 0; border-radius: 999px;
+      width: 2rem; height: 2rem; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-ink);
+    }
+    .modal-gallery { position: relative; background: #000; min-height: 240px; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
+    @media (max-width: 720px) { .modal-gallery { border-radius: 16px 16px 0 0; } }
+    .gal-img { width: 100%; height: 100%; max-height: 92vh; object-fit: cover; display: block; }
+    .gal-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(0,0,0,0.5); color: #fff; border: 0; width: 2.4rem; height: 2.4rem;
+      border-radius: 999px; font-size: 1.4rem; line-height: 1; cursor: pointer;
+    }
+    .gal-prev { left: 0.6rem; } .gal-next { right: 0.6rem; }
+    .gal-counter { position: absolute; bottom: 0.6rem; right: 0.8rem; background: rgba(0,0,0,0.55); color: #fff; font-size: 0.78rem; padding: 0.15rem 0.5rem; border-radius: 999px; }
+    .modal-details { padding: 1.5rem 1.6rem; }
+    .modal-tag { display: inline-block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 0.2rem 0.5rem; border-radius: 6px; margin-bottom: 0.5rem; color: #fff; }
+    .modal-tag.is-rent { background: var(--color-accent); } .modal-tag.is-sale { background: var(--color-primary); }
+    .modal-title { margin: 0 0 0.3rem; font-size: 1.35rem; }
+    .modal-price { margin: 0 0 0.3rem; color: var(--color-primary); font-weight: 700; font-size: 1.25rem; }
+    .modal-city { margin: 0 0 0.6rem; color: #6b6557; }
+    .modal-badges { display: flex; flex-wrap: wrap; gap: 0.45rem; color: #6b6557; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .modal-type { margin: 0 0 1rem; color: #9a937f; font-size: 0.85rem; text-transform: capitalize; }
+    .modal-call { margin: 0 0 1.2rem; }
+    .modal-tour { border-top: 1px solid #e6e0d2; padding-top: 1rem; }
+    .modal-tour h4 { margin: 0 0 0.7rem; font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
+    .modal-tour label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; font-weight: 500; margin-bottom: 0.7rem; }
+    .modal-tour input, .modal-tour textarea { padding: 0.55rem 0.65rem; border: 1px solid #d8d2c4; border-radius: 8px; font: inherit; }
+    .modal-tour button.tour-go { background: var(--color-accent); color: #fff; border: 0; padding: 0.65rem; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; width: 100%; }
+    .modal-tour .tour-toggle { background: none; border: 0; color: var(--color-primary); cursor: pointer; font: inherit; text-decoration: underline; padding: 0.5rem 0 0; }
+    .modal-tour .tour-msg { font-size: 0.85rem; margin: 0.6rem 0 0; }
+    .modal-tour .tour-msg.err { color: #b3261e; }
+    .modal-tour .tour-signed { font-size: 0.85rem; color: #6b6557; margin: 0 0 0.7rem; }
   </style>
 </head>
 <body>
@@ -400,6 +450,33 @@ export function renderAgencySite(
 
   <footer class="site">${esc(agency.name)} · <span data-i18n="footer.powered">Powered by Kluche</span></footer>
 
+  <div id="kluche-modal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="km-title">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+      <div class="modal-gallery">
+        <button class="gal-nav gal-prev" type="button" aria-label="Previous">‹</button>
+        <img class="gal-img" alt="" />
+        <button class="gal-nav gal-next" type="button" aria-label="Next">›</button>
+        <span class="gal-counter"></span>
+      </div>
+      <div class="modal-details">
+        <span class="modal-tag" data-tag></span>
+        <h3 id="km-title" class="modal-title"></h3>
+        <p class="modal-price"></p>
+        <p class="modal-city"></p>
+        <div class="modal-badges"></div>
+        <p class="modal-type"></p>
+        <button class="call-btn modal-call" type="button" aria-label="Call">
+          <span aria-hidden="true">📞</span> <span data-i18n="card.call">Call</span>
+        </button>
+        <div id="kluche-tour" class="modal-tour"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => ({ id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, photos: (l.photos || []).filter((p) => safeUrl(p)) })))}</script>
+
   <script>
   // SR/RU/TR are first-pass translations — review with a native speaker before launch.
   const T = {
@@ -409,7 +486,10 @@ export function renderAgencySite(
       "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
       "pager.prev":"Previous","pager.next":"Next",
-      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number",
+      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number","card.call":"Call",
+      "modal.close":"Close","modal.gallery":"Photos",
+      "tour.heading":"Schedule a tour","tour.date":"Preferred date","tour.note":"Note (optional)","tour.submit":"Request tour","tour.done":"Tour requested — the agency will be in touch.",
+      "auth.heading":"Sign in to schedule","auth.email":"Email","auth.password":"Password","auth.name":"Name","auth.login":"Log in","auth.register":"Register","auth.toggleToRegister":"New here? Register","auth.toggleToLogin":"Have an account? Log in","auth.signedInAs":"Signed in as",
       "properties.heading":"Available properties","properties.empty":"No properties match your search.",
       "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
       "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
@@ -475,23 +555,232 @@ export function renderAgencySite(
   try { saved = localStorage.getItem("kluche_lang") || "en"; } catch (e) {}
   setLang(T[saved] ? saved : "en");
 
-  // "Show number" → log a phone-click (fire-and-forget) then reveal + dial.
   (function () {
     var SLUG = ${jsonForScript(agency.slug)};
     var PHONE = ${jsonForScript(agency.phone ?? "")};
-    document.querySelectorAll(".call-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        fetch("/a/" + encodeURIComponent(SLUG) + "/phone-click", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ propertyId: btn.dataset.pid })
-        }).catch(function () {});
-        if (PHONE) {
-          btn.textContent = PHONE;
-          if (/^[+0-9 ]+$/.test(PHONE)) window.location.href = "tel:" + PHONE.replace(/ /g, "");
-        }
-      });
+    var TEL_RE = /^[+0-9 ]+$/;
+    var TOKEN_KEY = "kluche_visitor";
+
+    // "Call" → log a phone-click (fire-and-forget) then dial. Used by both the
+    // card icon buttons and the modal call button.
+    function phoneClick(pid) {
+      fetch("/a/" + encodeURIComponent(SLUG) + "/phone-click", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ propertyId: pid })
+      }).catch(function () {});
+      if (PHONE && TEL_RE.test(PHONE)) {
+        window.location.href = "tel:" + PHONE.replace(/ /g, "");
+      }
+    }
+    document.querySelectorAll(".card .call-btn").forEach(function (btn) {
+      btn.addEventListener("click", function (e) { e.stopPropagation(); phoneClick(btn.dataset.pid); });
     });
+
+    // --- Listing detail modal ---------------------------------------------
+    var byId = {};
+    try {
+      var raw = document.getElementById("kluche-listings");
+      (JSON.parse(raw ? raw.textContent : "[]") || []).forEach(function (l) { byId[l.id] = l; });
+    } catch (e) {}
+
+    var modal = document.getElementById("kluche-modal");
+    if (modal) {
+      var galImg = modal.querySelector(".gal-img");
+      var galPrev = modal.querySelector(".gal-prev");
+      var galNext = modal.querySelector(".gal-next");
+      var galCounter = modal.querySelector(".gal-counter");
+      var elTag = modal.querySelector(".modal-tag");
+      var elTitle = modal.querySelector(".modal-title");
+      var elPrice = modal.querySelector(".modal-price");
+      var elCity = modal.querySelector(".modal-city");
+      var elBadges = modal.querySelector(".modal-badges");
+      var elType = modal.querySelector(".modal-type");
+      var callBtn = modal.querySelector(".modal-call");
+      var tourPanel = document.getElementById("kluche-tour");
+
+      var photos = [];
+      var photoIdx = 0;
+
+      function fmtMoney(minor, currency) {
+        var amount = (Number(minor) || 0) / 100;
+        try {
+          return new Intl.NumberFormat(LANG, { style: "currency", currency: currency || "EUR" }).format(amount);
+        } catch (e) {
+          return (currency || "EUR") + " " + amount.toFixed(2);
+        }
+      }
+      function showPhoto() {
+        if (!photos.length) {
+          galImg.removeAttribute("src"); galImg.alt = "";
+          galCounter.textContent = ""; galPrev.style.display = "none"; galNext.style.display = "none";
+          return;
+        }
+        galImg.setAttribute("src", photos[photoIdx]);
+        galCounter.textContent = (photoIdx + 1) + " / " + photos.length;
+        var multi = photos.length > 1;
+        galPrev.style.display = multi ? "" : "none";
+        galNext.style.display = multi ? "" : "none";
+      }
+      galPrev.addEventListener("click", function () { if (photos.length) { photoIdx = (photoIdx - 1 + photos.length) % photos.length; showPhoto(); } });
+      galNext.addEventListener("click", function () { if (photos.length) { photoIdx = (photoIdx + 1) % photos.length; showPhoto(); } });
+
+      function openModal(id) {
+        var l = byId[id];
+        if (!l) return;
+        photos = Array.isArray(l.photos) ? l.photos.slice() : [];
+        photoIdx = 0;
+        galImg.alt = String(l.name || "");
+        showPhoto();
+        var isRent = l.dealType === "rent";
+        elTag.textContent = isRent ? t("card.forRent") : t("card.forSale");
+        elTag.className = "modal-tag " + (isRent ? "is-rent" : "is-sale");
+        elTitle.textContent = String(l.name || "");
+        elPrice.textContent = fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : "");
+        elCity.textContent = String(l.city || "");
+        elBadges.textContent = "";
+        var parts = [];
+        if (l.bedrooms != null) parts.push(l.bedrooms + " bd");
+        if (l.bathrooms != null) parts.push(l.bathrooms + " ba");
+        if (l.areaM2 != null) parts.push(l.areaM2 + " m²");
+        parts.forEach(function (p) { var s = document.createElement("span"); s.textContent = p; elBadges.appendChild(s); });
+        elType.textContent = l.type ? String(l.type) : "";
+        callBtn.dataset.pid = id;
+        renderTour(id);
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal() {
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+      }
+
+      callBtn.addEventListener("click", function () { phoneClick(callBtn.dataset.pid); });
+      modal.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", closeModal); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && modal.style.display !== "none") closeModal(); });
+
+      document.querySelectorAll(".card[data-id]").forEach(function (card) {
+        card.addEventListener("click", function (e) {
+          if (e.target.closest(".call-btn")) return;
+          openModal(card.dataset.id);
+        });
+        card.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(card.dataset.id); }
+        });
+      });
+
+      // --- Tour / visitor auth panel --------------------------------------
+      function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+      function setToken(v) { try { if (v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+
+      function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+      function mkLabel(textKey, input) {
+        var lab = document.createElement("label");
+        var span = document.createElement("span");
+        span.textContent = t(textKey);
+        lab.appendChild(span);
+        lab.appendChild(input);
+        return lab;
+      }
+
+      function renderTour(listingId) {
+        clear(tourPanel);
+        var token = getToken();
+        if (token) {
+          fetch("/api/visitor/me", { headers: { "Authorization": "Bearer " + token } })
+            .then(function (r) {
+              if (r.ok) return r.json().then(function (d) { renderTourForm(listingId, d && d.visitor ? d.visitor : null); });
+              if (r.status === 401) { setToken(""); renderAuth(listingId); return; }
+              renderAuth(listingId);
+            })
+            .catch(function () { renderAuth(listingId); });
+        } else {
+          renderAuth(listingId);
+        }
+      }
+
+      function renderTourForm(listingId, visitor) {
+        clear(tourPanel);
+        var h = document.createElement("h4"); h.textContent = t("tour.heading"); tourPanel.appendChild(h);
+        if (visitor && visitor.email) {
+          var who = document.createElement("p"); who.className = "tour-signed";
+          who.textContent = t("auth.signedInAs") + " " + visitor.email; tourPanel.appendChild(who);
+        }
+        var dateInput = document.createElement("input"); dateInput.type = "date";
+        var noteInput = document.createElement("textarea"); noteInput.rows = 3;
+        tourPanel.appendChild(mkLabel("tour.date", dateInput));
+        tourPanel.appendChild(mkLabel("tour.note", noteInput));
+        var go = document.createElement("button"); go.type = "button"; go.className = "tour-go"; go.textContent = t("tour.submit");
+        tourPanel.appendChild(go);
+        var msg = document.createElement("p"); msg.className = "tour-msg"; tourPanel.appendChild(msg);
+        go.addEventListener("click", function () {
+          msg.className = "tour-msg"; msg.textContent = "";
+          if (!dateInput.value) { msg.className = "tour-msg err"; msg.textContent = t("tour.date"); return; }
+          var token = getToken();
+          go.disabled = true;
+          fetch("/a/" + encodeURIComponent(SLUG) + "/tour", {
+            method: "POST",
+            headers: { "content-type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ propertyId: listingId, tourDate: dateInput.value, note: noteInput.value || undefined })
+          }).then(function (r) {
+            go.disabled = false;
+            if (r.status === 201) { clear(tourPanel); var done = document.createElement("p"); done.className = "tour-msg"; done.textContent = t("tour.done"); tourPanel.appendChild(done); return; }
+            if (r.status === 401) { setToken(""); renderAuth(listingId); return; }
+            msg.className = "tour-msg err"; msg.textContent = "Error";
+          }).catch(function () { go.disabled = false; msg.className = "tour-msg err"; msg.textContent = "Error"; });
+        });
+      }
+
+      function renderAuth(listingId) {
+        clear(tourPanel);
+        var mode = "login"; // or "register"
+        var h = document.createElement("h4"); h.textContent = t("auth.heading"); tourPanel.appendChild(h);
+        var emailInput = document.createElement("input"); emailInput.type = "email"; emailInput.autocomplete = "email";
+        var pwInput = document.createElement("input"); pwInput.type = "password"; pwInput.autocomplete = "current-password";
+        var nameInput = document.createElement("input"); nameInput.type = "text"; nameInput.autocomplete = "name";
+        var emailLabel = mkLabel("auth.email", emailInput);
+        var pwLabel = mkLabel("auth.password", pwInput);
+        var nameLabel = mkLabel("auth.name", nameInput);
+        tourPanel.appendChild(emailLabel);
+        tourPanel.appendChild(pwLabel);
+        tourPanel.appendChild(nameLabel);
+        var go = document.createElement("button"); go.type = "button"; go.className = "tour-go";
+        tourPanel.appendChild(go);
+        var toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "tour-toggle";
+        tourPanel.appendChild(toggle);
+        var msg = document.createElement("p"); msg.className = "tour-msg"; tourPanel.appendChild(msg);
+        function sync() {
+          go.textContent = mode === "register" ? t("auth.register") : t("auth.login");
+          toggle.textContent = mode === "register" ? t("auth.toggleToLogin") : t("auth.toggleToRegister");
+          nameLabel.style.display = mode === "register" ? "" : "none";
+        }
+        sync();
+        toggle.addEventListener("click", function () { mode = mode === "register" ? "login" : "register"; msg.textContent = ""; msg.className = "tour-msg"; sync(); });
+        go.addEventListener("click", function () {
+          msg.className = "tour-msg"; msg.textContent = "";
+          if (!emailInput.value || !pwInput.value) { msg.className = "tour-msg err"; msg.textContent = t("auth.email"); return; }
+          var path = mode === "register" ? "/api/visitor/signup" : "/api/visitor/login";
+          var body = { email: emailInput.value, password: pwInput.value };
+          if (mode === "register" && nameInput.value) body.name = nameInput.value;
+          go.disabled = true;
+          fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+            .then(function (r) {
+              return r.json().then(function (d) { return { status: r.status, data: d }; }).catch(function () { return { status: r.status, data: null }; });
+            })
+            .then(function (res) {
+              go.disabled = false;
+              if ((res.status === 200 || res.status === 201) && res.data && res.data.token) {
+                setToken(res.data.token);
+                renderTourForm(listingId, res.data.visitor || null);
+                return;
+              }
+              msg.className = "tour-msg err";
+              msg.textContent = res.status === 409 ? t("auth.toggleToLogin") : (res.status === 401 ? t("auth.login") : "Error");
+            })
+            .catch(function () { go.disabled = false; msg.className = "tour-msg err"; msg.textContent = "Error"; });
+        });
+      }
+    }
   })();
   </script>
 </body>
