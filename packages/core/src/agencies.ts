@@ -63,7 +63,7 @@ const SAFE_COLOR = /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)$/;
 export async function updateAgencyConfig(
   db: Database,
   agencyId: string,
-  patch: { logoUrl?: string; colorPrimary?: string; colorAccent?: string; tagline?: string },
+  patch: { logoUrl?: string; colorPrimary?: string; colorAccent?: string; tagline?: string; phone?: string },
 ): Promise<Agency> {
   for (const key of ["colorPrimary", "colorAccent"] as const) {
     const value = patch[key];
@@ -77,6 +77,7 @@ export async function updateAgencyConfig(
   if (patch.colorPrimary !== undefined) safe.colorPrimary = patch.colorPrimary;
   if (patch.colorAccent !== undefined) safe.colorAccent = patch.colorAccent;
   if (patch.tagline !== undefined) safe.tagline = patch.tagline;
+  if (patch.phone !== undefined) safe.phone = patch.phone;
   const [agency] = await db.update(agencies).set(safe).where(eq(agencies.id, agencyId)).returning();
   return agency;
 }

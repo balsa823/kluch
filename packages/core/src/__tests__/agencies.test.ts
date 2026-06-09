@@ -86,6 +86,17 @@ test("updateAgencyConfig accepts a valid hex color", async () => {
   expect(updated.colorPrimary).toBe("#abc123");
 });
 
+test("updateAgencyConfig sets phone without changing other columns", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  const updated = await updateAgencyConfig(db, a.id, { phone: "+382 67 123 456" });
+  expect(updated.phone).toBe("+382 67 123 456");
+  expect(updated.name).toBe(a.name);
+  expect(updated.slug).toBe(a.slug);
+  expect(updated.colorPrimary).toBe("#1F3A5C");
+  expect(updated.colorAccent).toBe("#4E827A");
+  expect(updated.tagline).toBeNull();
+});
+
 test("addAgencyDomain + getAgencyByDomain round-trip (lowercased)", async () => {
   const a = await createAgency(db, { name: "Adriatic Homes" });
   const d = await addAgencyDomain(db, a.id, "  Adriatic.ME  ");

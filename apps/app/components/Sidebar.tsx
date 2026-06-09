@@ -42,6 +42,7 @@ export function Sidebar() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   const isAgency = pathname?.startsWith("/agency") ?? false;
+  const isLeads = pathname?.startsWith("/leads") ?? false;
   const isWebsite = pathname?.startsWith("/website") ?? false;
 
   async function onLogout() {
@@ -79,6 +80,12 @@ export function Sidebar() {
           icon="🏠"
           active={isAgency}
           onPress={() => router.push("/agency")}
+        />
+        <NavItem
+          label="Leads"
+          icon="📥"
+          active={isLeads}
+          onPress={() => router.push("/leads")}
         />
       </View>
 

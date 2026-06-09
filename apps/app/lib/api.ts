@@ -193,6 +193,30 @@ export function agencySiteUrl(slug: string): string {
   return `${host}/a/${slug}`;
 }
 
+export type Lead = {
+  id: string;
+  kind: "inquiry" | "tour" | "phone_click";
+  propertyId: string | null;
+  propertyName: string | null;
+  name: string | null;
+  contact: string | null;
+  message: string | null;
+  tourDate: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export async function listLeads(
+  token: string,
+  kind: "inquiry" | "tour" | "phone_click",
+): Promise<Lead[]> {
+  const data = await request<{ leads: Lead[] }>(
+    `/api/agency/leads?kind=${kind}`,
+    { method: "GET", headers: headers(token) },
+  );
+  return data.leads;
+}
+
 export function formatMoney(minor: number, currency = "EUR"): string {
   const symbols: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
   const symbol = symbols[currency] ?? currency + " ";

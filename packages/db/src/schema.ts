@@ -57,6 +57,7 @@ export const agencies = pgTable("agencies", {
   colorPrimary: text("color_primary").notNull().default("#1F3A5C"),
   colorAccent: text("color_accent").notNull().default("#4E827A"),
   tagline: text("tagline"),
+  phone: text("phone"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -64,8 +65,11 @@ export const inquiries = pgTable("inquiries", {
   id: uuid("id").defaultRandom().primaryKey(),
   agencyId: uuid("agency_id").notNull().references(() => agencies.id),
   propertyId: uuid("property_id").references(() => properties.id),
-  name: text("name").notNull(),
-  contact: text("contact").notNull(),
+  kind: text("kind").notNull().default("inquiry"),
+  visitorId: uuid("visitor_id"),
+  tourDate: text("tour_date"),
+  name: text("name"),
+  contact: text("contact"),
   message: text("message"),
   status: text("status").notNull().default("new"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

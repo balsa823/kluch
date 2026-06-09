@@ -45,6 +45,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
           <Stack.Screen name="agency" />
+          <Stack.Screen name="leads" />
           <Stack.Screen name="website" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="law" />
