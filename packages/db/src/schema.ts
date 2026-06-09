@@ -104,6 +104,14 @@ export const partnerUsers = pgTable("partner_users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const visitors = pgTable("visitors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  passwordHash: text("password_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const leases = pgTable("leases", {
   id: uuid("id").defaultRandom().primaryKey(),
   propertyId: uuid("property_id").notNull().references(() => properties.id),
