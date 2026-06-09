@@ -256,8 +256,10 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     let v: Visitor;
     try {
       v = await createVisitor(db, { email, name: name || undefined, password });
-    } catch {
-      return c.json({ error: "email already registered" }, 409);
+    } catch (e) {
+      // 409 only for a duplicate email (unique violation); anything else surfaces as 500.
+      if ((e as { code?: string })?.code === "23505") return c.json({ error: "email already registered" }, 409);
+      throw e;
     }
     return c.json({
       token: signToken({ sub: v.id, t: "visitor" }, sessionSecret, TOKEN_TTL),

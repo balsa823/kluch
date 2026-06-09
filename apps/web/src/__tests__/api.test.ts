@@ -580,6 +580,19 @@ test("POST /a/:slug/tour with a propertyId from another agency returns 400", asy
   expect(await listInquiries(db, agency.id, { kind: "tour" })).toHaveLength(0);
 });
 
+test("POST /a/:slug/tour with a PARTNER token (not a visitor) returns 401", async () => {
+  const agency = await seedPartner(); // agency "popovic" + partner@popovic.me / pw123
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+  const res = await app.request(new Request(`http://localhost/a/${agency.slug}/tour`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ tourDate: "2026-07-01" }),
+  }));
+  expect(res.status).toBe(401); // partner token is not a visitor token
+  expect(await listInquiries(db, agency.id, { kind: "tour" })).toHaveLength(0);
+});
+
 test("a visitor token does NOT satisfy agencyScope: GET /api/agency/leads returns 403", async () => {
   await seedPartner(); // creates an agency so leads endpoint has data to scope against
   const app = createApp(db, { sessionSecret: SECRET });
