@@ -97,6 +97,71 @@ test("updateAgencyConfig sets phone without changing other columns", async () =>
   expect(updated.tagline).toBeNull();
 });
 
+test("updateAgencyConfig sets new settings fields", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  const hours = {
+    mon: { open: "09:00", close: "17:00" },
+    sun: null,
+  };
+  const updated = await updateAgencyConfig(db, a.id, {
+    heroHeadline: "  Find your home  ",
+    email: "hi@adriatic.me",
+    defaultLang: "sr",
+    observeHolidays: true,
+    businessHours: hours,
+    customClosures: [{ from: "2026-08-15", to: "2026-08-20", label: "Summer break" }],
+    socials: { instagram: "https://instagram.com/adriatic", facebook: "" },
+    heroImageUrl: "/uploads/hero.jpg",
+  });
+  expect(updated.heroHeadline).toBe("Find your home"); // trimmed
+  expect(updated.email).toBe("hi@adriatic.me");
+  expect(updated.defaultLang).toBe("sr");
+  expect(updated.observeHolidays).toBe(true);
+  expect(updated.businessHours).toEqual(hours);
+  expect(updated.customClosures).toEqual([{ from: "2026-08-15", to: "2026-08-20", label: "Summer break" }]);
+  expect(updated.socials).toEqual({ instagram: "https://instagram.com/adriatic" }); // empty dropped
+  expect(updated.heroImageUrl).toBe("/uploads/hero.jpg");
+});
+
+test("updateAgencyConfig rejects malformed business hours", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  await expect(
+    updateAgencyConfig(db, a.id, { businessHours: { mon: { open: "9", close: "17:00" } } }),
+  ).rejects.toThrow("Invalid hours");
+  await expect(
+    updateAgencyConfig(db, a.id, { businessHours: { holiday: null } as never }),
+  ).rejects.toThrow("Invalid hours");
+});
+
+test("updateAgencyConfig rejects a javascript: URL", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  await expect(
+    updateAgencyConfig(db, a.id, { heroImageUrl: "javascript:alert(1)" }),
+  ).rejects.toThrow("Invalid URL");
+  await expect(
+    updateAgencyConfig(db, a.id, { socials: { facebook: "javascript:alert(1)" } }),
+  ).rejects.toThrow("Invalid socials");
+});
+
+test("updateAgencyConfig rejects an unsupported language", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  await expect(
+    updateAgencyConfig(db, a.id, { defaultLang: "de" }),
+  ).rejects.toThrow("Invalid language");
+});
+
+test("updateAgencyConfig ignores non-whitelisted keys", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  const updated = await updateAgencyConfig(db, a.id, {
+    // @ts-expect-error slug is not part of the patch and must be ignored
+    slug: "hacked", name: "Hacked", refSeq: 999,
+    tagline: "ok",
+  });
+  expect(updated.slug).toBe(a.slug);
+  expect(updated.name).toBe("Adriatic Homes");
+  expect(updated.tagline).toBe("ok");
+});
+
 test("addAgencyDomain + getAgencyByDomain round-trip (lowercased)", async () => {
   const a = await createAgency(db, { name: "Adriatic Homes" });
   const d = await addAgencyDomain(db, a.id, "  Adriatic.ME  ");
