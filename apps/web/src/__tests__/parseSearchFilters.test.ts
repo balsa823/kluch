@@ -21,4 +21,18 @@ describe("parseSearchFilters", () => {
   it("ignores blanks and bad values", () => {
     expect(parseSearchFilters({ city: "", page: "0", dealType: "x" })).toEqual({});
   });
+
+  it("normalizes a ref code to upper-case", () => {
+    expect(parseSearchFilters({ code: "st-0042" }).refCode).toBe("ST-0042");
+  });
+
+  it("trims surrounding whitespace from a ref code", () => {
+    expect(parseSearchFilters({ code: "  st-0042 " }).refCode).toBe("ST-0042");
+  });
+
+  it("ignores a ref code that does not match the XX-NNNN shape", () => {
+    expect(parseSearchFilters({ code: "hello" }).refCode).toBeUndefined();
+    expect(parseSearchFilters({ code: "ST" }).refCode).toBeUndefined();
+    expect(parseSearchFilters({ code: "" }).refCode).toBeUndefined();
+  });
 });

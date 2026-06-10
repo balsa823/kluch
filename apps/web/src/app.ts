@@ -90,6 +90,13 @@ export function parseSearchFilters(query: Record<string, string | undefined>): S
   const page = toInt(query.page);
   if (page !== undefined && page > 0) filters.page = page;
 
+  // Ref-code look-up: normalize (trim + uppercase) and accept only well-formed
+  // codes (XX-NNNN). Junk is ignored silently so it doesn't filter to nothing.
+  if (query.code !== undefined) {
+    const code = query.code.trim().toUpperCase();
+    if (/^[A-Z]{2,6}-\d+$/.test(code)) filters.refCode = code;
+  }
+
   return filters;
 }
 

@@ -45,8 +45,12 @@ export const properties = pgTable("properties", {
   dealType: dealTypeEnum("deal_type").notNull().default("rent"),
   photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
   sourceId: text("source_id"),
+  refCode: text("ref_code"),
 }, (table) => ({
   agencySource: uniqueIndex("properties_agency_source").on(table.agencyId, table.sourceId),
+  agencyRefCode: uniqueIndex("properties_agency_refcode")
+    .on(table.agencyId, table.refCode)
+    .where(sql`ref_code is not null`),
 }));
 
 export const agencies = pgTable("agencies", {
@@ -58,6 +62,8 @@ export const agencies = pgTable("agencies", {
   colorAccent: text("color_accent").notNull().default("#4E827A"),
   tagline: text("tagline"),
   phone: text("phone"),
+  refPrefix: text("ref_prefix"),
+  refSeq: integer("ref_seq").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
 import { inquiries, leases, properties, type Database } from "@kluche/db";
+import { allocateRefCode } from "./refcode.js";
 
 /** Thrown by deleteProperty when the listing still has lease records (financial data). */
 export class ListingHasLeasesError extends Error {
@@ -32,25 +33,29 @@ export interface CreatePropertyInput {
 }
 
 export async function createProperty(db: Database, input: CreatePropertyInput): Promise<Property> {
-  const [property] = await db.insert(properties)
-    .values({
-      agencyId: input.agencyId,
-      name: input.name,
-      address: input.address,
-      city: input.city,
-      priceMinor: input.priceMinor,
-      currency: input.currency ?? "EUR",
-      bedrooms: input.bedrooms,
-      bathrooms: input.bathrooms,
-      areaM2: input.areaM2,
-      type: input.type,
-      dealType: input.dealType,
-      photos: input.photos,
-      sourceId: input.sourceId,
-      status: "draft",
-    })
-    .returning();
-  return property;
+  return db.transaction(async (tx) => {
+    const refCode = await allocateRefCode(tx, input.agencyId);
+    const [property] = await tx.insert(properties)
+      .values({
+        agencyId: input.agencyId,
+        name: input.name,
+        address: input.address,
+        city: input.city,
+        priceMinor: input.priceMinor,
+        currency: input.currency ?? "EUR",
+        bedrooms: input.bedrooms,
+        bathrooms: input.bathrooms,
+        areaM2: input.areaM2,
+        type: input.type,
+        dealType: input.dealType,
+        photos: input.photos,
+        sourceId: input.sourceId,
+        status: "draft",
+        refCode,
+      })
+      .returning();
+    return property;
+  });
 }
 
 export async function publishProperty(db: Database, id: string): Promise<Property> {
@@ -167,6 +172,7 @@ export interface SearchFilters {
   bedrooms?: number;
   type?: PropertyType;
   dealType?: "rent" | "sale";
+  refCode?: string;
   page?: number;
 }
 
@@ -182,6 +188,7 @@ function searchConditions(agencyId: string, filters: SearchFilters): SQL[] {
   if (filters.bedrooms !== undefined) conditions.push(gte(properties.bedrooms, filters.bedrooms));
   if (filters.type !== undefined) conditions.push(eq(properties.type, filters.type));
   if (filters.dealType !== undefined) conditions.push(eq(properties.dealType, filters.dealType));
+  if (filters.refCode) conditions.push(eq(properties.refCode, filters.refCode));
   return conditions;
 }
 
