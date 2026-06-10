@@ -240,6 +240,69 @@ test("searchProperties by code still respects published-only", async () => {
   expect(await searchProperties(db, a.id, { refCode: draft.refCode! })).toEqual([]);
 });
 
+test("createProperty stores area", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "With area", address: "A", city: "Budva", priceMinor: 100000, area: "Bečići",
+  });
+  expect(p.area).toBe("Bečići");
+});
+
+test("updateProperty sets area and ignores non-whitelisted keys", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "N", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  const updated = await updateProperty(db, p.id, { area: "Rafailovići", agencyId: "junk" } as never);
+  expect(updated.area).toBe("Rafailovići");
+  expect(updated.agencyId).toBe(a.id); // non-whitelisted agencyId ignored
+  // area is nullable on update
+  const cleared = await updateProperty(db, p.id, { area: null });
+  expect(cleared.area).toBeNull();
+});
+
+async function seedLocations(agencyId: string) {
+  const becici = await createProperty(db, { agencyId, name: "Becici flat", address: "Plaža 1", city: "Budva", priceMinor: 100000, area: "Bečići" });
+  const rafailovici = await createProperty(db, { agencyId, name: "Rafailovici villa", address: "Obala 2", city: "Budva", priceMinor: 200000, area: "Rafailovići" });
+  const budvaNoArea = await createProperty(db, { agencyId, name: "Budva centre", address: "Centar 3", city: "Budva", priceMinor: 150000 });
+  const dobrota = await createProperty(db, { agencyId, name: "Dobrota house", address: "Bay 4", city: "Kotor", priceMinor: 300000, area: "Dobrota" });
+  for (const p of [becici, rafailovici, budvaNoArea, dobrota]) await publishProperty(db, p.id);
+  return { becici, rafailovici, budvaNoArea, dobrota };
+}
+
+test("searchProperties by location: whole city returns all of that city", async () => {
+  const a = await agency();
+  await seedLocations(a.id);
+  const results = await searchProperties(db, a.id, { locations: [{ city: "Budva" }] });
+  expect(results.map((r) => r.name).sort()).toEqual(["Becici flat", "Budva centre", "Rafailovici villa"]);
+});
+
+test("searchProperties by location: city+area returns only that area, excludes null-area rows", async () => {
+  const a = await agency();
+  await seedLocations(a.id);
+  const results = await searchProperties(db, a.id, { locations: [{ city: "Budva", area: "Bečići" }] });
+  expect(results.map((r) => r.name)).toEqual(["Becici flat"]);
+});
+
+test("searchProperties by location: multiple entries OR together", async () => {
+  const a = await agency();
+  await seedLocations(a.id);
+  const results = await searchProperties(db, a.id, {
+    locations: [{ city: "Budva", area: "Bečići" }, { city: "Kotor" }],
+  });
+  expect(results.map((r) => r.name).sort()).toEqual(["Becici flat", "Dobrota house"]);
+});
+
+test("searchProperties free-text matches name or address (ilike)", async () => {
+  const a = await agency();
+  const byName = await createProperty(db, { agencyId: a.id, name: "Penthouse Delight", address: "Somewhere 1", city: "Budva", priceMinor: 100000 });
+  const byAddr = await createProperty(db, { agencyId: a.id, name: "Plain unit", address: "Penthouse Road 9", city: "Budva", priceMinor: 100000 });
+  const neither = await createProperty(db, { agencyId: a.id, name: "Cottage", address: "Hill 2", city: "Kotor", priceMinor: 100000 });
+  for (const p of [byName, byAddr, neither]) await publishProperty(db, p.id);
+  const results = await searchProperties(db, a.id, { text: "penthouse" });
+  expect(results.map((r) => r.name).sort()).toEqual(["Penthouse Delight", "Plain unit"]);
+});
+
 test("searchProperties is isolated per agency", async () => {
   const a = await agency("Agency A");
   const b = await agency("Agency B");

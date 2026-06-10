@@ -117,6 +117,9 @@ importers:
       '@kluche/db':
         specifier: workspace:*
         version: link:../db
+      '@kluche/locations':
+        specifier: workspace:*
+        version: link:../locations
       '@supabase/supabase-js':
         specifier: ^2
         version: 2.107.0

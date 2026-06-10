@@ -31,6 +31,7 @@ export const properties = pgTable("properties", {
   name: text("name").notNull(),
   address: text("address").notNull(),
   city: text("city").notNull(),
+  area: text("area"),
   landlordName: text("landlord_name"),
   landlordContact: text("landlord_contact"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
