@@ -566,16 +566,17 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const raw = c.req.query("kind");
     const kind = raw === "inquiry" || raw === "tour" || raw === "phone_click" ? raw : undefined;
     const leads = await listInquiries(db, scope, { kind });
-    // Enrich each lead with its property name (one lookup per distinct property).
+    // Enrich each lead with its property name + ref code (one lookup per distinct property).
     const ids = [...new Set(leads.map((l) => l.propertyId).filter((id): id is string => !!id))];
-    const names = new Map<string, string>();
+    const props = new Map<string, { name: string; refCode: string | null }>();
     for (const id of ids) {
       const prop = await getProperty(db, id);
-      if (prop) names.set(id, prop.name);
+      if (prop) props.set(id, { name: prop.name, refCode: prop.refCode });
     }
     const enriched = leads.map((l) => ({
       ...l,
-      propertyName: l.propertyId ? names.get(l.propertyId) ?? null : null,
+      propertyName: l.propertyId ? props.get(l.propertyId)?.name ?? null : null,
+      refCode: l.propertyId ? props.get(l.propertyId)?.refCode ?? null : null,
     }));
     return c.json({ leads: enriched });
   });

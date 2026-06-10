@@ -420,10 +420,13 @@ test("GET /api/agency/leads?kind=phone_click returns only phone_click leads with
     headers: { Authorization: `Bearer ${token}` },
   }));
   expect(res.status).toBe(200);
-  const { leads } = (await res.json()) as { leads: { kind: string; propertyId: string | null; propertyName: string | null }[] };
+  const { leads } = (await res.json()) as { leads: { kind: string; propertyId: string | null; propertyName: string | null; refCode: string | null }[] };
   expect(leads).toHaveLength(1);
   expect(leads[0].kind).toBe("phone_click");
   expect(leads[0].propertyName).toBe("Seaside Studio");
+  // The lead carries the listing's ref code so the console can group clicks by it.
+  expect(leads[0].refCode).toBe(prop.refCode);
+  expect(leads[0].refCode).toMatch(/^[A-Z]{2,}-\d{4,}$/);
 });
 
 test("GET /api/agency/leads without a token returns 403", async () => {

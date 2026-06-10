@@ -256,6 +256,7 @@ export type Lead = {
   kind: "inquiry" | "tour" | "phone_click";
   propertyId: string | null;
   propertyName: string | null;
+  refCode: string | null;
   name: string | null;
   contact: string | null;
   message: string | null;
