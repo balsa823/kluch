@@ -11,6 +11,22 @@ const agency: Agency = {
   colorAccent: "#4E827A",
   tagline: "Your home on the Adriatic",
   phone: null,
+  heroHeadline: null,
+  heroImageUrl: null,
+  faviconUrl: null,
+  email: null,
+  whatsapp: null,
+  viber: null,
+  address: null,
+  mapUrl: null,
+  aboutBlurb: null,
+  footerName: null,
+  notifyEmail: null,
+  defaultLang: null,
+  observeHolidays: false,
+  businessHours: null,
+  customClosures: null,
+  socials: null,
   refPrefix: "PO",
   refSeq: 2,
   createdAt: new Date(),
@@ -368,4 +384,170 @@ test("price chip keeps its €range label after a server render (Search), not ju
   // min only → open-ended max
   const minOnly = renderAgencySite(agency, listings, { minPrice: 50000 });
   expect(minOnly).toContain("€500–∞");
+});
+
+// --- Hero ------------------------------------------------------------------
+
+test("hero H1 uses agency.heroHeadline literally when set", () => {
+  const html = renderAgencySite({ ...agency, heroHeadline: "Live by the sea" }, listings);
+  expect(html).toMatch(/<h1[^>]*>Live by the sea<\/h1>/);
+  // when a headline is set, the H1 is literal (not the localizable default)
+  expect(html).not.toMatch(/<h1 data-i18n="hero.title">/);
+});
+
+test("hero H1 falls back to the localizable default when no heroHeadline", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toMatch(/<h1 data-i18n="hero.title">Find Your Perfect Home<\/h1>/);
+});
+
+test("hero headline is escaped", () => {
+  const html = renderAgencySite({ ...agency, heroHeadline: "<script>alert(1)</script>" }, listings);
+  expect(html).not.toContain("<script>alert(1)</script>");
+});
+
+test("hero subtitle stays the agency tagline", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("Your home on the Adriatic");
+});
+
+test("hero background prefers agency.heroImageUrl over the first listing photo", () => {
+  const html = renderAgencySite({ ...agency, heroImageUrl: "https://cdn.example/hero.jpg" }, listings);
+  expect(html).toContain("url('https://cdn.example/hero.jpg')");
+  // first-listing-photo no longer drives the hero when heroImageUrl is set
+  expect(html).not.toMatch(/header\.hero[\s\S]*url\('https:\/\/cdn\.example\/p1\.jpg'\)/);
+});
+
+test("hero falls back to the first listing photo when no heroImageUrl", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("url('https://cdn.example/p1.jpg')");
+});
+
+test("hero falls back to the gradient when no heroImageUrl and no photos", () => {
+  const noPhotos = [{ ...listings[0], photos: [] }] as Property[];
+  const html = renderAgencySite(agency, noPhotos);
+  expect(html).toContain("linear-gradient(135deg, var(--color-primary)");
+});
+
+test("favicon link present only when faviconUrl is set and safe", () => {
+  const withFav = renderAgencySite({ ...agency, faviconUrl: "https://cdn.example/fav.ico" }, listings);
+  expect(withFav).toContain(`<link rel="icon" href="https://cdn.example/fav.ico">`);
+  // none by default
+  expect(renderAgencySite(agency, listings)).not.toContain(`rel="icon"`);
+  // unsafe url is rejected
+  const evil = renderAgencySite({ ...agency, faviconUrl: "javascript:alert(1)" }, listings);
+  expect(evil).not.toContain(`rel="icon"`);
+});
+
+// --- Footer ----------------------------------------------------------------
+
+const HOURS = {
+  mon: { open: "09:00", close: "17:00" },
+  tue: { open: "09:00", close: "17:00" },
+  wed: { open: "09:00", close: "17:00" },
+  thu: { open: "09:00", close: "17:00" },
+  fri: { open: "09:00", close: "17:00" },
+  sat: { open: "10:00", close: "14:00" },
+  sun: null,
+};
+
+test("footer renders the legal line with footerName fallback to name + Powered by Kluche", () => {
+  expect(renderAgencySite(agency, listings)).toContain("Popović Nekretnine");
+  const html = renderAgencySite({ ...agency, footerName: "Popović Group d.o.o." }, listings);
+  expect(html).toContain("Popović Group d.o.o.");
+  expect(html).toContain("Powered by Kluch");
+});
+
+test("footer renders 7 business-hours rows with localized day keys and times", () => {
+  const html = renderAgencySite({ ...agency, businessHours: HOURS } as Agency, listings);
+  expect(html).toContain(`data-i18n="footer.hours"`);
+  expect(html).toContain(`data-i18n="day.mon"`);
+  expect(html).toContain(`data-i18n="day.sun"`);
+  expect(html).toContain("09:00–17:00");
+  expect(html).toContain("10:00–14:00");
+  // the closed (null) day shows a localizable "Closed"
+  expect(html).toContain(`data-i18n="footer.closedDay"`);
+});
+
+test("footer open-now badge reflects openStatus (open within hours)", () => {
+  // Monday 2026-06-08 12:00 Podgorica → open with the HOURS fixture.
+  const html = renderAgencySite(
+    { ...agency, businessHours: HOURS } as Agency,
+    listings,
+    {},
+    { now: new Date("2026-06-08T10:00:00Z") },
+  );
+  expect(html).toContain(`class="open-badge is-open"`);
+  expect(html).toContain(`data-i18n="footer.openNow"`);
+});
+
+test("footer open-now badge is closed outside hours", () => {
+  // Sunday 2026-06-07 → null hours → closed.
+  const html = renderAgencySite(
+    { ...agency, businessHours: HOURS } as Agency,
+    listings,
+    {},
+    { now: new Date("2026-06-07T10:00:00Z") },
+  );
+  expect(html).toContain(`class="open-badge is-closed"`);
+});
+
+test("footer renders social icons only for present, safe socials", () => {
+  const html = renderAgencySite(
+    { ...agency, socials: { instagram: "https://instagram.com/popovic", facebook: "javascript:alert(1)" } } as Agency,
+    listings,
+  );
+  expect(html).toContain("https://instagram.com/popovic");
+  // an unsafe facebook url is dropped, and absent socials emit no link
+  expect(html).not.toContain("javascript:alert(1)");
+  expect(html).not.toContain("linkedin");
+});
+
+test("footer renders nothing social when socials is null", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).not.toContain(`class="footer-social"`);
+});
+
+test("footer about uses aboutBlurb when set, else the default about copy", () => {
+  const withBlurb = renderAgencySite({ ...agency, aboutBlurb: "Family-run since 1998." }, listings);
+  expect(withBlurb).toContain("Family-run since 1998.");
+  expect(renderAgencySite(agency, listings)).toContain(`data-i18n="about.body"`);
+});
+
+test("footer contact column renders phone/email/whatsapp/viber/address/map when set", () => {
+  const html = renderAgencySite(
+    {
+      ...agency,
+      phone: "+382 67 111 222",
+      email: "hello@popovic.me",
+      whatsapp: "+38267111222",
+      viber: "+38267111222",
+      address: "Bulevar 1\nPodgorica",
+      mapUrl: "https://maps.example/popovic",
+    },
+    listings,
+  );
+  expect(html).toContain(`href="tel:+382 67 111 222"`);
+  expect(html).toContain(`href="mailto:hello@popovic.me"`);
+  expect(html).toContain("hello@popovic.me");
+  expect(html).toContain("Bulevar 1");
+  expect(html).toContain("https://maps.example/popovic");
+  expect(html).toContain(`data-i18n="footer.contact"`);
+});
+
+test("footer contact escapes the address", () => {
+  const html = renderAgencySite({ ...agency, address: "<b>x</b>" }, listings);
+  expect(html).not.toContain("<b>x</b>");
+});
+
+test("footer looks fine for an unconfigured agency (no hours/socials/contact)", () => {
+  const html = renderAgencySite(agency, listings);
+  const start = html.indexOf('<footer class="site">');
+  const footer = html.slice(start, html.indexOf("</footer>", start));
+  // legal line + powered-by still present; optional columns omitted entirely
+  expect(footer).toContain("Powered by Kluch");
+  expect(footer).not.toContain("undefined");
+  expect(footer).not.toContain("null");
+  expect(footer).not.toContain(`class="footer-hours"`);
+  expect(footer).not.toContain(`class="footer-contact"`);
+  expect(footer).not.toContain(`class="footer-social"`);
 });
