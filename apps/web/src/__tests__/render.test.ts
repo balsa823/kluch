@@ -117,15 +117,18 @@ test("sale listing shows the for-sale tag but no per-month label on its card", (
   expect(html).not.toContain(`data-i18n="card.perMonth"`);
 });
 
-test("renders deal-type filter tabs", () => {
+test("deal type is a dropdown inside the search form (not a separate tab row)", () => {
   const html = renderAgencySite(agency, listings);
-  expect(html).toContain(`href="?dealType=rent"`);
-  expect(html).toContain(`href="?dealType=sale"`);
+  expect(html).toContain(`<select name="dealType">`);
+  expect(html).toContain(`data-i18n="search.dealAny"`); // the "Any" option
+  // the old standalone filter-tab row is gone
+  expect(html).not.toContain(`class="tabs"`);
+  expect(html).not.toContain(`href="?dealType=rent"`);
 });
 
-test("preserves dealType (hidden) + pre-selects the property type", () => {
+test("deal-type dropdown pre-selects the active value + property type", () => {
   const html = renderAgencySite(agency, listings, { dealType: "rent", type: "land" });
-  expect(html).toContain(`name="dealType" value="rent"`); // preserved across search
+  expect(html).toMatch(/<option value="rent"[^>]*selected/); // deal-type filter
   expect(html).toMatch(/<option value="land"[^>]*selected/); // property-type filter
 });
 
@@ -302,18 +305,19 @@ test("no [data-i18n] element wraps a form control (regression: applyLang would d
   expect(html).toContain('name="contact"');
 });
 
-test("rent/sale tabs preserve the active filters", () => {
-  const html = renderAgencySite(agency, listings, { city: "Budva", type: "residential" });
-  // Switching to the rent tab keeps city + type rather than dropping them.
-  expect(html).toContain("city=Budva");
-  expect(html).toContain("dealType=rent");
-  expect(html).toMatch(/href="\?city=Budva[^"]*dealType=rent/);
+test("the single search form carries city + deal type together (they compose)", () => {
+  const html = renderAgencySite(agency, listings, { city: "Budva", dealType: "rent", type: "residential" });
+  // One form submit applies all filters at once: city preserved in its input,
+  // deal type + property type pre-selected in their dropdowns.
+  expect(html).toContain('name="city" value="Budva"');
+  expect(html).toMatch(/<option value="rent"[^>]*selected/);
+  expect(html).toMatch(/<option value="residential"[^>]*selected/);
 });
 
 test("Clear link appears only when a filter is active", () => {
   // Match the rendered anchor, not the always-present CSS rule / dict entry.
-  expect(renderAgencySite(agency, listings, { city: "Budva" })).toContain('class="tab tab-clear"');
-  expect(renderAgencySite(agency, listings, {})).not.toContain('class="tab tab-clear"');
+  expect(renderAgencySite(agency, listings, { city: "Budva" })).toContain('class="search-clear"');
+  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
 });
 
 test("pager and tab hrefs emit price in euros, not cents", () => {

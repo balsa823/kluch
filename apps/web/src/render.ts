@@ -144,11 +144,6 @@ function pageHref(filters: SearchFilters, page: number): string {
   return hrefFromParams(filterParams(filters, { page }));
 }
 
-/** Href for a rent/sale/all tab that keeps the user's other active filters. */
-function tabHref(filters: SearchFilters, dealType: "" | "rent" | "sale"): string {
-  return hrefFromParams(filterParams(filters, { dealType }));
-}
-
 /** True when any filter is active (so we can offer a Clear link). */
 function hasActiveFilters(f: SearchFilters): boolean {
   return Boolean(
@@ -176,9 +171,8 @@ export function renderAgencySite(
     ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroPhoto}'); background-size: cover; background-position: center;`
     : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
 
-  const tabActive = (v: "" | "rent" | "sale") =>
-    (filters.dealType ?? "") === v ? "tab is-active" : "tab";
   const typeSel = (v: string) => ((filters.type ?? "") === v ? " selected" : "");
+  const dealSel = (v: string) => ((filters.dealType ?? "") === v ? " selected" : "");
 
   const hasPhone = !!agency.phone;
   const cards = listings.length
@@ -304,20 +298,16 @@ export function renderAgencySite(
       padding: 0.62rem 1.1rem; border-radius: 9px; font: inherit; cursor: pointer; font-weight: 700;
     }
     form.search button:hover { filter: brightness(1.05); }
-    .tabs a.tab-clear { border-style: dashed; opacity: 0.85; margin-left: auto; }
+    form.search .search-clear {
+      align-self: center; color: var(--color-primary); font-size: 0.82rem; font-weight: 600;
+      text-decoration: underline; opacity: 0.85;
+    }
+    form.search .search-clear:hover { opacity: 1; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
     section { scroll-margin-top: 80px; }
     .section-head { margin: 0 0 1.2rem; }
-
-    /* Filter tabs */
-    .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-    .tabs a {
-      text-decoration: none; padding: 0.45rem 0.95rem; border-radius: 999px;
-      border: 1px solid var(--color-accent); color: var(--color-primary); font-size: 0.9rem;
-    }
-    .tabs a.is-active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 
     /* Pager */
     .pager { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; }
@@ -459,9 +449,15 @@ export function renderAgencySite(
   <header class="hero" id="top">
     <h1>${heroTitle}</h1>
     <form class="search" method="get">
-      <input type="hidden" name="dealType" value="${attr(filters.dealType)}" />
       <label><span data-i18n="search.city">City</span>
         <input type="text" name="city" value="${attr(filters.city)}" data-i18n-ph="search.cityPh" placeholder="Any city" />
+      </label>
+      <label><span data-i18n="search.dealType">Listing</span>
+        <select name="dealType">
+          <option value=""${dealSel("")} data-i18n="search.dealAny">Any</option>
+          <option value="rent"${dealSel("rent")} data-i18n="tab.rent">For rent</option>
+          <option value="sale"${dealSel("sale")} data-i18n="tab.sale">For sale</option>
+        </select>
       </label>
       <label><span data-i18n="search.type">Type</span>
         <select name="type">
@@ -484,18 +480,13 @@ export function renderAgencySite(
         <input type="text" name="code" value="${attr(filters.refCode ?? "")}" />
       </label>
       <button type="submit" data-i18n="search.submit">Search</button>
+      ${hasActiveFilters(filters) ? `<a class="search-clear" href="?" data-i18n="tab.clear">Clear filters</a>` : ""}
     </form>
   </header>
 
   <main>
     <section id="properties">
       <h2 class="section-head" data-i18n="properties.heading">Available properties</h2>
-      <div class="tabs">
-        <a href="${tabHref(filters, "")}" class="${tabActive("")}" data-i18n="tab.all">All</a>
-        <a href="${tabHref(filters, "rent")}" class="${tabActive("rent")}" data-i18n="tab.rent">For rent</a>
-        <a href="${tabHref(filters, "sale")}" class="${tabActive("sale")}" data-i18n="tab.sale">For sale</a>
-        ${hasActiveFilters(filters) ? `<a href="?" class="tab tab-clear" data-i18n="tab.clear">Clear filters</a>` : ""}
-      </div>
       <div class="grid">${cards}</div>
       ${pager}
     </section>
@@ -547,7 +538,7 @@ export function renderAgencySite(
   const T = {
     en: {
       "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
-      "search.city":"City","search.cityPh":"Any city","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
+      "search.city":"City","search.cityPh":"Any city","search.dealType":"Listing","search.dealAny":"Any","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
       "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale","tab.clear":"Clear filters",
       "pager.prev":"Previous","pager.next":"Next",
