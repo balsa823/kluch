@@ -35,4 +35,50 @@ describe("parseSearchFilters", () => {
     expect(parseSearchFilters({ code: "ST" }).refCode).toBeUndefined();
     expect(parseSearchFilters({ code: "" }).refCode).toBeUndefined();
   });
+
+  it("reads repeated loc params into locations (city / city|area)", () => {
+    const f = parseSearchFilters({}, ["Budva", "Kotor|Dobrota"]);
+    expect(f.locations).toEqual([
+      { city: "Budva" },
+      { city: "Kotor", area: "Dobrota" },
+    ]);
+  });
+
+  it("splits loc on the first pipe only and trims parts", () => {
+    const f = parseSearchFilters({}, [" Kotor | Dobrota | x "]);
+    expect(f.locations).toEqual([{ city: "Kotor", area: "Dobrota | x" }]);
+  });
+
+  it("skips empty loc values and an empty city", () => {
+    const f = parseSearchFilters({}, ["", "  ", "|Dobrota", "Budva"]);
+    expect(f.locations).toEqual([{ city: "Budva" }]);
+  });
+
+  it("caps the number of locations", () => {
+    const many = Array.from({ length: 80 }, (_, i) => `City${i}`);
+    const f = parseSearchFilters({}, many);
+    expect(f.locations).toHaveLength(50);
+  });
+
+  it("leaves locations undefined when no loc params are given", () => {
+    expect(parseSearchFilters({}).locations).toBeUndefined();
+    expect(parseSearchFilters({}, []).locations).toBeUndefined();
+  });
+
+  it("treats a ref-code-shaped q as a refCode", () => {
+    expect(parseSearchFilters({ q: "st-0042" }).refCode).toBe("ST-0042");
+    expect(parseSearchFilters({ q: "  st-0042 " }).refCode).toBe("ST-0042");
+  });
+
+  it("treats free-text q as text search", () => {
+    const f = parseSearchFilters({ q: "sea view" });
+    expect(f.text).toBe("sea view");
+    expect(f.refCode).toBeUndefined();
+  });
+
+  it("ignores a blank q", () => {
+    const f = parseSearchFilters({ q: "   " });
+    expect(f.text).toBeUndefined();
+    expect(f.refCode).toBeUndefined();
+  });
 });

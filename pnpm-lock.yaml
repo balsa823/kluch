@@ -105,6 +105,9 @@ importers:
       '@kluche/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@kluche/locations':
+        specifier: workspace:*
+        version: link:../../packages/locations
       hono:
         specifier: ^4.5.0
         version: 4.12.23
