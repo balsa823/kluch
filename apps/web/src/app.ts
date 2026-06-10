@@ -65,9 +65,45 @@ const MAX_FILES = 20;
 /** Bearer-token lifetime: 7 days. */
 const TOKEN_TTL = 60 * 60 * 24 * 7;
 
-/** Parses raw query params into the core SearchFilters shape, ignoring blanks. */
-export function parseSearchFilters(query: Record<string, string | undefined>): SearchFilters {
+/** Upper bound on Location filter entries, guarding against a crafted URL. */
+const MAX_LOCATIONS = 50;
+
+/**
+ * Parses raw query params into the core SearchFilters shape, ignoring blanks.
+ * `locs` carries the REPEATED `loc` params (Hono's `c.req.queries("loc")`),
+ * which a flat record can't represent; each value is `"City"` or `"City|Area"`.
+ */
+export function parseSearchFilters(
+  query: Record<string, string | undefined>,
+  locs: string[] = [],
+): SearchFilters {
   const filters: SearchFilters = {};
+
+  // Repeated `loc` → locations. Split on the FIRST `|` only (areas may contain
+  // pipes in theory); skip empties and entries with no city.
+  const locations: { city: string; area?: string }[] = [];
+  for (const raw of locs) {
+    if (locations.length >= MAX_LOCATIONS) break;
+    const value = (raw ?? "").trim();
+    if (!value) continue;
+    const pipe = value.indexOf("|");
+    if (pipe === -1) {
+      locations.push({ city: value });
+    } else {
+      const city = value.slice(0, pipe).trim();
+      const area = value.slice(pipe + 1).trim();
+      if (!city) continue;
+      locations.push(area ? { city, area } : { city });
+    }
+  }
+  if (locations.length) filters.locations = locations;
+
+  // Free-text `q`: a ref-code-shaped value becomes a refCode lookup, else a text search.
+  const q = query.q?.trim();
+  if (q) {
+    if (/^[A-Z]{2,6}-\d+$/i.test(q)) filters.refCode = q.toUpperCase();
+    else filters.text = q;
+  }
 
   const city = query.city?.trim();
   if (city) filters.city = city;
@@ -434,7 +470,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   app.get("/a/:slug", async (c) => {
     const agency = await getAgencyBySlug(db, c.req.param("slug"));
     if (!agency) return c.text("Not found", 404);
-    const filters = parseSearchFilters(c.req.query());
+    const filters = parseSearchFilters(c.req.query(), c.req.queries("loc"));
     const pageSize = AGENCY_PAGE_SIZE;
     const page = Math.max(1, filters.page ?? 1);
     const offset = (page - 1) * pageSize;
@@ -537,7 +573,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       case "console":
         return c.html(CONSOLE);
       case "agency": {
-        const filters = parseSearchFilters(c.req.query());
+        const filters = parseSearchFilters(c.req.query(), c.req.queries("loc"));
         const pageSize = AGENCY_PAGE_SIZE;
         const page = Math.max(1, filters.page ?? 1);
         const offset = (page - 1) * pageSize;

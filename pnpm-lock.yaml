@@ -26,6 +26,9 @@ importers:
       '@expo/metro-runtime':
         specifier: ~56.0.13
         version: 56.0.13(@expo/log-box@56.0.12)(expo@56.0.8)(react-dom@19.2.3(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)
+      '@kluche/locations':
+        specifier: workspace:*
+        version: link:../../packages/locations
       expo:
         specifier: ^56.0.8
         version: 56.0.8(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.8)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-worklets@0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -105,6 +108,9 @@ importers:
       '@kluche/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@kluche/locations':
+        specifier: workspace:*
+        version: link:../../packages/locations
       hono:
         specifier: ^4.5.0
         version: 4.12.23
@@ -117,6 +123,9 @@ importers:
       '@kluche/db':
         specifier: workspace:*
         version: link:../db
+      '@kluche/locations':
+        specifier: workspace:*
+        version: link:../locations
       '@supabase/supabase-js':
         specifier: ^2
         version: 2.107.0
@@ -136,6 +145,8 @@ importers:
       drizzle-kit:
         specifier: ^0.24.0
         version: 0.24.2
+
+  packages/locations: {}
 
 packages:
 

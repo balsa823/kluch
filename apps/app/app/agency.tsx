@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { ConsoleLayout } from "../components/ConsoleLayout";
 import { Pill, TextField } from "../components/ui";
+import { cityNames, areasFor } from "@kluche/locations";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
 import { useT } from "../lib/i18n";
@@ -193,6 +194,95 @@ function numOrUndef(v: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** City names, prepending a legacy free-text value if it isn't in the list so
+ * editing an existing listing never silently drops its city. */
+function cityOptions(current: string): string[] {
+  const names = cityNames();
+  if (current && !names.includes(current)) return [current, ...names];
+  return names;
+}
+
+/** City + Area pill dropdowns. Area resets to "" when the city changes and is
+ * hidden when the selected city has no curated areas. Mirrors the type/deal
+ * segmented-pill pattern used elsewhere in this form. */
+function LocationFields({
+  city,
+  area,
+  onCity,
+  onArea,
+}: {
+  city: string;
+  area: string;
+  onCity: (c: string) => void;
+  onArea: (a: string) => void;
+}) {
+  const { t } = useT();
+  const areas = areasFor(city);
+
+  return (
+    <View>
+      <Text style={styles.fieldLabel}>{t("listings.city")}</Text>
+      <View style={styles.selectRow}>
+        {cityOptions(city).map((c) => {
+          const active = city === c;
+          return (
+            <Pressable
+              key={c}
+              accessibilityRole="button"
+              onPress={() => {
+                if (c !== city) {
+                  onCity(c);
+                  onArea("");
+                }
+              }}
+              style={[styles.selectChip, active && styles.typeChipActive]}
+            >
+              <Text
+                style={[
+                  styles.selectChipText,
+                  active && styles.typeChipTextActive,
+                ]}
+              >
+                {c}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {areas.length > 0 ? (
+        <>
+          <Text style={[styles.fieldLabel, styles.selectAreaLabel]}>
+            {t("listings.area")}
+          </Text>
+          <View style={styles.selectRow}>
+            {["", ...areas].map((a) => {
+              const active = area === a;
+              return (
+                <Pressable
+                  key={a || "__none__"}
+                  accessibilityRole="button"
+                  onPress={() => onArea(a)}
+                  style={[styles.selectChip, active && styles.typeChipActive]}
+                >
+                  <Text
+                    style={[
+                      styles.selectChipText,
+                      active && styles.typeChipTextActive,
+                    ]}
+                  >
+                    {a === "" ? t("listings.areaNone") : a}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
 function EditModal({
   listing,
   token,
@@ -207,7 +297,8 @@ function EditModal({
   const { t } = useT();
   const [name, setName] = useState(listing.name);
   const [address, setAddress] = useState(listing.address);
-  const [city, setCity] = useState(listing.city);
+  const [city, setCity] = useState(listing.city || cityNames()[0]);
+  const [area, setArea] = useState(listing.area ?? "");
   const [price, setPrice] = useState(String(listing.priceMinor / 100));
   const [bedrooms, setBedrooms] = useState(
     listing.bedrooms == null ? "" : String(listing.bedrooms),
@@ -245,6 +336,7 @@ function EditModal({
         name: name.trim(),
         address: address.trim(),
         city: city.trim(),
+        area: area.trim() === "" ? null : area.trim(),
         priceMinor: Math.round(euros * 100),
         bedrooms: numOrUndef(bedrooms),
         bathrooms: numOrUndef(bathrooms),
@@ -275,7 +367,7 @@ function EditModal({
             value={address}
             onChangeText={setAddress}
           />
-          <TextField label={t("listings.field.city")} value={city} onChangeText={setCity} />
+          <LocationFields city={city} area={area} onCity={setCity} onArea={setArea} />
           <TextField
             label={t("listings.field.price")}
             value={price}
@@ -395,7 +487,8 @@ export default function Agency() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(cityNames()[0]);
+  const [area, setArea] = useState("");
   const [price, setPrice] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [type, setType] = useState<ListingType>("residential");
@@ -432,7 +525,8 @@ export default function Agency() {
   function resetForm() {
     setName("");
     setAddress("");
-    setCity("");
+    setCity(cityNames()[0]);
+    setArea("");
     setPrice("");
     setBedrooms("");
     setType("residential");
@@ -465,6 +559,7 @@ export default function Agency() {
         name: name.trim(),
         address: address.trim(),
         city: city.trim(),
+        area: area.trim() === "" ? null : area.trim(),
         priceMinor: Math.round(euros * 100),
         bedrooms: beds,
         type,
@@ -629,12 +724,7 @@ export default function Agency() {
               onChangeText={setAddress}
               placeholder={t("listings.placeholder.address")}
             />
-            <TextField
-              label={t("listings.field.city")}
-              value={city}
-              onChangeText={setCity}
-              placeholder={t("listings.placeholder.city")}
-            />
+            <LocationFields city={city} area={area} onCity={setCity} onArea={setArea} />
             <TextField
               label={t("listings.field.priceMonthly")}
               value={price}
@@ -935,6 +1025,28 @@ const styles = StyleSheet.create({
   },
   typeChipTextActive: {
     color: colors.white,
+  },
+  selectRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.xs,
+    marginTop: space.xs,
+  },
+  selectAreaLabel: {
+    marginTop: space.sm,
+  },
+  selectChip: {
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.sand,
+    backgroundColor: colors.white,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+  },
+  selectChipText: {
+    color: colors.navy,
+    fontWeight: "600",
+    fontSize: 13,
   },
   formActions: {
     flexDirection: "row",

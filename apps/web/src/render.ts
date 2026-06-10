@@ -1,4 +1,5 @@
 import { formatMoney, type Agency, type Property, type SearchFilters } from "@kluche/core";
+import { MNE_LOCATIONS } from "@kluche/locations";
 
 /** Minimal HTML-escaping for text interpolated into the template. */
 function esc(value: unknown): string {
@@ -124,13 +125,19 @@ function filterParams(
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.city) params.set("city", filters.city);
+  // Repeated `loc` params (City or City|Area) round-trip the Location filter.
+  for (const l of filters.locations ?? []) {
+    params.append("loc", l.area ? `${l.city}|${l.area}` : l.city);
+  }
+  // Free-text / ref-code search rides in `q` so pagination keeps it.
+  if (filters.text) params.set("q", filters.text);
+  else if (filters.refCode) params.set("q", filters.refCode);
   const dealType = overrides.dealType !== undefined ? overrides.dealType : filters.dealType;
   if (dealType) params.set("dealType", dealType);
   if (filters.type) params.set("type", filters.type);
   if (filters.minPrice !== undefined) params.set("minPrice", String(filters.minPrice / 100));
   if (filters.maxPrice !== undefined) params.set("maxPrice", String(filters.maxPrice / 100));
   if (filters.bedrooms !== undefined) params.set("bedrooms", String(filters.bedrooms));
-  if (filters.refCode) params.set("code", filters.refCode);
   if (overrides.page && overrides.page > 1) params.set("page", String(overrides.page));
   return params;
 }
@@ -147,7 +154,7 @@ function pageHref(filters: SearchFilters, page: number): string {
 /** True when any filter is active (so we can offer a Clear link). */
 function hasActiveFilters(f: SearchFilters): boolean {
   return Boolean(
-    f.city || f.dealType || f.type || f.refCode ||
+    f.city || f.dealType || f.type || f.refCode || f.text || f.locations?.length ||
     f.minPrice !== undefined || f.maxPrice !== undefined || f.bedrooms !== undefined,
   );
 }
@@ -171,8 +178,52 @@ export function renderAgencySite(
     ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroPhoto}'); background-size: cover; background-position: center;`
     : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
 
-  const typeSel = (v: string) => ((filters.type ?? "") === v ? " selected" : "");
-  const dealSel = (v: string) => ((filters.dealType ?? "") === v ? " selected" : "");
+  // --- Hero filter pre-selection (server-side, so the URL round-trips) ------
+  // Active option class for a single-select chip group (deal / beds / type).
+  const optSel = (group: "deal" | "beds" | "type", value: string): boolean => {
+    if (group === "deal") return (filters.dealType ?? "") === value;
+    if (group === "type") return (filters.type ?? "") === value;
+    return value !== "" && filters.bedrooms === Number(value);
+  };
+  const optClass = (group: "deal" | "beds" | "type", value: string) =>
+    optSel(group, value) ? "opt sel" : "opt";
+
+  // The free-text search box shows text first, else a ref-code lookup.
+  const searchValue = filters.text ?? filters.refCode ?? "";
+
+  // Hidden inputs serialise the active filters so a plain submit (or JS-less
+  // client) preserves them; JS rewrites these live as the user changes chips.
+  const locInputs = (filters.locations ?? [])
+    .map((l) => `<input type="hidden" name="loc" value="${attr(l.area ? `${l.city}|${l.area}` : l.city)}" />`)
+    .join("");
+  const hiddenField = (name: string, value: unknown) =>
+    value === undefined || value === "" ? "" : `<input type="hidden" name="${name}" value="${attr(value)}" />`;
+
+  // Chip labels reflect the active selection so the page renders correctly even
+  // before the inline JS runs (and for no-JS clients).
+  const dealLabel: Record<string, string> = { rent: "For rent", sale: "For sale" };
+  const typeLabel: Record<string, string> = {
+    residential: "Residential", land: "Land", commercial: "Commercial",
+  };
+  const locActive = !!filters.locations?.length;
+  const locChipLabel = !locActive
+    ? "Location"
+    : filters.locations!.length === 1
+      ? (filters.locations![0].area
+          ? `${filters.locations![0].city} / ${filters.locations![0].area}`
+          : filters.locations![0].city)
+      : `Location · ${filters.locations!.length}`;
+  const priceActive = filters.minPrice !== undefined || filters.maxPrice !== undefined;
+  const dealActive = !!filters.dealType;
+  const bedsActive = filters.bedrooms !== undefined;
+  const typeActive = !!filters.type;
+
+  const caretSvg = `<svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
+  // A chip header: active chips carry an ✕ to clear, inactive ones a caret.
+  const chip = (pop: string, i18nKey: string, label: string, active: boolean) =>
+    `<button type="button" class="chip${active ? " active" : ""}" data-pop="${pop}">` +
+    `<span${active ? "" : ` data-i18n="${i18nKey}"`}>${esc(label)}</span>` +
+    `${active ? `<span class="clear" role="button" aria-label="Clear">✕</span>` : caretSvg}</button>`;
 
   const hasPhone = !!agency.phone;
   const cards = listings.length
@@ -274,34 +325,79 @@ export function renderAgencySite(
       text-align: center;
     }
     header.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 auto 1.5rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
-    form.search {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 0.7rem 0.8rem; align-items: end;
-      background: rgba(255,255,255,0.97);
-      color: var(--color-ink);
-      padding: 1.1rem 1.2rem; border-radius: 16px;
-      max-width: 920px; margin: 0 auto;
-      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+
+    /* Hero search bar (keypartners-style) */
+    form.search { max-width: 980px; margin: 0 auto; text-align: left; }
+    .searchbar { display: flex; gap: 0.6rem; }
+    .searchbar input {
+      flex: 1; border: 0; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
+      background: #fff; color: var(--color-ink); box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 0;
     }
-    form.search label { display: flex; flex-direction: column; font-size: 0.7rem; gap: 0.3rem; text-align: left; text-transform: uppercase; letter-spacing: .05em; color: #6b6557; font-weight: 600; }
-    form.search input, form.search select {
-      width: 100%; padding: 0.55rem 0.65rem; border: 1px solid #d8d2c4; border-radius: 9px;
-      font: inherit; background: #fff; color: var(--color-ink); min-height: 2.5rem;
+    .searchbar input:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), 0 10px 30px rgba(0,0,0,.18); }
+    .searchbar button.search-go {
+      display: flex; align-items: center; gap: 0.5rem; border: 0; cursor: pointer;
+      background: var(--color-accent); color: #fff; font: inherit; font-weight: 700; letter-spacing: .04em;
+      padding: 0 1.5rem; border-radius: 10px; text-transform: uppercase; font-size: 0.85rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
     }
-    form.search input:focus, form.search select:focus {
-      outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+    .searchbar button.search-go:hover { filter: brightness(1.05); }
+    .searchbar button.search-go svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2.4; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
+    .chip {
+      position: relative; display: inline-flex; align-items: center; gap: 0.45rem;
+      background: transparent; border: 0; cursor: pointer; color: #fff; font: inherit; font-size: 0.95rem; font-weight: 500;
+      padding: 0.2rem 0;
     }
-    form.search button {
-      align-self: end; min-height: 2.5rem;
-      background: var(--color-accent); color: #fff; border: 0;
-      padding: 0.62rem 1.1rem; border-radius: 9px; font: inherit; cursor: pointer; font-weight: 700;
+    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: #fff; fill: none; stroke-width: 2.2; opacity: 0.9; }
+    .chip .clear {
+      display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem;
+      border-radius: 999px; font-size: 0.8rem; line-height: 1; opacity: 0.85;
     }
-    form.search button:hover { filter: brightness(1.05); }
-    form.search .search-clear {
-      align-self: center; color: var(--color-primary); font-size: 0.82rem; font-weight: 600;
-      text-decoration: underline; opacity: 0.85;
+    .chip.active { font-weight: 700; }
+    .chip:hover { opacity: 0.92; }
+    .chip-wrap { position: relative; }
+
+    /* Popover */
+    .pop {
+      position: absolute; top: calc(100% + 14px); left: 0; z-index: 40; display: none;
+      background: #fff; color: var(--color-ink); border-radius: 12px; padding: 1.1rem 1.2rem; min-width: 240px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
     }
+    .pop.open { display: block; }
+    .pop::before {
+      content: ""; position: absolute; top: -8px; left: 22px; width: 16px; height: 16px; background: #fff;
+      transform: rotate(45deg); box-shadow: -3px -3px 6px rgba(0,0,0,.05);
+    }
+    .pop h4 { margin: 0 0 0.8rem; font-size: 0.95rem; font-weight: 700; }
+    .opts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .opt {
+      border: 1px solid #E2DDD0; background: #fff; border-radius: 9px; padding: 0.55rem 0.9rem;
+      cursor: pointer; font: inherit; font-size: 0.95rem; color: var(--color-ink); min-width: 3rem; text-align: center;
+    }
+    .opt:hover { border-color: var(--color-primary); }
+    .opt.sel { background: var(--color-primary); border-color: var(--color-primary); color: #fff; font-weight: 600; }
+    .price-row { display: flex; align-items: center; gap: 0.6rem; }
+    .price-row input { width: 7rem; border: 1px solid #E2DDD0; border-radius: 9px; padding: 0.55rem 0.6rem; font: inherit; }
+    .pop .col { display: flex; flex-direction: column; gap: 0.45rem; min-width: 200px; }
+    .pop .col .opt { text-align: left; }
+    .pop-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; }
+    .pop-actions .apply { background: var(--color-primary); color: #fff; border: 0; border-radius: 8px; padding: 0.5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+    .pop-actions .reset { background: transparent; border: 0; color: #6b6557; cursor: pointer; font: inherit; text-decoration: underline; }
+
+    .pop.loc { min-width: 320px; }
+    .loc-search { width: 100%; border: 1px solid #E2DDD0; border-radius: 9px; padding: 0.6rem 0.7rem; font: inherit; margin-bottom: 0.5rem; }
+    .loc-search:focus { outline: none; border-color: var(--color-primary); }
+    .loc-list { max-height: 320px; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+    .loc-city { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.5rem; border-radius: 8px; cursor: pointer; font-weight: 700; color: var(--color-primary); }
+    .loc-area { display: flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.5rem 0.42rem 1.4rem; border-radius: 8px; cursor: pointer; color: #44535F; font-size: 0.93rem; }
+    .loc-city:hover, .loc-area:hover { background: #F4F0E6; }
+    .loc-check { flex: none; width: 1.05rem; height: 1.05rem; border: 1.5px solid #E2DDD0; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; color: #fff; }
+    .loc-row.sel .loc-check { background: var(--color-primary); border-color: var(--color-primary); }
+    .loc-row.sel { background: #F4F0E6; }
+    .loc-empty { padding: 0.8rem 0.5rem; color: #8A95A1; font-size: 0.9rem; }
+    .search-clear-row { margin: 1rem 0 0; }
+    form.search .search-clear { color: #fff; font-size: 0.82rem; font-weight: 600; text-decoration: underline; opacity: 0.85; }
     form.search .search-clear:hover { opacity: 1; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
@@ -448,41 +544,95 @@ export function renderAgencySite(
 
   <header class="hero" id="top">
     <h1>${heroTitle}</h1>
-    <form class="search" method="get">
-      <label><span data-i18n="search.city">City</span>
-        <input type="text" name="city" value="${attr(filters.city)}" data-i18n-ph="search.cityPh" placeholder="Any city" />
-      </label>
-      <label><span data-i18n="search.dealType">Listing</span>
-        <select name="dealType">
-          <option value=""${dealSel("")} data-i18n="search.dealAny">Any</option>
-          <option value="rent"${dealSel("rent")} data-i18n="tab.rent">For rent</option>
-          <option value="sale"${dealSel("sale")} data-i18n="tab.sale">For sale</option>
-        </select>
-      </label>
-      <label><span data-i18n="search.type">Type</span>
-        <select name="type">
-          <option value=""${typeSel("")} data-i18n="search.typeAny">Any type</option>
-          <option value="residential"${typeSel("residential")} data-i18n="search.typeResidential">Residential</option>
-          <option value="land"${typeSel("land")} data-i18n="search.typeLand">Land</option>
-          <option value="commercial"${typeSel("commercial")} data-i18n="search.typeCommercial">Commercial</option>
-        </select>
-      </label>
-      <label><span data-i18n="search.minPrice">Min price (€)</span>
-        <input type="number" name="minPrice" min="0" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
-      </label>
-      <label><span data-i18n="search.maxPrice">Max price (€)</span>
-        <input type="number" name="maxPrice" min="0" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
-      </label>
-      <label><span data-i18n="search.bedrooms">Bedrooms</span>
-        <input type="number" name="bedrooms" min="0" value="${attr(filters.bedrooms)}" />
-      </label>
-      <label><span data-i18n="search.code">Ref. code</span>
-        <input type="text" name="code" value="${attr(filters.refCode ?? "")}" />
-      </label>
-      <button type="submit" data-i18n="search.submit">Search</button>
-      ${hasActiveFilters(filters) ? `<a class="search-clear" href="?" data-i18n="tab.clear">Clear filters</a>` : ""}
+    <form class="search" method="get" id="hero-form">
+      <div class="searchbar">
+        <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="Search by address or ref code (e.g. ST-0042)" />
+        <button type="submit" class="search-go">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <span data-i18n="search.submit">Search</span>
+        </button>
+      </div>
+
+      <div class="chips">
+        <!-- Location -->
+        <div class="chip-wrap">
+          ${chip("loc", "filter.location", locChipLabel, locActive)}
+          <div class="pop loc" id="pop-loc">
+            <h4 data-i18n="filter.location">Location</h4>
+            <input class="loc-search" id="loc-search" type="text" data-i18n-ph="loc.searchPh" placeholder="Search city or area…" />
+            <div class="loc-list" id="loc-list"></div>
+            <div class="pop-actions"><button type="button" class="reset" id="loc-reset" data-i18n="loc.clear">Clear</button><button type="button" class="apply" id="loc-apply" data-i18n="loc.done">Done</button></div>
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div class="chip-wrap">
+          ${chip("price", "filter.price", "Price", priceActive)}
+          <div class="pop" id="pop-price">
+            <h4 data-i18n="filter.price">Price (€)</h4>
+            <div class="price-row">
+              <input type="number" name="minPrice" min="0" data-i18n-ph="search.minPrice" placeholder="Min" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
+              <span>–</span>
+              <input type="number" name="maxPrice" min="0" data-i18n-ph="search.maxPrice" placeholder="Max" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing (deal type) -->
+        <div class="chip-wrap">
+          ${chip("deal", "filter.listing", dealActive ? dealLabel[filters.dealType!] : "Listing", dealActive)}
+          <div class="pop" id="pop-deal">
+            <h4 data-i18n="filter.listing">Listing</h4>
+            <div class="col">
+              <button type="button" class="${optClass("deal", "")}" data-group="deal" data-value="" data-i18n="opt.any">Any</button>
+              <button type="button" class="${optClass("deal", "rent")}" data-group="deal" data-value="rent" data-i18n="tab.rent">For rent</button>
+              <button type="button" class="${optClass("deal", "sale")}" data-group="deal" data-value="sale" data-i18n="tab.sale">For sale</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Beds -->
+        <div class="chip-wrap">
+          ${chip("beds", "filter.beds", bedsActive ? `${filters.bedrooms}+` : "Beds", bedsActive)}
+          <div class="pop" id="pop-beds">
+            <h4 data-i18n="filter.beds">Bedrooms</h4>
+            <div class="opts">
+              <button type="button" class="${optClass("beds", "")}" data-group="beds" data-value="" data-i18n="opt.any">Any</button>
+              <button type="button" class="${optClass("beds", "1")}" data-group="beds" data-value="1" data-i18n="beds.1plus">1+</button>
+              <button type="button" class="${optClass("beds", "2")}" data-group="beds" data-value="2" data-i18n="beds.2plus">2+</button>
+              <button type="button" class="${optClass("beds", "3")}" data-group="beds" data-value="3" data-i18n="beds.3plus">3+</button>
+              <button type="button" class="${optClass("beds", "4")}" data-group="beds" data-value="4" data-i18n="beds.4plus">4+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Type -->
+        <div class="chip-wrap">
+          ${chip("type", "filter.type", typeActive ? typeLabel[filters.type!] : "Type", typeActive)}
+          <div class="pop" id="pop-type">
+            <h4 data-i18n="filter.type">Type</h4>
+            <div class="col">
+              <button type="button" class="${optClass("type", "")}" data-group="type" data-value="" data-i18n="opt.any">Any</button>
+              <button type="button" class="${optClass("type", "residential")}" data-group="type" data-value="residential" data-i18n="search.typeResidential">Residential</button>
+              <button type="button" class="${optClass("type", "land")}" data-group="type" data-value="land" data-i18n="search.typeLand">Land</button>
+              <button type="button" class="${optClass("type", "commercial")}" data-group="type" data-value="commercial" data-i18n="search.typeCommercial">Commercial</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden fields carry the active filters on submit (kept live by JS). -->
+      <div id="hero-hidden">
+        ${locInputs}
+        ${hiddenField("dealType", filters.dealType ?? "")}
+        ${hiddenField("type", filters.type ?? "")}
+        ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
+      </div>
+      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">Clear filters</a></p>` : ""}
     </form>
   </header>
+
+  <script type="application/json" id="kluche-locations">${jsonForScript(MNE_LOCATIONS)}</script>
 
   <main>
     <section id="properties">
@@ -539,7 +689,10 @@ export function renderAgencySite(
     en: {
       "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
       "search.city":"City","search.cityPh":"Any city","search.dealType":"Listing","search.dealAny":"Any","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
-      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search",
+      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search","search.placeholder":"Search by address or ref code (e.g. ST-0042)",
+      "filter.location":"Location","filter.price":"Price","filter.listing":"Listing","filter.beds":"Beds","filter.type":"Type","opt.any":"Any",
+      "loc.searchPh":"Search city or area…","loc.clear":"Clear","loc.done":"Done",
+      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale","tab.clear":"Clear filters",
       "pager.prev":"Previous","pager.next":"Next",
       "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.priceOnRequest":"Price on request","card.showNumber":"Show number","card.call":"Call",
@@ -554,8 +707,11 @@ export function renderAgencySite(
     },
     sr: {
       "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
-      "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja",
-      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga",
+      "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja","search.typeResidential":"Stambeno","search.typeLand":"Zemljište","search.typeCommercial":"Poslovno",
+      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga","search.placeholder":"Pretraga po adresi ili šifri (npr. ST-0042)",
+      "filter.location":"Lokacija","filter.price":"Cijena","filter.listing":"Tip","filter.beds":"Sobe","filter.type":"Vrsta","opt.any":"Sve",
+      "loc.searchPh":"Pretraži grad ili oblast…","loc.clear":"Poništi","loc.done":"Gotovo",
+      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
       "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju","tab.clear":"Poništi filtere",
       "pager.prev":"Prethodno","pager.next":"Sljedeće",
       "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.","card.priceOnRequest":"Cijena na upit",
@@ -567,8 +723,11 @@ export function renderAgencySite(
     },
     ru: {
       "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
-      "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа",
-      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск",
+      "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа","search.typeResidential":"Жилая","search.typeLand":"Земля","search.typeCommercial":"Коммерческая",
+      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск","search.placeholder":"Поиск по адресу или коду (напр. ST-0042)",
+      "filter.location":"Локация","filter.price":"Цена","filter.listing":"Тип","filter.beds":"Спальни","filter.type":"Вид","opt.any":"Все",
+      "loc.searchPh":"Поиск города или района…","loc.clear":"Сбросить","loc.done":"Готово",
+      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
       "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа","tab.clear":"Сбросить фильтры",
       "pager.prev":"Назад","pager.next":"Вперёд",
       "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.","card.priceOnRequest":"Цена по запросу",
@@ -580,8 +739,11 @@ export function renderAgencySite(
     },
     tr: {
       "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
-      "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık",
-      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara",
+      "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık","search.typeResidential":"Konut","search.typeLand":"Arsa","search.typeCommercial":"Ticari",
+      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara","search.placeholder":"Adres veya koda göre ara (örn. ST-0042)",
+      "filter.location":"Konum","filter.price":"Fiyat","filter.listing":"Tür","filter.beds":"Oda","filter.type":"Tip","opt.any":"Tümü",
+      "loc.searchPh":"Şehir veya bölge ara…","loc.clear":"Temizle","loc.done":"Tamam",
+      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
       "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık","tab.clear":"Filtreleri temizle",
       "pager.prev":"Önceki","pager.next":"Sonraki",
       "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay","card.priceOnRequest":"Fiyat için sorun",
@@ -612,6 +774,150 @@ export function renderAgencySite(
   let saved = "en";
   try { saved = localStorage.getItem("kluche_lang") || "en"; } catch (e) {}
   setLang(T[saved] ? saved : "en");
+
+  // --- Hero search: chip popovers, Location multi-select, hidden-field sync ---
+  (function () {
+    var form = document.getElementById("hero-form");
+    if (!form) return;
+    var hidden = document.getElementById("hero-hidden");
+
+    var MNE = [];
+    try {
+      var locRaw = document.getElementById("kluche-locations");
+      MNE = JSON.parse(locRaw ? locRaw.textContent : "[]") || [];
+    } catch (e) {}
+
+    // locSel keyed by "City" or "City|Area"; seeded from the server-rendered hidden inputs.
+    var locSel = {};
+    hidden.querySelectorAll('input[name="loc"]').forEach(function (i) { if (i.value) locSel[i.value] = true; });
+
+    function closeAll(except) {
+      document.querySelectorAll(".pop").forEach(function (p) { if (p !== except) p.classList.remove("open"); });
+    }
+    function caret() { return ' <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>'; }
+    function clearX() { return ' <span class="clear" role="button" aria-label="Clear">✕</span>'; }
+    function baseLabel(g) { return g === "beds" ? t("filter.beds") : g === "type" ? t("filter.type") : g === "deal" ? t("filter.listing") : t("filter.price"); }
+
+    function setHidden(name, value) {
+      var input = hidden.querySelector('input[name="' + name + '"]');
+      if (!value) { if (input) input.remove(); return; }
+      if (!input) { input = document.createElement("input"); input.type = "hidden"; input.name = name; hidden.appendChild(input); }
+      input.value = value;
+    }
+    function syncLocHidden() {
+      hidden.querySelectorAll('input[name="loc"]').forEach(function (i) { i.remove(); });
+      Object.keys(locSel).forEach(function (k) {
+        var input = document.createElement("input"); input.type = "hidden"; input.name = "loc"; input.value = k; hidden.appendChild(input);
+      });
+    }
+
+    function setChip(g, text, active) {
+      var chip = document.querySelector('.chip[data-pop="' + g + '"]');
+      if (!chip) return;
+      chip.classList.toggle("active", active);
+      chip.innerHTML = '<span>' + text + '</span>' + (active ? clearX() : caret());
+    }
+    function clearGroup(g) {
+      document.querySelectorAll('.opt[data-group="' + g + '"]').forEach(function (s) { s.classList.toggle("sel", s.dataset.value === ""); });
+      setChip(g, baseLabel(g), false);
+      if (g === "deal") setHidden("dealType", "");
+      else if (g === "type") setHidden("type", "");
+      else if (g === "beds") setHidden("bedrooms", "");
+    }
+
+    // chip open/close + clear (event delegation)
+    document.addEventListener("click", function (e) {
+      var clearBtn = e.target.closest(".clear");
+      if (clearBtn && clearBtn.closest("#hero-form")) {
+        e.stopPropagation(); e.preventDefault();
+        var g = clearBtn.closest(".chip").dataset.pop;
+        if (g === "loc") { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); }
+        else if (g === "price") { document.querySelector('#pop-price input[name="minPrice"]').value = ""; document.querySelector('#pop-price input[name="maxPrice"]').value = ""; syncPriceChip(); }
+        else clearGroup(g);
+        return;
+      }
+      var chip = e.target.closest(".chip[data-pop]");
+      if (chip && chip.closest("#hero-form")) {
+        e.stopPropagation(); e.preventDefault();
+        var pop = document.getElementById("pop-" + chip.dataset.pop);
+        var willOpen = !pop.classList.contains("open");
+        closeAll(pop); pop.classList.toggle("open", willOpen);
+        return;
+      }
+      if (e.target.closest(".pop")) return; // clicks inside a popover stay open
+      closeAll(null);
+    });
+
+    // single-select option groups (deal / beds / type)
+    document.querySelectorAll(".opt[data-group]").forEach(function (opt) {
+      opt.addEventListener("click", function () {
+        var g = opt.dataset.group, val = opt.dataset.value;
+        document.querySelectorAll('.opt[data-group="' + g + '"]').forEach(function (s) { s.classList.remove("sel"); });
+        opt.classList.add("sel");
+        var active = val !== "";
+        var label = !active ? baseLabel(g) : (g === "beds" ? (val + "+") : opt.textContent.trim());
+        setChip(g, label, active);
+        if (g === "deal") setHidden("dealType", val);
+        else if (g === "type") setHidden("type", val);
+        else if (g === "beds") setHidden("bedrooms", val);
+        closeAll(null);
+      });
+    });
+
+    // Price popover: keep its chip in sync (the inputs themselves are the form fields).
+    var minEl = document.querySelector('#pop-price input[name="minPrice"]');
+    var maxEl = document.querySelector('#pop-price input[name="maxPrice"]');
+    function syncPriceChip() {
+      var active = !!(minEl.value || maxEl.value);
+      var label = !active ? baseLabel("price") : ("€" + (minEl.value || "0") + "–" + (maxEl.value || "∞"));
+      setChip("price", label, active);
+    }
+    if (minEl) minEl.addEventListener("input", syncPriceChip);
+    if (maxEl) maxEl.addEventListener("input", syncPriceChip);
+
+    // Location: searchable multi-select (city or city/area)
+    var listEl = document.getElementById("loc-list");
+    var searchEl = document.getElementById("loc-search");
+    function renderLoc() {
+      var q = (searchEl.value || "").trim().toLowerCase();
+      var html = "";
+      MNE.forEach(function (c) {
+        var cityMatch = c.city.toLowerCase().indexOf(q) >= 0;
+        var areas = (c.areas || []).filter(function (a) { return !q || cityMatch || a.toLowerCase().indexOf(q) >= 0; });
+        if (!q || cityMatch || areas.length) {
+          var ck = locSel[c.city] ? "sel" : "";
+          html += '<div class="loc-city loc-row ' + ck + '" data-key="' + esc(c.city) + '"><span class="loc-check">' + (ck ? "✓" : "") + '</span>' + esc(c.city) + '</div>';
+          areas.forEach(function (a) {
+            var key = c.city + "|" + a;
+            var k = locSel[key] ? "sel" : "";
+            html += '<div class="loc-area loc-row ' + k + '" data-key="' + esc(key) + '"><span class="loc-check">' + (k ? "✓" : "") + '</span>' + esc(a) + '</div>';
+          });
+        }
+      });
+      listEl.innerHTML = html || '<div class="loc-empty">' + esc(t("properties.empty")) + '</div>';
+    }
+    function syncLocChip() {
+      var keys = Object.keys(locSel);
+      var n = keys.length;
+      if (n === 0) setChip("loc", t("filter.location"), false);
+      else setChip("loc", n === 1 ? keys[0].replace("|", " / ") : (t("filter.location") + " · " + n), true);
+    }
+    // escape for innerHTML built above
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+    if (listEl) {
+      listEl.addEventListener("click", function (e) {
+        var row = e.target.closest(".loc-row"); if (!row) return;
+        var key = row.dataset.key;
+        if (locSel[key]) delete locSel[key]; else locSel[key] = true;
+        renderLoc(); syncLocChip(); syncLocHidden();
+      });
+      searchEl.addEventListener("input", renderLoc);
+      document.getElementById("loc-reset").addEventListener("click", function () { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); });
+      document.getElementById("loc-apply").addEventListener("click", function () { closeAll(null); });
+      renderLoc();
+    }
+  })();
 
   (function () {
     var SLUG = ${jsonForScript(agency.slug)};

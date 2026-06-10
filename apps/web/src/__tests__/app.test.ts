@@ -135,6 +135,27 @@ test("/a/:slug?code= returns just the matching listing, bogus code returns none"
   expect(missBody).toContain(`data-i18n="properties.empty"`);
 });
 
+test("/a/:slug?loc=Budva returns only the Budva listing", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const budva = await createProperty(db, {
+    agencyId: agency.id, name: "Budva Flat", address: "Trg 1", city: "Budva",
+    priceMinor: 45000, type: "residential",
+  });
+  const kotor = await createProperty(db, {
+    agencyId: agency.id, name: "Kotor Villa", address: "Obala 2", city: "Kotor",
+    priceMinor: 90000, type: "residential",
+  });
+  await publishProperty(db, budva.id);
+  await publishProperty(db, kotor.id);
+  const app = createApp(db);
+
+  const res = await app.request(new Request("http://kluche.me/a/popovic?loc=Budva"));
+  expect(res.status).toBe(200);
+  const body = await res.text();
+  expect(body).toContain("Budva Flat");
+  expect(body).not.toContain("Kotor Villa");
+});
+
 test("unknown agency host returns 404", async () => {
   const app = createApp(db);
   const res = await app.request(new Request("http://nope.kluche.me/"));

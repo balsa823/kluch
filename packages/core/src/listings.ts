@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lte, or, type SQL } from "drizzle-orm";
 import { inquiries, leases, properties, type Database } from "@kluche/db";
 import { allocateRefCode } from "./refcode.js";
 
@@ -21,6 +21,7 @@ export interface CreatePropertyInput {
   name: string;
   address: string;
   city: string;
+  area?: string;
   priceMinor: number;
   currency?: string;
   bedrooms?: number;
@@ -41,6 +42,7 @@ export async function createProperty(db: Database, input: CreatePropertyInput): 
         name: input.name,
         address: input.address,
         city: input.city,
+        area: input.area,
         priceMinor: input.priceMinor,
         currency: input.currency ?? "EUR",
         bedrooms: input.bedrooms,
@@ -71,6 +73,7 @@ export interface UpdatePropertyPatch {
   name?: string;
   address?: string;
   city?: string;
+  area?: string | null;
   priceMinor?: number;
   currency?: string;
   bedrooms?: number | null;
@@ -86,7 +89,7 @@ export async function updateProperty(
   id: string,
   patch: UpdatePropertyPatch,
 ): Promise<Property> {
-  const keys = ["name", "address", "city", "priceMinor", "currency", "bedrooms", "bathrooms", "areaM2", "type", "dealType"] as const;
+  const keys = ["name", "address", "city", "area", "priceMinor", "currency", "bedrooms", "bathrooms", "areaM2", "type", "dealType"] as const;
   const safe: Record<string, unknown> = {};
   for (const key of keys) {
     if (patch[key] !== undefined) safe[key] = patch[key];
@@ -167,6 +170,8 @@ export async function listAgencyProperties(db: Database, agencyId: string): Prom
 
 export interface SearchFilters {
   city?: string;
+  locations?: { city: string; area?: string }[];
+  text?: string;
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
@@ -183,6 +188,20 @@ function searchConditions(agencyId: string, filters: SearchFilters): SQL[] {
     eq(properties.status, "published"),
   ];
   if (filters.city !== undefined) conditions.push(ilike(properties.city, `%${filters.city}%`));
+  if (filters.locations?.length) {
+    const entries = filters.locations.map((e) =>
+      e.area === undefined
+        ? eq(properties.city, e.city)
+        : and(eq(properties.city, e.city), eq(properties.area, e.area)),
+    );
+    conditions.push(or(...entries)!);
+  }
+  if (filters.text) {
+    conditions.push(or(
+      ilike(properties.name, `%${filters.text}%`),
+      ilike(properties.address, `%${filters.text}%`),
+    )!);
+  }
   if (filters.minPrice !== undefined) conditions.push(gte(properties.priceMinor, filters.minPrice));
   if (filters.maxPrice !== undefined) conditions.push(lte(properties.priceMinor, filters.maxPrice));
   if (filters.bedrooms !== undefined) conditions.push(gte(properties.bedrooms, filters.bedrooms));

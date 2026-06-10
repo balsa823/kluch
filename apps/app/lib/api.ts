@@ -13,6 +13,7 @@ export type Property = {
   name: string;
   address: string;
   city: string;
+  area?: string | null;
   priceMinor: number;
   currency: string;
   bedrooms: number | null;
@@ -45,6 +46,7 @@ export type CreateListingInput = {
   name: string;
   address: string;
   city: string;
+  area?: string | null;
   priceMinor: number;
   bedrooms?: number;
   type?: string;
@@ -144,6 +146,7 @@ export type UpdateListingInput = {
   name: string;
   address: string;
   city: string;
+  area?: string | null;
   priceMinor: number;
   bedrooms?: number;
   bathrooms?: number;

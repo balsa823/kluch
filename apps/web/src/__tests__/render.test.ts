@@ -117,19 +117,51 @@ test("sale listing shows the for-sale tag but no per-month label on its card", (
   expect(html).not.toContain(`data-i18n="card.perMonth"`);
 });
 
-test("deal type is a dropdown inside the search form (not a separate tab row)", () => {
+test("renders the chip row with Location/Price/Listing/Beds/Type and no old tab row", () => {
   const html = renderAgencySite(agency, listings);
-  expect(html).toContain(`<select name="dealType">`);
-  expect(html).toContain(`data-i18n="search.dealAny"`); // the "Any" option
+  expect(html).toContain(`data-pop="loc"`);
+  expect(html).toContain(`data-pop="price"`);
+  expect(html).toContain(`data-pop="deal"`);
+  expect(html).toContain(`data-pop="beds"`);
+  expect(html).toContain(`data-pop="type"`);
+  expect(html).toContain(`data-i18n="filter.location"`);
   // the old standalone filter-tab row is gone
   expect(html).not.toContain(`class="tabs"`);
   expect(html).not.toContain(`href="?dealType=rent"`);
 });
 
-test("deal-type dropdown pre-selects the active value + property type", () => {
+test("embeds the Montenegro locations JSON blob for the Location popover", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain(`id="kluche-locations"`);
+  expect(html).toContain("Budva");
+  expect(html).toContain("Dobrota");
+});
+
+test("Location chip is active and a hidden loc input is emitted for filters.locations", () => {
+  const html = renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] });
+  expect(html).toMatch(/<input type="hidden" name="loc" value="Budva"/);
+  // chip is marked active server-side
+  expect(html).toMatch(/data-pop="loc"[^>]*class="chip active"|class="chip active"[^>]*data-pop="loc"/);
+});
+
+test("a city|area location emits a piped hidden loc input", () => {
+  const html = renderAgencySite(agency, listings, { locations: [{ city: "Kotor", area: "Dobrota" }] });
+  expect(html).toContain(`name="loc" value="Kotor|Dobrota"`);
+});
+
+test("pre-selects the active deal type + property type from filters", () => {
   const html = renderAgencySite(agency, listings, { dealType: "rent", type: "land" });
-  expect(html).toMatch(/<option value="rent"[^>]*selected/); // deal-type filter
-  expect(html).toMatch(/<option value="land"[^>]*selected/); // property-type filter
+  expect(html).toMatch(/data-group="deal"[^>]*data-value="rent"[^>]*class="opt sel"|class="opt sel"[^>]*data-group="deal"[^>]*data-value="rent"/);
+  expect(html).toMatch(/data-value="rent"/);
+  expect(html).toMatch(/data-value="land"/);
+  // hidden fields carry the active values for submit
+  expect(html).toContain(`name="dealType" value="rent"`);
+  expect(html).toContain(`name="type" value="land"`);
+});
+
+test("fills the search box from filters.text and filters.refCode", () => {
+  expect(renderAgencySite(agency, listings, { text: "sea view" })).toContain(`value="sea view"`);
+  expect(renderAgencySite(agency, listings, { refCode: "PO-0001" })).toContain(`value="PO-0001"`);
 });
 
 test("shows a thank-you message when sent", () => {
@@ -142,18 +174,16 @@ test("uses the first photo as the card image when present", () => {
   expect(html).toContain("https://cdn.example/p1.jpg");
 });
 
-test("renders a GET search form with the expected inputs", () => {
+test("renders a GET search form with the free-text q input and price popover fields", () => {
   const html = renderAgencySite(agency, listings);
   expect(html).toContain(`method="get"`);
-  expect(html).toContain(`name="city"`);
+  expect(html).toContain(`name="q"`);
   expect(html).toContain(`name="minPrice"`);
   expect(html).toContain(`name="maxPrice"`);
-  expect(html).toContain(`name="bedrooms"`);
 });
 
-test("pre-fills the form from the given filters (price shown in euros)", () => {
-  const html = renderAgencySite(agency, listings, { city: "Kotor", maxPrice: 50000 });
-  expect(html).toContain(`value="Kotor"`);
+test("pre-fills the price popover from the given filters (price shown in euros)", () => {
+  const html = renderAgencySite(agency, listings, { maxPrice: 50000 });
   expect(html).toContain(`value="500"`); // 50000 cents → €500 in the form
 });
 
@@ -272,11 +302,10 @@ test("shows the ref code as a card badge and includes it in the listings JSON bl
   expect(html).toMatch(/"refCode":"PO-0001"/);
 });
 
-test("renders a ref-code search field and the search.code i18n key", () => {
+test("a refCode filter fills the q search box (round-trips via the hero search)", () => {
   const html = renderAgencySite(agency, listings, { refCode: "PO-0001" });
-  expect(html).toContain(`name="code"`);
+  expect(html).toContain(`name="q"`);
   expect(html).toContain(`value="PO-0001"`);
-  expect(html).toContain(`data-i18n="search.code"`);
 });
 
 test("does not render a card badge when a listing has no ref code", () => {
@@ -297,27 +326,16 @@ test("no [data-i18n] element wraps a form control (regression: applyLang would d
   // The bug was <label data-i18n="…"><input/></label>: setting textContent on the
   // label during translation deletes the input. Labels must now use an inner <span>.
   expect(html).not.toMatch(/<label[^>]*\bdata-i18n=/);
-  // The search inputs/selects survive as siblings of their (now span-wrapped) captions.
-  expect(html).toContain('<span data-i18n="search.city">');
-  expect(html).toContain('name="city"');
-  expect(html).toContain('name="type"');
+  // Contact-form captions survive as siblings of their inputs.
   expect(html).toContain('<span data-i18n="contact.name">');
   expect(html).toContain('name="contact"');
 });
 
-test("the single search form carries city + deal type together (they compose)", () => {
-  const html = renderAgencySite(agency, listings, { city: "Budva", dealType: "rent", type: "residential" });
-  // One form submit applies all filters at once: city preserved in its input,
-  // deal type + property type pre-selected in their dropdowns.
-  expect(html).toContain('name="city" value="Budva"');
-  expect(html).toMatch(/<option value="rent"[^>]*selected/);
-  expect(html).toMatch(/<option value="residential"[^>]*selected/);
-});
-
-test("Clear link appears only when a filter is active", () => {
-  // Match the rendered anchor, not the always-present CSS rule / dict entry.
-  expect(renderAgencySite(agency, listings, { city: "Budva" })).toContain('class="search-clear"');
-  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
+test("the hero composes location + deal + type filters into one form", () => {
+  const html = renderAgencySite(agency, listings, { locations: [{ city: "Budva" }], dealType: "rent", type: "residential" });
+  expect(html).toContain('name="loc" value="Budva"');
+  expect(html).toContain('name="dealType" value="rent"');
+  expect(html).toContain('name="type" value="residential"');
 });
 
 test("pager and tab hrefs emit price in euros, not cents", () => {
@@ -333,4 +351,10 @@ test("listings with no price show 'Price on request'", () => {
   const html = renderAgencySite(agency, free);
   expect(html).toContain('data-i18n="card.priceOnRequest"');
   expect(html).toContain('"card.priceOnRequest":"Price on request"');
+});
+
+test("Clear-filters link appears only when a filter is active", () => {
+  expect(renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] })).toContain('class="search-clear"');
+  expect(renderAgencySite(agency, listings, { text: "sea" })).toContain('class="search-clear"');
+  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
 });
