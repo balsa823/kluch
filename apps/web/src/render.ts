@@ -214,6 +214,11 @@ export function renderAgencySite(
           : filters.locations![0].city)
       : `Location · ${filters.locations!.length}`;
   const priceActive = filters.minPrice !== undefined || filters.maxPrice !== undefined;
+  // Match the client-side syncPriceChip() format so the chip keeps showing "€0–300"
+  // after a server render (Search), instead of reverting to the plain "Price" label.
+  const priceMinEuro = filters.minPrice !== undefined ? String(filters.minPrice / 100) : "";
+  const priceMaxEuro = filters.maxPrice !== undefined ? String(filters.maxPrice / 100) : "";
+  const priceLabel = priceActive ? `€${priceMinEuro || "0"}–${priceMaxEuro || "∞"}` : "Price";
   const dealActive = !!filters.dealType;
   const bedsActive = filters.bedrooms !== undefined;
   const typeActive = !!filters.type;
@@ -567,7 +572,7 @@ export function renderAgencySite(
 
         <!-- Price -->
         <div class="chip-wrap">
-          ${chip("price", "filter.price", "Price", priceActive)}
+          ${chip("price", "filter.price", priceLabel, priceActive)}
           <div class="pop" id="pop-price">
             <h4 data-i18n="filter.price">Price (€)</h4>
             <div class="price-row">

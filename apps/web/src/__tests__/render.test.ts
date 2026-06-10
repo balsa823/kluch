@@ -358,3 +358,14 @@ test("Clear-filters link appears only when a filter is active", () => {
   expect(renderAgencySite(agency, listings, { text: "sea" })).toContain('class="search-clear"');
   expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
 });
+
+test("price chip keeps its €range label after a server render (Search), not just 'Price'", () => {
+  const html = renderAgencySite(agency, listings, { maxPrice: 30000 }); // €300
+  expect(html).toContain("€0–300");
+  // min + max
+  const both = renderAgencySite(agency, listings, { minPrice: 50000, maxPrice: 80000 });
+  expect(both).toContain("€500–800");
+  // min only → open-ended max
+  const minOnly = renderAgencySite(agency, listings, { minPrice: 50000 });
+  expect(minOnly).toContain("€500–∞");
+});
