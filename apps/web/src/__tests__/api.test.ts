@@ -429,6 +429,27 @@ test("GET /api/agency/leads?kind=phone_click returns only phone_click leads with
   expect(leads[0].refCode).toMatch(/^[A-Z]{2,}-\d{4,}$/);
 });
 
+test("GET /api/agency/leads returns null propertyName/refCode for a click with no listing", async () => {
+  const agency = await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  // a phone-click with no propertyId
+  await app.request(new Request(`http://localhost/a/${agency.slug}/phone-click`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  }));
+
+  const res = await app.request(new Request("http://localhost/api/agency/leads?kind=phone_click", {
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  const { leads } = (await res.json()) as { leads: { propertyName: string | null; refCode: string | null }[] };
+  expect(leads).toHaveLength(1);
+  expect(leads[0].propertyName).toBeNull();
+  expect(leads[0].refCode).toBeNull();
+});
+
 test("GET /api/agency/leads without a token returns 403", async () => {
   const app = createApp(db, { sessionSecret: SECRET });
   const res = await app.request(new Request("http://localhost/api/agency/leads"));
