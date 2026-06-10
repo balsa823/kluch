@@ -37,10 +37,10 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const agencyName = agency?.name ?? "Your agency";
+  const agencyName = agency?.name ?? t("nav.yourAgency");
   const agencyCity = "Podgorica";
   const initial = agencyName.charAt(0).toUpperCase() || "K";
-  const userName = user?.name || user?.email || "Account";
+  const userName = user?.name || user?.email || t("nav.account");
   const userInitial = userName.charAt(0).toUpperCase();
 
   const isAgency = pathname?.startsWith("/agency") ?? false;

@@ -39,6 +39,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     "nav.website": "Website",
     "nav.settings": "Settings",
     "nav.logout": "Log out",
+    "nav.yourAgency": "Your agency",
+    "nav.account": "Account",
 
     "listings.title": "Listings",
     "listings.count": "{n} listings",
@@ -160,6 +162,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     "nav.website": "Sajt",
     "nav.settings": "Podešavanja",
     "nav.logout": "Odjava",
+    "nav.yourAgency": "Vaša agencija",
+    "nav.account": "Nalog",
 
     "listings.title": "Oglasi",
     "listings.count": "{n} oglasa",
