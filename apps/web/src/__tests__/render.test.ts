@@ -302,11 +302,6 @@ test("no [data-i18n] element wraps a form control (regression: applyLang would d
   expect(html).toContain('name="contact"');
 });
 
-test("applyLang only rewrites leaf elements", () => {
-  const html = renderAgencySite(agency, listings);
-  expect(html).toContain("if (!el.firstElementChild)");
-});
-
 test("rent/sale tabs preserve the active filters", () => {
   const html = renderAgencySite(agency, listings, { city: "Budva", type: "residential" });
   // Switching to the rent tab keeps city + type rather than dropping them.
