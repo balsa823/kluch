@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { colors } from "../theme/tokens";
 import { AuthProvider, useAuth } from "../lib/auth";
+import { I18nProvider } from "../lib/i18n";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -33,25 +34,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <AuthGate>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.page },
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="agency" />
-          <Stack.Screen name="leads" />
-          <Stack.Screen name="website" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="law" />
-        </Stack>
-      </AuthGate>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <AuthGate>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.page },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="agency" />
+            <Stack.Screen name="leads" />
+            <Stack.Screen name="website" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="law" />
+          </Stack>
+        </AuthGate>
+      </AuthProvider>
+    </I18nProvider>
   );
 }
 
