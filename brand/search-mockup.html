@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kluche — hero search mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --primary:#1F3A5C;       /* agency brand */
+    --accent:#E8B23A;        /* search button (gold here; real = agency accent) */
+    --ink:#1F2937;
+    --line:#E2DDD0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:#F1ECE0}
+  h1{font-family:"Plus Jakarta Sans","Inter",sans-serif}
+
+  /* Hero */
+  .hero{
+    position:relative;
+    /* a sea-side photo would sit here; dark gradient stands in for the mockup */
+    background:
+      linear-gradient(rgba(15,26,38,.62),rgba(15,26,38,.62)),
+      linear-gradient(120deg,#2b4a63,#16313f 60%,#0e2230);
+    background-size:cover;background-position:center;
+    padding:clamp(2.5rem,7vw,5rem) clamp(1rem,4vw,3rem) clamp(3rem,8vw,5.5rem);
+  }
+  .hero-inner{max-width:1120px;margin:0 auto}
+  .hero h1{
+    color:#fff;text-align:center;font-size:clamp(1.8rem,4.5vw,2.6rem);
+    margin:0 0 1.6rem;text-shadow:0 2px 18px rgba(0,0,0,.45);
+  }
+
+  /* Search row */
+  .searchbar{display:flex;gap:.6rem;max-width:980px;margin:0 auto}
+  .searchbar input{
+    flex:1;border:0;border-radius:10px;padding:.95rem 1.1rem;font:inherit;font-size:1rem;
+    background:#fff;color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.18);
+  }
+  .searchbar button{
+    display:flex;align-items:center;gap:.5rem;border:0;cursor:pointer;
+    background:var(--accent);color:#fff;font:inherit;font-weight:700;letter-spacing:.04em;
+    padding:0 1.5rem;border-radius:10px;text-transform:uppercase;font-size:.85rem;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);
+  }
+  .searchbar button svg{width:1rem;height:1rem;stroke:#fff;fill:none;stroke-width:2.4}
+
+  /* Filter chips */
+  .chips{display:flex;flex-wrap:wrap;gap:1.4rem;max-width:980px;margin:1.1rem auto 0;padding-left:.2rem}
+  .chip{
+    position:relative;display:inline-flex;align-items:center;gap:.45rem;
+    background:transparent;border:0;cursor:pointer;color:#fff;font:inherit;font-size:.95rem;font-weight:500;
+    padding:.2rem 0;
+  }
+  .chip .caret{width:.7rem;height:.7rem;stroke:#fff;fill:none;stroke-width:2.2;opacity:.9}
+  .chip .clear{
+    display:inline-flex;align-items:center;justify-content:center;width:1.05rem;height:1.05rem;
+    border-radius:999px;font-size:.8rem;line-height:1;opacity:.85;
+  }
+  .chip.active{font-weight:700}
+  .chip:hover{opacity:.92}
+
+  /* Popover */
+  .pop{
+    position:absolute;top:calc(100% + 14px);left:0;z-index:40;display:none;
+    background:#fff;color:var(--ink);border-radius:12px;padding:1.1rem 1.2rem;min-width:240px;
+    box-shadow:0 18px 50px rgba(0,0,0,.28);
+  }
+  .pop.open{display:block}
+  .pop::before{
+    content:"";position:absolute;top:-8px;left:22px;width:16px;height:16px;background:#fff;
+    transform:rotate(45deg);box-shadow:-3px -3px 6px rgba(0,0,0,.05);
+  }
+  .pop h4{margin:0 0 .8rem;font-size:.95rem;font-weight:700}
+  .opts{display:flex;gap:.5rem;flex-wrap:wrap}
+  .opt{
+    border:1px solid var(--line);background:#fff;border-radius:9px;padding:.55rem .9rem;
+    cursor:pointer;font:inherit;font-size:.95rem;color:var(--ink);min-width:3rem;text-align:center;
+  }
+  .opt:hover{border-color:var(--primary)}
+  .opt.sel{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  .price-row{display:flex;align-items:center;gap:.6rem}
+  .price-row input{width:7rem;border:1px solid var(--line);border-radius:9px;padding:.55rem .6rem;font:inherit}
+  .pop .col{display:flex;flex-direction:column;gap:.45rem;min-width:200px}
+  .pop .col .opt{text-align:left}
+  .pop-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem}
+  .pop-actions .apply{background:var(--primary);color:#fff;border:0;border-radius:8px;padding:.5rem 1rem;font:inherit;font-weight:600;cursor:pointer}
+  .pop-actions .reset{background:transparent;border:0;color:#6b6557;cursor:pointer;font:inherit;text-decoration:underline}
+
+  /* Location popover */
+  .pop.loc{min-width:320px}
+  .loc-search{width:100%;border:1px solid var(--line);border-radius:9px;padding:.6rem .7rem;font:inherit;margin-bottom:.5rem}
+  .loc-search:focus{outline:none;border-color:var(--primary)}
+  .loc-list{max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:1px}
+  .loc-city{display:flex;align-items:center;gap:.5rem;padding:.5rem .5rem;border-radius:8px;cursor:pointer;font-weight:700;color:var(--primary)}
+  .loc-area{display:flex;align-items:center;gap:.5rem;padding:.42rem .5rem .42rem 1.4rem;border-radius:8px;cursor:pointer;color:#44535F;font-size:.93rem}
+  .loc-city:hover,.loc-area:hover{background:#F4F0E6}
+  .loc-check{flex:none;width:1.05rem;height:1.05rem;border:1.5px solid var(--line);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;color:#fff}
+  .loc-row.sel .loc-check{background:var(--primary);border-color:var(--primary)}
+  .loc-row.sel{background:#F4F0E6}
+  .loc-empty{padding:.8rem .5rem;color:#8A95A1;font-size:.9rem}
+
+  .note{max-width:980px;margin:2rem auto 0;color:#6b6557;font-size:.85rem;text-align:center}
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <h1>Find Your Perfect Home</h1>
+
+      <div class="searchbar">
+        <input type="text" placeholder="Search by address or ref code (e.g. ST-0042)" />
+        <button type="button">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          Search
+        </button>
+      </div>
+
+      <div class="chips">
+        <!-- Location -->
+        <div style="position:relative">
+          <button class="chip" id="loc-chip" data-pop="loc">Location <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="pop loc" id="pop-loc">
+            <h4>Location</h4>
+            <input class="loc-search" id="loc-search" type="text" placeholder="Search city or area…" />
+            <div class="loc-list" id="loc-list"></div>
+            <div class="pop-actions"><button class="reset" id="loc-reset">Clear</button><button class="apply" id="loc-apply">Done</button></div>
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div style="position:relative">
+          <button class="chip" data-pop="price">Price <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="pop" id="pop-price">
+            <h4>Price (€)</h4>
+            <div class="price-row">
+              <input type="number" placeholder="Min" min="0" />
+              <span>–</span>
+              <input type="number" placeholder="Max" min="0" />
+            </div>
+            <div class="pop-actions"><button class="reset">Reset</button><button class="apply">Apply</button></div>
+          </div>
+        </div>
+
+        <!-- Listing (deal type) -->
+        <div style="position:relative">
+          <button class="chip" data-pop="deal">Listing <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="pop" id="pop-deal">
+            <h4>Listing</h4>
+            <div class="col">
+              <button class="opt sel" data-group="deal">Any</button>
+              <button class="opt" data-group="deal">For rent</button>
+              <button class="opt" data-group="deal">For sale</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Beds -->
+        <div style="position:relative">
+          <button class="chip" data-pop="beds">Beds <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="pop" id="pop-beds">
+            <h4>Bedrooms</h4>
+            <div class="opts">
+              <button class="opt sel" data-group="beds">Any</button>
+              <button class="opt" data-group="beds">1+</button>
+              <button class="opt" data-group="beds">2+</button>
+              <button class="opt" data-group="beds">3+</button>
+              <button class="opt" data-group="beds">4+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Type -->
+        <div style="position:relative">
+          <button class="chip" data-pop="type">Type <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="pop" id="pop-type">
+            <h4>Type</h4>
+            <div class="col">
+              <button class="opt sel" data-group="type">Any</button>
+              <button class="opt" data-group="type">Residential</button>
+              <button class="opt" data-group="type">Land</button>
+              <button class="opt" data-group="type">Commercial</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">Mockup — click any chip to open its popover. Selecting an option marks the chip active (with an ✕ to clear). The dark hero stands in for the agency's sea-side photo; the gold button uses the agency's brand colour on the real site.</p>
+    </div>
+  </header>
+
+<script>
+  // ---- Montenegro cities + areas (starter list — confirm/expand with the agency) ----
+  var MNE = [
+    { city:"Podgorica", areas:["Blok 5","Blok 6","Blok 9","Stari Aerodrom","Zabjelo","Konik","City Kvart","Preko Morače","Tološi","Momišići","Dalmatinska","Drač","Masline","Zagorič"] },
+    { city:"Budva", areas:["Stari grad","Bečići","Rafailovići","Pržno","Sveti Stefan","Petrovac","Babin Do","Rozino"] },
+    { city:"Bar", areas:["Stari Bar","Šušanj","Topolica","Bjeliši","Sutomore","Čanj","Dobra Voda"] },
+    { city:"Kotor", areas:["Stari grad","Dobrota","Muo","Prčanj","Škaljari","Risan","Perast","Stoliv"] },
+    { city:"Tivat", areas:["Porto Montenegro","Seljanovo","Donja Lastva","Gornja Lastva","Krašići","Lepetane","Đuraševići"] },
+    { city:"Herceg Novi", areas:["Igalo","Meljine","Topla","Savina","Baošići","Bijela","Kumbor","Đenovići","Zelenika"] },
+    { city:"Ulcinj", areas:["Pinješ","Štoj","Velika plaža","Ada Bojana","Valdanos"] },
+    { city:"Nikšić", areas:[] },
+    { city:"Cetinje", areas:[] },
+    { city:"Danilovgrad", areas:[] },
+    { city:"Bijelo Polje", areas:[] },
+    { city:"Berane", areas:[] },
+    { city:"Kolašin", areas:[] },
+    { city:"Žabljak", areas:[] },
+    { city:"Pljevlja", areas:[] },
+    { city:"Rožaje", areas:[] }
+  ];
+
+  var locSel = {}; // key -> true ; key = "City" or "City|Area"
+
+  function closeAll(except){
+    document.querySelectorAll(".pop").forEach(function(p){ if(p!==except) p.classList.remove("open"); });
+  }
+
+  // ---- generic chip open/close + clear (event delegation) ----
+  document.addEventListener("click", function(e){
+    var clearBtn = e.target.closest(".clear");
+    if(clearBtn){
+      e.stopPropagation();
+      var g = clearBtn.closest(".chip").dataset.pop;
+      if(g === "loc"){ locSel = {}; renderLoc(); syncLocChip(); }
+      else { clearGroup(g); }
+      return;
+    }
+    var chip = e.target.closest(".chip[data-pop]");
+    if(chip){
+      e.stopPropagation();
+      var pop = document.getElementById("pop-"+chip.dataset.pop);
+      var willOpen = !pop.classList.contains("open");
+      closeAll(pop); pop.classList.toggle("open", willOpen);
+      return;
+    }
+    if(e.target.closest(".pop")) return; // clicks inside a popover stay open
+    closeAll(null);
+  });
+
+  // ---- single-select option groups (deal / beds / type) ----
+  function caret(){ return ' <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>'; }
+  function clearX(){ return ' <span class="clear">✕</span>'; }
+  function baseLabel(g){ return g==="beds"?"Beds":g==="type"?"Type":g==="deal"?"Listing":g; }
+  function setChip(g, text, active){
+    var chip = document.querySelector('.chip[data-pop="'+g+'"]');
+    chip.classList.toggle("active", active);
+    chip.innerHTML = '<span>'+text+'</span>' + (active?clearX():caret());
+  }
+  function clearGroup(g){
+    document.querySelectorAll('.opt[data-group="'+g+'"]').forEach(function(s,i){ s.classList.toggle("sel", i===0); });
+    setChip(g, baseLabel(g), false);
+  }
+  document.querySelectorAll(".opt[data-group]").forEach(function(opt){
+    opt.addEventListener("click", function(){
+      var g = opt.dataset.group, txt = opt.textContent.trim();
+      document.querySelectorAll('.opt[data-group="'+g+'"]').forEach(function(s){ s.classList.remove("sel"); });
+      opt.classList.add("sel");
+      var active = txt !== "Any";
+      var label = !active ? baseLabel(g) : (g==="beds" ? txt+" bed" : txt);
+      setChip(g, label, active);
+      closeAll(null);
+    });
+  });
+
+  // ---- Location: searchable multi-select (city or city/area) ----
+  var listEl = document.getElementById("loc-list");
+  var searchEl = document.getElementById("loc-search");
+  function renderLoc(){
+    var q = (searchEl.value||"").trim().toLowerCase();
+    var html = "";
+    MNE.forEach(function(c){
+      var cityMatch = c.city.toLowerCase().indexOf(q) >= 0;
+      var areas = c.areas.filter(function(a){ return !q || cityMatch || a.toLowerCase().indexOf(q) >= 0; });
+      if(!q || cityMatch || areas.length){
+        var ck = locSel[c.city] ? "sel" : "";
+        html += '<div class="loc-city loc-row '+ck+'" data-key="'+c.city+'"><span class="loc-check">'+(ck?"✓":"")+'</span>'+c.city+'</div>';
+        areas.forEach(function(a){
+          var key = c.city+"|"+a;
+          var k = locSel[key] ? "sel" : "";
+          html += '<div class="loc-area loc-row '+k+'" data-key="'+key+'"><span class="loc-check">'+(k?"✓":"")+'</span>'+a+'</div>';
+        });
+      }
+    });
+    listEl.innerHTML = html || '<div class="loc-empty">No match</div>';
+  }
+  function syncLocChip(){
+    var keys = Object.keys(locSel);
+    var n = keys.length;
+    var chip = document.getElementById("loc-chip");
+    if(n===0){ chip.classList.remove("active"); chip.innerHTML = '<span>Location</span>'+caret(); }
+    else {
+      var label = n===1 ? keys[0].replace("|"," / ") : ("Location · "+n);
+      chip.classList.add("active");
+      chip.innerHTML = '<span>'+label+'</span>'+clearX();
+    }
+  }
+  listEl.addEventListener("click", function(e){
+    var row = e.target.closest(".loc-row"); if(!row) return;
+    var key = row.dataset.key;
+    if(locSel[key]) delete locSel[key]; else locSel[key] = true;
+    renderLoc(); syncLocChip();
+  });
+  searchEl.addEventListener("input", renderLoc);
+  document.getElementById("loc-reset").addEventListener("click", function(){ locSel = {}; renderLoc(); syncLocChip(); });
+  document.getElementById("loc-apply").addEventListener("click", function(){ closeAll(null); });
+  renderLoc();
+</script>
+</body>
+</html>
