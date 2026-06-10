@@ -352,3 +352,9 @@ test("listings with no price show 'Price on request'", () => {
   expect(html).toContain('data-i18n="card.priceOnRequest"');
   expect(html).toContain('"card.priceOnRequest":"Price on request"');
 });
+
+test("Clear-filters link appears only when a filter is active", () => {
+  expect(renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] })).toContain('class="search-clear"');
+  expect(renderAgencySite(agency, listings, { text: "sea" })).toContain('class="search-clear"');
+  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
+});
