@@ -146,55 +146,55 @@ export default function Leads() {
           n: leads.length,
         });
 
-  const tabs = (
-    <View style={styles.tabRow}>
-      {TABS.map((tabDef) => {
-        const active = tab === tabDef.key;
-        return (
-          <Pressable
-            key={tabDef.key}
-            accessibilityRole="button"
-            onPress={() => setTab(tabDef.key)}
-            style={[styles.tabChip, active && styles.tabChipActive]}
-          >
-            <Text
-              style={[styles.tabChipText, active && styles.tabChipTextActive]}
-            >
-              {t(tabDef.labelKey)}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-
   return (
-    <ConsoleLayout title={t("leads.title")} subtitle={subtitle} tabs={tabs}>
+    <ConsoleLayout title={t("leads.title")} subtitle={subtitle}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {loading ? (
-          <ActivityIndicator color={colors.navy} style={styles.spinner} />
-        ) : error ? (
-          <View style={styles.card}>
-            <Text style={styles.error}>{error}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void refetch()}
-              style={({ pressed }) => [
-                styles.ghostBtn,
-                styles.retryBtn,
-                pressed && styles.ghostBtnPressed,
-              ]}
-            >
-              <Text style={styles.ghostBtnText}>{t("common.retry")}</Text>
-            </Pressable>
-          </View>
-        ) : leads.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.empty}>{t(EMPTY_KEY[tab])}</Text>
-          </View>
-        ) : tab === "phone_click" ? (
-          <View style={styles.table}>
-            {clickGroups.map((group, i) => (
+        {/* Folder-style tabs: the active tab merges into the panel below it. */}
+        <View style={styles.tabStrip}>
+          {TABS.map((tabDef) => {
+            const active = tab === tabDef.key;
+            return (
+              <Pressable
+                key={tabDef.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() => setTab(tabDef.key)}
+                style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                  {t(tabDef.labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.panel}>
+          {loading ? (
+            <View style={styles.panelPad}>
+              <ActivityIndicator color={colors.navy} />
+            </View>
+          ) : error ? (
+            <View style={styles.panelPad}>
+              <Text style={styles.error}>{error}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void refetch()}
+                style={({ pressed }) => [
+                  styles.ghostBtn,
+                  styles.retryBtn,
+                  pressed && styles.ghostBtnPressed,
+                ]}
+              >
+                <Text style={styles.ghostBtnText}>{t("common.retry")}</Text>
+              </Pressable>
+            </View>
+          ) : leads.length === 0 ? (
+            <View style={styles.panelPad}>
+              <Text style={styles.empty}>{t(EMPTY_KEY[tab])}</Text>
+            </View>
+          ) : tab === "phone_click" ? (
+            clickGroups.map((group, i) => (
               <View
                 key={group.key || "—"}
                 style={[
@@ -204,11 +204,9 @@ export default function Leads() {
               >
                 <ClickGroupRow group={group} />
               </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.table}>
-            {leads.map((lead, i) => (
+            ))
+          ) : (
+            leads.map((lead, i) => (
               <View
                 key={lead.id}
                 style={[
@@ -218,9 +216,9 @@ export default function Leads() {
               >
                 <LeadRow lead={lead} />
               </View>
-            ))}
-          </View>
-        )}
+            ))
+          )}
+        </View>
       </ScrollView>
     </ConsoleLayout>
   );
@@ -234,41 +232,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 26,
     paddingBottom: 50,
-    gap: space.lg,
   },
-  tabRow: {
+  tabStrip: {
     flexDirection: "row",
-    gap: space.sm,
+    gap: 4,
+    paddingLeft: 6,
+    // Overlap the panel's top border so the active tab visually joins it.
+    marginBottom: -1,
+    zIndex: 1,
   },
-  tabChip: {
-    borderRadius: radius.pill,
-    borderWidth: 1.5,
-    borderColor: colors.sand,
-    backgroundColor: colors.white,
-    paddingVertical: 9,
-    paddingHorizontal: 18,
+  tab: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: radius.sm,
+    borderTopRightRadius: radius.sm,
+    borderWidth: 1,
     alignItems: "center",
   },
-  tabChipActive: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+  tabInactive: {
+    backgroundColor: colors.cream,
+    borderColor: colors.sand,
+    borderBottomColor: colors.sand,
   },
-  tabChipText: {
-    color: colors.navy,
+  tabActive: {
+    backgroundColor: colors.paper,
+    borderColor: colors.sand,
+    // Bottom edge matches the panel fill so the tab opens into it.
+    borderBottomColor: colors.paper,
+  },
+  tabText: {
+    color: colors.muted,
     fontWeight: "700",
     fontSize: 13,
   },
-  tabChipTextActive: {
-    color: colors.white,
+  tabTextActive: {
+    color: colors.navy,
   },
-  spinner: {
-    marginTop: space.lg,
-  },
-  card: {
+  panel: {
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.sand,
-    borderRadius: radius.lg,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: radius.md,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
+    overflow: "hidden",
+  },
+  panelPad: {
     padding: space.xl,
     gap: space.sm,
   },
@@ -302,13 +312,6 @@ const styles = StyleSheet.create({
   retryBtn: {
     alignSelf: "flex-start",
     marginTop: space.sm,
-  },
-  table: {
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.sand,
-    borderRadius: radius.lg,
-    overflow: "hidden",
   },
   rowWrap: {
     paddingHorizontal: 18,
