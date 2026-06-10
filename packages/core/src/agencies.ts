@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { agencies, agencyDomains, type Database } from "@kluche/db";
+import { derivePrefix } from "./refcode.js";
 
 export type Agency = typeof agencies.$inferSelect;
 export type AgencyDomain = typeof agencyDomains.$inferSelect;
@@ -34,7 +35,7 @@ export async function createAgency(
 ): Promise<Agency> {
   const slug = await uniqueSlug(db, input.slug || slugify(input.name));
   const [agency] = await db.insert(agencies)
-    .values({ name: input.name, slug })
+    .values({ name: input.name, slug, refPrefix: derivePrefix(input.name, slug) })
     .returning();
   return agency;
 }
