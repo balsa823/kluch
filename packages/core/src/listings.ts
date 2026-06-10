@@ -1,5 +1,13 @@
 import { and, count, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
-import { inquiries, properties, type Database } from "@kluche/db";
+import { inquiries, leases, properties, type Database } from "@kluche/db";
+
+/** Thrown by deleteProperty when the listing still has lease records (financial data). */
+export class ListingHasLeasesError extends Error {
+  constructor() {
+    super("listing has leases");
+    this.name = "ListingHasLeasesError";
+  }
+}
 
 export type Property = typeof properties.$inferSelect;
 export type PropertyType = NonNullable<Property["type"]>;
@@ -99,8 +107,17 @@ export async function setPropertyStatus(
   return property;
 }
 
-/** Deletes a property, first detaching any inquiries that reference it (set to null). */
+/**
+ * Deletes a property. Detaches referencing inquiries (set to null) first. Refuses to delete
+ * a property that still has lease records (financial data) — throws ListingHasLeasesError so
+ * the caller can surface a 409 rather than hit an FK violation.
+ */
 export async function deleteProperty(db: Database, id: string): Promise<void> {
+  const [{ value: leaseCount }] = await db
+    .select({ value: count() })
+    .from(leases)
+    .where(eq(leases.propertyId, id));
+  if (leaseCount > 0) throw new ListingHasLeasesError();
   await db.update(inquiries).set({ propertyId: null }).where(eq(inquiries.propertyId, id));
   await db.delete(properties).where(eq(properties.id, id));
 }

@@ -12,6 +12,7 @@ import {
   createVisitor,
   dashboardKeys,
   deleteProperty,
+  ListingHasLeasesError,
   setPropertyStatus,
   updateProperty,
   getAgency,
@@ -344,6 +345,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     if (typeof body.address === "string") patch.address = body.address.trim();
     if (typeof body.city === "string") patch.city = body.city.trim();
     if (typeof body.priceMinor === "number") patch.priceMinor = body.priceMinor; // cents
+    if (typeof body.currency === "string") patch.currency = body.currency.trim().toUpperCase().slice(0, 3);
     if (typeof body.bedrooms === "number") patch.bedrooms = body.bedrooms;
     if (typeof body.bathrooms === "number") patch.bathrooms = body.bathrooms;
     if (typeof body.areaM2 === "number") patch.areaM2 = body.areaM2;
@@ -376,7 +378,12 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
     const p = await ownedListing(c, id);
     if (!p) return c.json({ error: "forbidden" }, 403);
-    await deleteProperty(db, id);
+    try {
+      await deleteProperty(db, id);
+    } catch (e) {
+      if (e instanceof ListingHasLeasesError) return c.json({ error: "listing has active leases" }, 409);
+      throw e;
+    }
     return c.json({ ok: true });
   });
 

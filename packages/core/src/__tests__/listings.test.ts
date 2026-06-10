@@ -1,7 +1,8 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { leases } from "@kluche/db";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, countProperties, createProperty, deleteProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties, setPropertyStatus, updateProperty } from "../listings.js";
+import { addPropertyPhotos, countProperties, createProperty, deleteProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties, setPropertyStatus, updateProperty, ListingHasLeasesError } from "../listings.js";
 import { createInquiry, listInquiries } from "../inquiries.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -190,6 +191,16 @@ test("deleteProperty removes the property and nulls referencing inquiries", asyn
   const inquiries = await listInquiries(db, a.id);
   expect(inquiries).toHaveLength(1);
   expect(inquiries[0].propertyId).toBeNull();
+});
+
+test("deleteProperty refuses when the listing has leases", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Leased", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await db.insert(leases).values({ propertyId: p.id, joinCode: "JOIN-DEL-1", rentMinor: 50000, dueDay: 1 });
+  await expect(deleteProperty(db, p.id)).rejects.toBeInstanceOf(ListingHasLeasesError);
+  expect(await getProperty(db, p.id)).not.toBeNull(); // still there
 });
 
 test("searchProperties is isolated per agency", async () => {
