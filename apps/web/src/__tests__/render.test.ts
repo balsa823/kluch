@@ -206,7 +206,10 @@ test("pager links preserve the active filters", () => {
   const next = html.match(/pager-next" href="([^"]+)"/)?.[1] ?? "";
   expect(next).toContain("city=Kotor");
   expect(next).toContain("dealType=rent");
-  expect(next).toContain("maxPrice=50000");
+  // Price is emitted in euros (50000 cents = €500); parseSearchFilters re-multiplies
+  // by 100, so emitting cents here would balloon the filter on every page step.
+  expect(next).toContain("maxPrice=500");
+  expect(next).not.toContain("maxPrice=50000");
   expect(next).toContain("page=2");
 });
 
@@ -284,4 +287,46 @@ test("only safe photo URLs are embedded in the listings blob", () => {
   const html = renderAgencySite(agency, [evil]);
   expect(html).not.toContain("javascript:alert(1)");
   expect(html).toContain("https://cdn.example/ok.jpg");
+});
+
+test("no [data-i18n] element wraps a form control (regression: applyLang would delete it)", () => {
+  const html = renderAgencySite(agency, listings);
+  // The bug was <label data-i18n="…"><input/></label>: setting textContent on the
+  // label during translation deletes the input. Labels must now use an inner <span>.
+  expect(html).not.toMatch(/<label[^>]*\bdata-i18n=/);
+  // The search inputs/selects survive as siblings of their (now span-wrapped) captions.
+  expect(html).toContain('<span data-i18n="search.city">');
+  expect(html).toContain('name="city"');
+  expect(html).toContain('name="type"');
+  expect(html).toContain('<span data-i18n="contact.name">');
+  expect(html).toContain('name="contact"');
+});
+
+test("rent/sale tabs preserve the active filters", () => {
+  const html = renderAgencySite(agency, listings, { city: "Budva", type: "residential" });
+  // Switching to the rent tab keeps city + type rather than dropping them.
+  expect(html).toContain("city=Budva");
+  expect(html).toContain("dealType=rent");
+  expect(html).toMatch(/href="\?city=Budva[^"]*dealType=rent/);
+});
+
+test("Clear link appears only when a filter is active", () => {
+  // Match the rendered anchor, not the always-present CSS rule / dict entry.
+  expect(renderAgencySite(agency, listings, { city: "Budva" })).toContain('class="tab tab-clear"');
+  expect(renderAgencySite(agency, listings, {})).not.toContain('class="tab tab-clear"');
+});
+
+test("pager and tab hrefs emit price in euros, not cents", () => {
+  // minPrice stored as 50000 cents (€500). The href must say 500, else each
+  // navigation would re-multiply by 100.
+  const html = renderAgencySite(agency, listings, { minPrice: 50000 }, { page: 1, pageSize: 1, total: 5 });
+  expect(html).toContain("minPrice=500");
+  expect(html).not.toContain("minPrice=50000");
+});
+
+test("listings with no price show 'Price on request'", () => {
+  const free: Property[] = [{ ...listings[0], id: "p0", priceMinor: 0, refCode: "PO-0003" }] as Property[];
+  const html = renderAgencySite(agency, free);
+  expect(html).toContain('data-i18n="card.priceOnRequest"');
+  expect(html).toContain('"card.priceOnRequest":"Price on request"');
 });
