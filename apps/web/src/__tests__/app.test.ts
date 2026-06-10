@@ -104,6 +104,37 @@ test("query filters narrow the rendered listings", async () => {
   expect(body).not.toContain("Kotor Villa");
 });
 
+test("/a/:slug?code= returns just the matching listing, bogus code returns none", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const a = await createProperty(db, {
+    agencyId: agency.id, name: "Old Town Flat", address: "Trg 1",
+    city: "Podgorica", priceMinor: 45000, type: "residential",
+  });
+  const b = await createProperty(db, {
+    agencyId: agency.id, name: "Kotor Villa", address: "Obala 2",
+    city: "Kotor", priceMinor: 90000, type: "residential",
+  });
+  await publishProperty(db, a.id);
+  await publishProperty(db, b.id);
+  expect(a.refCode).toBeTruthy();
+  const app = createApp(db);
+
+  const hit = await app.request(new Request(`http://kluche.me/a/popovic?code=${a.refCode}`));
+  expect(hit.status).toBe(200);
+  const hitBody = await hit.text();
+  expect(hitBody).toContain("Old Town Flat");
+  expect(hitBody).not.toContain("Kotor Villa");
+
+  // Bogus (but well-formed) code matches nothing.
+  const miss = await app.request(new Request("http://kluche.me/a/popovic?code=PO-9999"));
+  expect(miss.status).toBe(200);
+  const missBody = await miss.text();
+  expect(missBody).not.toContain("Old Town Flat");
+  expect(missBody).not.toContain("Kotor Villa");
+  // Empty result set renders the "no properties" placeholder (count == 0).
+  expect(missBody).toContain(`data-i18n="properties.empty"`);
+});
+
 test("unknown agency host returns 404", async () => {
   const app = createApp(db);
   const res = await app.request(new Request("http://nope.kluche.me/"));

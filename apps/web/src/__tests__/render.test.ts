@@ -11,6 +11,8 @@ const agency: Agency = {
   colorAccent: "#4E827A",
   tagline: "Your home on the Adriatic",
   phone: null,
+  refPrefix: "PO",
+  refSeq: 2,
   createdAt: new Date(),
 };
 
@@ -33,6 +35,7 @@ const listings: Property[] = [
     dealType: "sale",
     status: "published",
     photos: ["https://cdn.example/p1.jpg"],
+    refCode: "PO-0001",
   },
   {
     id: "p2",
@@ -52,6 +55,7 @@ const listings: Property[] = [
     dealType: "rent",
     status: "published",
     photos: [],
+    refCode: "PO-0002",
   },
 ] as Property[];
 
@@ -251,6 +255,28 @@ test("listings JSON blob escapes < to avoid breaking out of the script tag", () 
   const html = renderAgencySite(agency, [evil]);
   expect(html).not.toContain("</script><b>x");
   expect(html).toContain("\\u003c/script>");
+});
+
+test("shows the ref code as a card badge and includes it in the listings JSON blob", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("PO-0001");
+  expect(html).toContain("PO-0002");
+  expect(html).toContain(`class="card-code"`);
+  // The code is also embedded in the modal's listings blob.
+  expect(html).toMatch(/"refCode":"PO-0001"/);
+});
+
+test("renders a ref-code search field and the search.code i18n key", () => {
+  const html = renderAgencySite(agency, listings, { refCode: "PO-0001" });
+  expect(html).toContain(`name="code"`);
+  expect(html).toContain(`value="PO-0001"`);
+  expect(html).toContain(`data-i18n="search.code"`);
+});
+
+test("does not render a card badge when a listing has no ref code", () => {
+  const noCode: Property = { ...listings[0], refCode: null } as Property;
+  const html = renderAgencySite(agency, [noCode]);
+  expect(html).not.toContain(`class="card-code"`);
 });
 
 test("only safe photo URLs are embedded in the listings blob", () => {

@@ -77,8 +77,13 @@ function renderCard(listing: Property, hasPhone: boolean): string {
           </button>`
     : "";
 
+  const codeChip = listing.refCode
+    ? `<span class="card-code">${esc(listing.refCode)}</span>`
+    : "";
+
   return `
       <article class="card" data-id="${esc(listing.id)}" role="button" tabindex="0">
+        ${codeChip}
         ${image}
         <div class="card-body">
           ${priceBlock}
@@ -109,6 +114,7 @@ function pageHref(filters: SearchFilters, page: number): string {
   if (filters.minPrice !== undefined) params.set("minPrice", String(filters.minPrice));
   if (filters.maxPrice !== undefined) params.set("maxPrice", String(filters.maxPrice));
   if (filters.bedrooms !== undefined) params.set("bedrooms", String(filters.bedrooms));
+  if (filters.refCode) params.set("code", filters.refCode);
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return esc(qs ? `?${qs}` : "?");
@@ -280,9 +286,17 @@ export function renderAgencySite(
     /* Cards */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.4rem; }
     .card {
+      position: relative;
       background: #fff; border-radius: 14px; overflow: hidden;
       box-shadow: 0 1px 4px rgba(31, 58, 92, 0.12);
       transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .card-code {
+      position: absolute; top: 0.6rem; left: 0.6rem; z-index: 2;
+      background: var(--color-primary); color: #fff;
+      font-size: 0.68rem; font-weight: 600; letter-spacing: .04em;
+      padding: 0.18rem 0.45rem; border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.25);
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(31, 58, 92, 0.18); }
     .card-photo { width: 100%; height: 180px; object-fit: cover; display: block; }
@@ -360,6 +374,7 @@ export function renderAgencySite(
     .modal-details { padding: 1.5rem 1.6rem; }
     .modal-tag { display: inline-block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 0.2rem 0.5rem; border-radius: 6px; margin-bottom: 0.5rem; color: #fff; }
     .modal-tag.is-rent { background: var(--color-accent); } .modal-tag.is-sale { background: var(--color-primary); }
+    .modal-code { margin: 0 0 0.3rem; color: #6b6557; font-size: 0.8rem; font-weight: 600; letter-spacing: .04em; }
     .modal-title { margin: 0 0 0.3rem; font-size: 1.35rem; }
     .modal-price { margin: 0 0 0.3rem; color: var(--color-primary); font-weight: 700; font-size: 1.25rem; }
     .modal-city { margin: 0 0 0.6rem; color: #6b6557; }
@@ -420,6 +435,9 @@ export function renderAgencySite(
       <label data-i18n="search.bedrooms">Bedrooms
         <input type="number" name="bedrooms" value="${attr(filters.bedrooms)}" />
       </label>
+      <label data-i18n="search.code">Ref. code
+        <input type="text" name="code" value="${attr(filters.refCode ?? "")}" />
+      </label>
       <button type="submit" data-i18n="search.submit">Search</button>
     </form>
   </header>
@@ -462,6 +480,7 @@ export function renderAgencySite(
       </div>
       <div class="modal-details">
         <span class="modal-tag" data-tag></span>
+        <p class="modal-code" hidden></p>
         <h3 id="km-title" class="modal-title"></h3>
         <p class="modal-price"></p>
         <p class="modal-city"></p>
@@ -475,7 +494,7 @@ export function renderAgencySite(
     </div>
   </div>
 
-  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => ({ id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, photos: (l.photos || []).filter((p) => safeUrl(p)) })))}</script>
+  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => ({ id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)) })))}</script>
 
   <script>
   // SR/RU/TR are first-pass translations — review with a native speaker before launch.
@@ -483,7 +502,7 @@ export function renderAgencySite(
     en: {
       "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
       "search.city":"City","search.cityPh":"Any city","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
-      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.submit":"Search",
+      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search",
       "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
       "pager.prev":"Previous","pager.next":"Next",
       "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number","card.call":"Call",
@@ -499,7 +518,7 @@ export function renderAgencySite(
     sr: {
       "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
       "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja",
-      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.submit":"Pretraga",
+      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga",
       "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju",
       "pager.prev":"Prethodno","pager.next":"Sljedeće",
       "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.",
@@ -512,7 +531,7 @@ export function renderAgencySite(
     ru: {
       "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
       "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа",
-      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.submit":"Поиск",
+      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск",
       "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа",
       "pager.prev":"Назад","pager.next":"Вперёд",
       "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.",
@@ -525,7 +544,7 @@ export function renderAgencySite(
     tr: {
       "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
       "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık",
-      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.submit":"Ara",
+      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara",
       "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık",
       "pager.prev":"Önceki","pager.next":"Sonraki",
       "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay",
@@ -591,6 +610,7 @@ export function renderAgencySite(
       var galNext = modal.querySelector(".gal-next");
       var galCounter = modal.querySelector(".gal-counter");
       var elTag = modal.querySelector(".modal-tag");
+      var elCode = modal.querySelector(".modal-code");
       var elTitle = modal.querySelector(".modal-title");
       var elPrice = modal.querySelector(".modal-price");
       var elCity = modal.querySelector(".modal-city");
@@ -635,6 +655,8 @@ export function renderAgencySite(
         var isRent = l.dealType === "rent";
         elTag.textContent = isRent ? t("card.forRent") : t("card.forSale");
         elTag.className = "modal-tag " + (isRent ? "is-rent" : "is-sale");
+        if (l.refCode) { elCode.textContent = String(l.refCode); elCode.hidden = false; }
+        else { elCode.textContent = ""; elCode.hidden = true; }
         elTitle.textContent = String(l.name || "");
         elPrice.textContent = fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : "");
         elCity.textContent = String(l.city || "");
