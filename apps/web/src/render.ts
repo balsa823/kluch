@@ -1,4 +1,4 @@
-import { formatMoney, type Agency, type Property, type SearchFilters } from "@kluche/core";
+import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
 import { MNE_LOCATIONS } from "@kluche/locations";
 
 /** Minimal HTML-escaping for text interpolated into the template. */
@@ -163,7 +163,7 @@ export function renderAgencySite(
   agency: Agency,
   listings: Property[],
   filters: SearchFilters = {},
-  opts: { sent?: boolean; page?: number; pageSize?: number; total?: number } = {},
+  opts: { sent?: boolean; page?: number; pageSize?: number; total?: number; now?: Date } = {},
 ): string {
   const logoUrl = safeUrl(agency.logoUrl);
   const logo = logoUrl
@@ -171,12 +171,25 @@ export function renderAgencySite(
     : "";
 
   const slug = esc(agency.slug);
-  const heroTitle = esc(agency.tagline || agency.name);
 
-  const heroPhoto = cssUrl(listings[0]?.photos?.[0]);
-  const heroStyle = heroPhoto
-    ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroPhoto}'); background-size: cover; background-position: center;`
+  // H1: render the agency's own headline literally when set, else the English
+  // default copy tagged for client-side localization (the server can't call t()).
+  const heroH1 = agency.heroHeadline
+    ? `<h1>${esc(agency.heroHeadline)}</h1>`
+    : `<h1 data-i18n="hero.title">Find Your Perfect Home</h1>`;
+
+  // Hero background: configured hero image → first listing photo → gradient.
+  const heroImage = cssUrl(agency.heroImageUrl) || cssUrl(listings[0]?.photos?.[0]);
+  const heroStyle = heroImage
+    ? `background-image: linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('${heroImage}'); background-size: cover; background-position: center;`
     : `background: linear-gradient(135deg, var(--color-primary), #11203a);`;
+
+  const favicon = safeUrl(agency.faviconUrl)
+    ? `\n  <link rel="icon" href="${esc(safeUrl(agency.faviconUrl))}">`
+    : "";
+
+  // Open/closed badge driven by the agency's business hours + holidays.
+  const status = openStatus(agency, opts.now ?? new Date());
 
   // --- Hero filter pre-selection (server-side, so the URL round-trips) ------
   // Active option class for a single-select chip group (deal / beds / type).
@@ -275,12 +288,118 @@ export function renderAgencySite(
           <button type="submit" data-i18n="contact.submit">Send request</button>
         </form>`;
 
+  // --- Footer (themed, multi-column, driven by agency settings) -------------
+  const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+  const DAY_LABELS: Record<string, string> = {
+    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+  };
+
+  // About column: aboutBlurb when set, else the localizable default copy.
+  const aboutText = agency.aboutBlurb
+    ? `<p class="footer-text">${esc(agency.aboutBlurb)}</p>`
+    : `<p class="footer-text" data-i18n="about.body">We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.</p>`;
+
+  const SOCIAL_KEYS = ["facebook", "instagram", "linkedin", "youtube", "tiktok"] as const;
+  const SOCIAL_LABELS: Record<string, string> = {
+    facebook: "Facebook", instagram: "Instagram", linkedin: "LinkedIn", youtube: "YouTube", tiktok: "TikTok",
+  };
+  const socials = (agency.socials && typeof agency.socials === "object" && !Array.isArray(agency.socials))
+    ? (agency.socials as Record<string, unknown>)
+    : {};
+  const socialLinks = SOCIAL_KEYS
+    .map((k) => ({ k, url: safeUrl(socials[k]) }))
+    .filter((s) => s.url)
+    .map((s) => `<a class="footer-soc" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(SOCIAL_LABELS[s.k])}">${esc(SOCIAL_LABELS[s.k])}</a>`)
+    .join("");
+  const socialRow = socialLinks ? `<div class="footer-social">${socialLinks}</div>` : "";
+
+  // Hours column: 7 rows from businessHours (tolerate null/partial jsonb).
+  const bh = (agency.businessHours && typeof agency.businessHours === "object" && !Array.isArray(agency.businessHours))
+    ? (agency.businessHours as Record<string, unknown>)
+    : null;
+  const hourRows = bh
+    ? DAY_KEYS.map((d) => {
+        const day = bh[d];
+        let value: string;
+        if (day && typeof day === "object") {
+          const o = (day as { open?: unknown }).open;
+          const c = (day as { close?: unknown }).close;
+          value = typeof o === "string" && typeof c === "string" && o && c
+            ? `<span class="footer-htime">${esc(o)}–${esc(c)}</span>`
+            : `<span class="footer-htime" data-i18n="footer.closedDay">Closed</span>`;
+        } else {
+          value = `<span class="footer-htime" data-i18n="footer.closedDay">Closed</span>`;
+        }
+        return `<div class="footer-hrow"><span data-i18n="day.${d}">${esc(DAY_LABELS[d])}</span>${value}</div>`;
+      }).join("")
+    : "";
+  const hoursColumn = bh
+    ? `<div class="footer-col footer-hours">
+          <h4 data-i18n="footer.hours">Opening hours</h4>
+          ${hourRows}
+        </div>`
+    : "";
+
+  // Open-now badge: localizable when open; the holiday name (escaped) or a
+  // localizable "Closed" when closed. Literal English fallback shows pre-JS.
+  const openBadge = status.open
+    ? `<span class="open-badge is-open" data-i18n="footer.openNow">Open now</span>`
+    : status.holiday
+      ? `<span class="open-badge is-closed">${esc(status.holiday)}</span>`
+      : `<span class="open-badge is-closed" data-i18n="footer.closed">Closed</span>`;
+
+  // Contact column: only render the bits that are set.
+  const phoneRow = agency.phone
+    ? `<a class="footer-link" href="tel:${esc(agency.phone)}">${esc(agency.phone)}</a>`
+    : "";
+  const whatsappRow = agency.whatsapp
+    ? `<a class="footer-link" href="https://wa.me/${esc(String(agency.whatsapp).replace(/[^0-9]/g, ""))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`
+    : "";
+  const viberRow = agency.viber
+    ? `<a class="footer-link" href="viber://chat?number=${esc(String(agency.viber).replace(/[^0-9+]/g, ""))}">Viber</a>`
+    : "";
+  const emailRow = agency.email
+    ? `<a class="footer-link" href="mailto:${esc(agency.email)}">${esc(agency.email)}</a>`
+    : "";
+  const addressRow = agency.address
+    ? `<address class="footer-address">${esc(agency.address).replace(/\n/g, "<br />")}</address>`
+    : "";
+  const mapRow = safeUrl(agency.mapUrl)
+    ? `<a class="footer-link" href="${esc(safeUrl(agency.mapUrl))}" target="_blank" rel="noopener noreferrer" data-i18n="footer.map">View on map</a>`
+    : "";
+  const contactBits = [phoneRow, whatsappRow, viberRow, emailRow, addressRow, mapRow].filter(Boolean).join("");
+  const contactColumn = contactBits
+    ? `<div class="footer-col footer-contact">
+          <h4 data-i18n="footer.contact">Contact</h4>
+          ${contactBits}
+        </div>`
+    : "";
+
+  const footerLegalName = esc(agency.footerName || agency.name);
+
+  const footer = `
+  <footer class="site">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <h4>${esc(agency.name)}</h4>
+        ${aboutText}
+        ${socialRow}
+      </div>
+      ${hoursColumn}
+      ${contactColumn}
+    </div>
+    <div class="footer-bar">
+      ${openBadge}
+      <span class="footer-legal">${footerLegalName} · <span data-i18n="footer.powered">Powered by Kluche</span></span>
+    </div>
+  </footer>`;
+
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${esc(agency.name)}</title>
+  <title>${esc(agency.name)}</title>${favicon}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
@@ -476,7 +595,29 @@ export function renderAgencySite(
     /* visually-hidden honeypot */
     .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
-    footer.site { text-align: center; padding: 2.5rem 1rem; color: #6b6557; font-size: 0.85rem; }
+    footer.site { background: var(--color-primary); color: #fff; margin-top: 3rem; }
+    .footer-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem;
+      max-width: 1180px; margin: 0 auto; padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem) 1.5rem;
+    }
+    .footer-col h4 { margin: 0 0 0.9rem; font-size: 1rem; color: #fff; }
+    .footer-text { margin: 0 0 1rem; opacity: 0.85; font-size: 0.9rem; line-height: 1.5; max-width: 40ch; }
+    .footer-social { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .footer-soc { font-size: 0.82rem; text-decoration: none; opacity: 0.85; border: 1px solid rgba(255,255,255,0.3); border-radius: 999px; padding: 0.25rem 0.7rem; }
+    .footer-soc:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+    .footer-hrow { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.88rem; padding: 0.18rem 0; opacity: 0.9; }
+    .footer-htime { opacity: 0.95; }
+    .footer-link, .footer-address { display: block; color: #fff; opacity: 0.88; text-decoration: none; font-size: 0.9rem; margin: 0 0 0.45rem; font-style: normal; line-height: 1.4; }
+    .footer-link:hover { opacity: 1; text-decoration: underline; }
+    .footer-bar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+      max-width: 1180px; margin: 0 auto; padding: 1rem clamp(1rem, 4vw, 2.5rem) 2rem;
+      border-top: 1px solid rgba(255,255,255,0.18); font-size: 0.82rem; opacity: 0.9;
+    }
+    .open-badge { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.7rem; border-radius: 999px; }
+    .open-badge::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: 999px; background: currentColor; }
+    .open-badge.is-open { background: rgba(78,130,122,0.25); color: #b9f5cf; }
+    .open-badge.is-closed { background: rgba(255,255,255,0.12); color: #f1d6d6; }
     .call-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
     .card .call-btn { width: auto; }
     .card[role="button"] { cursor: pointer; }
@@ -548,7 +689,8 @@ export function renderAgencySite(
   </nav>
 
   <header class="hero" id="top">
-    <h1>${heroTitle}</h1>
+    ${heroH1}
+    ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
     <form class="search" method="get" id="hero-form">
       <div class="searchbar">
         <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="Search by address or ref code (e.g. ST-0042)" />
@@ -658,7 +800,7 @@ export function renderAgencySite(
     </section>
   </main>
 
-  <footer class="site">${esc(agency.name)} · <span data-i18n="footer.powered">Powered by Kluche</span></footer>
+  ${footer}
 
   <div id="kluche-modal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="km-title">
     <div class="modal-backdrop" data-close></div>
@@ -708,6 +850,9 @@ export function renderAgencySite(
       "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
       "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
       "contact.thankyou":"Thank you — we'll be in touch shortly.",
+      "hero.title":"Find Your Perfect Home",
+      "footer.hours":"Opening hours","footer.openNow":"Open now","footer.closed":"Closed","footer.closedDay":"Closed","footer.contact":"Contact","footer.explore":"Explore","footer.about":"About","footer.map":"View on map",
+      "day.mon":"Mon","day.tue":"Tue","day.wed":"Wed","day.thu":"Thu","day.fri":"Fri","day.sat":"Sat","day.sun":"Sun",
       "footer.powered":"Powered by Kluche"
     },
     sr: {
@@ -724,6 +869,9 @@ export function renderAgencySite(
       "about.body":"Pomažemo vam da pronađete pravi dom — za najam ili kupovinu. Javite nam se i naš tim će vas voditi, na vašem jeziku, na svakom koraku.",
       "contact.heading":"Zatražite informacije / zakažite obilazak","contact.name":"Vaše ime","contact.contact":"E-pošta ili telefon","contact.message":"Poruka","contact.submit":"Pošalji upit",
       "contact.thankyou":"Hvala — javićemo vam se uskoro.",
+      "hero.title":"Pronađite svoj savršen dom",
+      "footer.hours":"Radno vrijeme","footer.openNow":"Otvoreno","footer.closed":"Zatvoreno","footer.closedDay":"Zatvoreno","footer.contact":"Kontakt","footer.explore":"Istražite","footer.about":"O nama","footer.map":"Prikaži na mapi",
+      "day.mon":"Pon","day.tue":"Uto","day.wed":"Sri","day.thu":"Čet","day.fri":"Pet","day.sat":"Sub","day.sun":"Ned",
       "footer.powered":"Pokreće Kluche"
     },
     ru: {
@@ -740,6 +888,9 @@ export function renderAgencySite(
       "about.body":"Мы поможем найти подходящее жильё — в аренду или для покупки. Свяжитесь с нами, и наша команда поможет вам на вашем языке на каждом шаге.",
       "contact.heading":"Запросить информацию / записаться на просмотр","contact.name":"Ваше имя","contact.contact":"Эл. почта или телефон","contact.message":"Сообщение","contact.submit":"Отправить запрос",
       "contact.thankyou":"Спасибо — мы скоро свяжемся с вами.",
+      "hero.title":"Найдите свой идеальный дом",
+      "footer.hours":"Часы работы","footer.openNow":"Открыто","footer.closed":"Закрыто","footer.closedDay":"Закрыто","footer.contact":"Контакты","footer.explore":"Обзор","footer.about":"О нас","footer.map":"Показать на карте",
+      "day.mon":"Пн","day.tue":"Вт","day.wed":"Ср","day.thu":"Чт","day.fri":"Пт","day.sat":"Сб","day.sun":"Вс",
       "footer.powered":"Работает на Kluche"
     },
     tr: {
@@ -756,6 +907,9 @@ export function renderAgencySite(
       "about.body":"Doğru evi bulmanıza yardımcı oluyoruz — kiralık ya da satılık. Bize ulaşın, ekibimiz her adımda kendi dilinizde size yardımcı olsun.",
       "contact.heading":"Bilgi isteyin / randevu alın","contact.name":"Adınız","contact.contact":"E-posta veya telefon","contact.message":"Mesaj","contact.submit":"Gönder",
       "contact.thankyou":"Teşekkürler — en kısa sürede sizinle iletişime geçeceğiz.",
+      "hero.title":"Mükemmel Evinizi Bulun",
+      "footer.hours":"Çalışma saatleri","footer.openNow":"Açık","footer.closed":"Kapalı","footer.closedDay":"Kapalı","footer.contact":"İletişim","footer.explore":"Keşfet","footer.about":"Hakkımızda","footer.map":"Haritada göster",
+      "day.mon":"Pzt","day.tue":"Sal","day.wed":"Çar","day.thu":"Per","day.fri":"Cum","day.sat":"Cmt","day.sun":"Paz",
       "footer.powered":"Kluche tarafından sağlanır"
     }
   };

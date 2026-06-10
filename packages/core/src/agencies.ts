@@ -61,26 +61,177 @@ export async function getAgencyByDomain(db: Database, domain: string): Promise<A
 /** A safe CSS color: a hex value or a plain CSS keyword. */
 const SAFE_COLOR = /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)$/;
 
+/**
+ * Accepts only http(s) URLs or same-origin root-relative paths (e.g. "/uploads/…").
+ * Rejects javascript:/data: and protocol-relative ("//host") URLs. An empty string
+ * (after trim) is allowed so a field can be cleared.
+ */
+function safeUrl(value: string): boolean {
+  if (value === "") return true;
+  if (/^https?:\/\//i.test(value)) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  return false;
+}
+
+const HHMM = /^\d{2}:\d{2}$/;
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const SOCIAL_KEYS = ["facebook", "instagram", "linkedin", "youtube", "tiktok"];
+const SUPPORTED_LANGS = ["en", "sr", "ru", "tr"];
+
+export interface BusinessHours {
+  [day: string]: { open: string; close: string } | null;
+}
+export interface CustomClosure {
+  from: string;
+  to?: string;
+  label?: string;
+}
+export interface Socials {
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+}
+
+export interface AgencyConfigPatch {
+  logoUrl?: string | null;
+  colorPrimary?: string;
+  colorAccent?: string;
+  tagline?: string | null;
+  phone?: string | null;
+  heroHeadline?: string | null;
+  heroImageUrl?: string | null;
+  faviconUrl?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  viber?: string | null;
+  address?: string | null;
+  mapUrl?: string | null;
+  aboutBlurb?: string | null;
+  footerName?: string | null;
+  notifyEmail?: string | null;
+  defaultLang?: string;
+  observeHolidays?: boolean;
+  businessHours?: BusinessHours | null;
+  customClosures?: CustomClosure[] | null;
+  socials?: Socials | null;
+}
+
+/** Trim and cap a free-text field. `null` clears the column; throws on any other non-string. */
+function text_(value: unknown, max: number): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string") throw new Error("Invalid text");
+  return value.trim().slice(0, max);
+}
+
 export async function updateAgencyConfig(
   db: Database,
   agencyId: string,
-  patch: { logoUrl?: string; colorPrimary?: string; colorAccent?: string; tagline?: string; phone?: string },
+  patch: AgencyConfigPatch,
 ): Promise<Agency> {
+  const safe: Partial<typeof agencies.$inferInsert> = {};
+
   for (const key of ["colorPrimary", "colorAccent"] as const) {
     const value = patch[key];
-    if (value !== undefined && !SAFE_COLOR.test(value)) {
-      throw new Error("Invalid color");
+    if (value !== undefined) {
+      if (!SAFE_COLOR.test(value)) throw new Error("Invalid color");
+      safe[key] = value;
     }
   }
-  // Whitelist updatable columns — never trust the raw patch to set slug/name/etc.
-  const safe: Partial<typeof agencies.$inferInsert> = {};
+
   if (patch.logoUrl !== undefined) safe.logoUrl = patch.logoUrl;
-  if (patch.colorPrimary !== undefined) safe.colorPrimary = patch.colorPrimary;
-  if (patch.colorAccent !== undefined) safe.colorAccent = patch.colorAccent;
-  if (patch.tagline !== undefined) safe.tagline = patch.tagline;
-  if (patch.phone !== undefined) safe.phone = patch.phone;
+
+  // Capped free-text fields.
+  const textFields: Array<[keyof AgencyConfigPatch & keyof typeof safe, number]> = [
+    ["tagline", 500], ["phone", 500], ["heroHeadline", 200], ["email", 500],
+    ["whatsapp", 500], ["viber", 500], ["address", 500], ["aboutBlurb", 2000],
+    ["footerName", 500], ["notifyEmail", 500],
+  ];
+  for (const [key, max] of textFields) {
+    const value = (patch as Record<string, unknown>)[key];
+    if (value !== undefined) (safe as Record<string, unknown>)[key] = text_(value, max);
+  }
+
+  // URL-ish fields (null clears the column).
+  for (const key of ["heroImageUrl", "faviconUrl", "mapUrl"] as const) {
+    const value = patch[key];
+    if (value !== undefined) {
+      const trimmed = text_(value, 1000);
+      if (trimmed !== null && !safeUrl(trimmed)) throw new Error("Invalid URL");
+      safe[key] = trimmed;
+    }
+  }
+
+  if (patch.defaultLang !== undefined) {
+    if (!SUPPORTED_LANGS.includes(patch.defaultLang)) throw new Error("Invalid language");
+    safe.defaultLang = patch.defaultLang;
+  }
+
+  if (patch.observeHolidays !== undefined) {
+    if (typeof patch.observeHolidays !== "boolean") throw new Error("Invalid observeHolidays");
+    safe.observeHolidays = patch.observeHolidays;
+  }
+
+  if (patch.businessHours !== undefined) {
+    safe.businessHours = validateBusinessHours(patch.businessHours);
+  }
+  if (patch.customClosures !== undefined) {
+    safe.customClosures = validateClosures(patch.customClosures);
+  }
+  if (patch.socials !== undefined) {
+    safe.socials = validateSocials(patch.socials);
+  }
+
   const [agency] = await db.update(agencies).set(safe).where(eq(agencies.id, agencyId)).returning();
   return agency;
+}
+
+function validateBusinessHours(value: BusinessHours | null): BusinessHours | null {
+  if (value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid hours");
+  for (const [key, day] of Object.entries(value)) {
+    if (!DAY_KEYS.includes(key)) throw new Error("Invalid hours");
+    if (day === null) continue;
+    if (typeof day !== "object" || Array.isArray(day)) throw new Error("Invalid hours");
+    const { open, close } = day as { open?: unknown; close?: unknown };
+    if (typeof open !== "string" || typeof close !== "string" || !HHMM.test(open) || !HHMM.test(close)) {
+      throw new Error("Invalid hours");
+    }
+  }
+  return value;
+}
+
+function validateClosures(value: CustomClosure[] | null): CustomClosure[] | null {
+  if (value === null) return null;
+  if (!Array.isArray(value)) throw new Error("Invalid closures");
+  return value.map((c) => {
+    if (!c || typeof c !== "object") throw new Error("Invalid closures");
+    const { from, to, label } = c as { from?: unknown; to?: unknown; label?: unknown };
+    if (typeof from !== "string" || !YMD.test(from)) throw new Error("Invalid closures");
+    if (to !== undefined && (typeof to !== "string" || !YMD.test(to))) throw new Error("Invalid closures");
+    if (label !== undefined && typeof label !== "string") throw new Error("Invalid closures");
+    const out: CustomClosure = { from };
+    if (to !== undefined) out.to = to;
+    if (label !== undefined) out.label = label.slice(0, 200);
+    return out;
+  });
+}
+
+function validateSocials(value: Socials | null): Socials | null {
+  if (value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid socials");
+  const out: Socials = {};
+  for (const [key, url] of Object.entries(value)) {
+    if (!SOCIAL_KEYS.includes(key)) throw new Error("Invalid socials");
+    if (url === undefined || url === null || url === "") continue;
+    if (typeof url !== "string") throw new Error("Invalid socials");
+    const trimmed = url.trim();
+    if (!safeUrl(trimmed)) throw new Error("Invalid socials");
+    (out as Record<string, string>)[key] = trimmed;
+  }
+  return out;
 }
 
 export async function addAgencyDomain(

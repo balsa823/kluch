@@ -32,6 +32,28 @@ export type User = {
   agencyId: string;
 };
 
+export type DayHours = { open: string; close: string } | null;
+
+export type BusinessHours = {
+  mon: DayHours;
+  tue: DayHours;
+  wed: DayHours;
+  thu: DayHours;
+  fri: DayHours;
+  sat: DayHours;
+  sun: DayHours;
+};
+
+export type CustomClosure = { from: string; to?: string; label?: string };
+
+export type Socials = {
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+};
+
 export type Agency = {
   id: string;
   name: string;
@@ -40,6 +62,23 @@ export type Agency = {
   colorAccent: string;
   logoUrl: string | null;
   tagline: string | null;
+  phone: string | null;
+  heroHeadline: string | null;
+  heroImageUrl: string | null;
+  faviconUrl: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  viber: string | null;
+  address: string | null;
+  mapUrl: string | null;
+  aboutBlurb: string | null;
+  footerName: string | null;
+  notifyEmail: string | null;
+  defaultLang: string | null;
+  observeHolidays: boolean;
+  businessHours: BusinessHours | null;
+  customClosures: CustomClosure[] | null;
+  socials: Socials | null;
 };
 
 export type CreateListingInput = {
@@ -213,10 +252,34 @@ export type AgencyConfig = {
   tagline: string | null;
 };
 
+/** Partial patch of any editable agency settings field (validated server-side). */
+export type SettingsPatch = Partial<{
+  colorPrimary: string;
+  colorAccent: string;
+  tagline: string | null;
+  phone: string | null;
+  heroHeadline: string | null;
+  heroImageUrl: string | null;
+  faviconUrl: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  viber: string | null;
+  address: string | null;
+  mapUrl: string | null;
+  aboutBlurb: string | null;
+  footerName: string | null;
+  notifyEmail: string | null;
+  defaultLang: string | null;
+  observeHolidays: boolean;
+  businessHours: BusinessHours | null;
+  customClosures: CustomClosure[] | null;
+  socials: Socials | null;
+}>;
+
 export function updateAgencyConfig(
   token: string,
   agencyId: string,
-  cfg: AgencyConfig,
+  cfg: AgencyConfig | SettingsPatch,
 ): Promise<Agency> {
   return request(`/api/agency/${agencyId}/config`, {
     method: "POST",

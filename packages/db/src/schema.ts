@@ -1,5 +1,5 @@
 import {
-  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date, jsonb, uniqueIndex,
+  pgTable, bigserial, bigint, integer, text, timestamp, pgEnum, uuid, date, jsonb, boolean, uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -63,6 +63,22 @@ export const agencies = pgTable("agencies", {
   colorAccent: text("color_accent").notNull().default("#4E827A"),
   tagline: text("tagline"),
   phone: text("phone"),
+  heroHeadline: text("hero_headline"),
+  heroImageUrl: text("hero_image_url"),
+  faviconUrl: text("favicon_url"),
+  email: text("email"),
+  whatsapp: text("whatsapp"),
+  viber: text("viber"),
+  address: text("address"),
+  mapUrl: text("map_url"),
+  aboutBlurb: text("about_blurb"),
+  footerName: text("footer_name"),
+  notifyEmail: text("notify_email"),
+  defaultLang: text("default_lang"),
+  observeHolidays: boolean("observe_holidays").notNull().default(false),
+  businessHours: jsonb("business_hours"),
+  customClosures: jsonb("custom_closures"),
+  socials: jsonb("socials"),
   refPrefix: text("ref_prefix"),
   refSeq: integer("ref_seq").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
