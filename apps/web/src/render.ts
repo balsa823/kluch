@@ -53,13 +53,18 @@ function renderCard(listing: Property, hasPhone: boolean): string {
     ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" loading="lazy" />`
     : `<div class="card-photo card-photo--empty"></div>`;
 
-  const price = esc(formatMoney(listing.priceMinor ?? 0, listing.currency));
   const isRent = listing.dealType === "rent";
-  const priceBlock = isRent
-    ? `<p class="card-price">${price}<span class="card-permo" data-i18n="card.perMonth"> / mo</span></p>
-          <span class="card-tag card-tag--rent" data-i18n="card.forRent">For rent</span>`
-    : `<p class="card-price">${price}</p>
-          <span class="card-tag card-tag--sale" data-i18n="card.forSale">For sale</span>`;
+  const hasPrice = listing.priceMinor != null && listing.priceMinor > 0;
+  const priceLine = hasPrice
+    ? (isRent
+        ? `<p class="card-price">${esc(formatMoney(listing.priceMinor!, listing.currency))}<span class="card-permo" data-i18n="card.perMonth"> / mo</span></p>`
+        : `<p class="card-price">${esc(formatMoney(listing.priceMinor!, listing.currency))}</p>`)
+    : `<p class="card-price card-price--ask" data-i18n="card.priceOnRequest">Price on request</p>`;
+  const tag = isRent
+    ? `<span class="card-tag card-tag--rent" data-i18n="card.forRent">For rent</span>`
+    : `<span class="card-tag card-tag--sale" data-i18n="card.forSale">For sale</span>`;
+  const priceBlock = `${priceLine}
+          ${tag}`;
 
   const badges: string[] = [];
   if (listing.bedrooms != null) badges.push(`<span>${esc(listing.bedrooms)} bd</span>`);
@@ -107,17 +112,49 @@ function renderCard(listing: Property, hasPhone: boolean): string {
  * bedrooms) so paging never drops the user's search. Returns an esc()'d string
  * safe to drop straight into an href attribute.
  */
-function pageHref(filters: SearchFilters, page: number): string {
+/**
+ * Builds the query params for the active filters. `overrides` can replace the
+ * deal type (for the rent/sale tabs) or add a page number. Prices are emitted in
+ * EUROS (filters store cents) to match what the form submits and what
+ * parseSearchFilters expects — otherwise each navigation would ×100 the price.
+ */
+function filterParams(
+  filters: SearchFilters,
+  overrides: { dealType?: "" | "rent" | "sale"; page?: number } = {},
+): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.city) params.set("city", filters.city);
-  if (filters.dealType) params.set("dealType", filters.dealType);
-  if (filters.minPrice !== undefined) params.set("minPrice", String(filters.minPrice));
-  if (filters.maxPrice !== undefined) params.set("maxPrice", String(filters.maxPrice));
+  const dealType = overrides.dealType !== undefined ? overrides.dealType : filters.dealType;
+  if (dealType) params.set("dealType", dealType);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.minPrice !== undefined) params.set("minPrice", String(filters.minPrice / 100));
+  if (filters.maxPrice !== undefined) params.set("maxPrice", String(filters.maxPrice / 100));
   if (filters.bedrooms !== undefined) params.set("bedrooms", String(filters.bedrooms));
   if (filters.refCode) params.set("code", filters.refCode);
-  if (page > 1) params.set("page", String(page));
+  if (overrides.page && overrides.page > 1) params.set("page", String(overrides.page));
+  return params;
+}
+
+function hrefFromParams(params: URLSearchParams): string {
   const qs = params.toString();
   return esc(qs ? `?${qs}` : "?");
+}
+
+function pageHref(filters: SearchFilters, page: number): string {
+  return hrefFromParams(filterParams(filters, { page }));
+}
+
+/** Href for a rent/sale/all tab that keeps the user's other active filters. */
+function tabHref(filters: SearchFilters, dealType: "" | "rent" | "sale"): string {
+  return hrefFromParams(filterParams(filters, { dealType }));
+}
+
+/** True when any filter is active (so we can offer a Clear link). */
+function hasActiveFilters(f: SearchFilters): boolean {
+  return Boolean(
+    f.city || f.dealType || f.type || f.refCode ||
+    f.minPrice !== undefined || f.maxPrice !== undefined || f.bedrooms !== undefined,
+  );
 }
 
 export function renderAgencySite(
@@ -176,13 +213,13 @@ export function renderAgencySite(
           <label class="hp" aria-hidden="true">Company
             <input type="text" name="company" tabindex="-1" autocomplete="off" />
           </label>
-          <label data-i18n="contact.name">Your name
+          <label><span data-i18n="contact.name">Your name</span>
             <input type="text" name="name" maxlength="120" required />
           </label>
-          <label data-i18n="contact.contact">Email or phone
+          <label><span data-i18n="contact.contact">Email or phone</span>
             <input type="text" name="contact" maxlength="200" required />
           </label>
-          <label data-i18n="contact.message">Message
+          <label><span data-i18n="contact.message">Message</span>
             <textarea name="message" rows="4" maxlength="2000"></textarea>
           </label>
           <button type="submit" data-i18n="contact.submit">Send request</button>
@@ -245,22 +282,30 @@ export function renderAgencySite(
     header.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 auto 1.5rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
     form.search {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 0.6rem; align-items: end;
-      background: rgba(255,255,255,0.96);
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.7rem 0.8rem; align-items: end;
+      background: rgba(255,255,255,0.97);
       color: var(--color-ink);
-      padding: 1rem; border-radius: 14px;
-      max-width: 880px; margin: 0 auto;
+      padding: 1.1rem 1.2rem; border-radius: 16px;
+      max-width: 920px; margin: 0 auto;
       box-shadow: 0 12px 40px rgba(0,0,0,.25);
     }
-    form.search label { display: flex; flex-direction: column; font-size: 0.72rem; gap: 0.2rem; text-align: left; text-transform: uppercase; letter-spacing: .04em; color: #6b6557; }
+    form.search label { display: flex; flex-direction: column; font-size: 0.7rem; gap: 0.3rem; text-align: left; text-transform: uppercase; letter-spacing: .05em; color: #6b6557; font-weight: 600; }
     form.search input, form.search select {
-      padding: 0.5rem 0.6rem; border: 1px solid #d8d2c4; border-radius: 8px; font: inherit; background: #fff;
+      width: 100%; padding: 0.55rem 0.65rem; border: 1px solid #d8d2c4; border-radius: 9px;
+      font: inherit; background: #fff; color: var(--color-ink); min-height: 2.5rem;
+    }
+    form.search input:focus, form.search select:focus {
+      outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
     form.search button {
+      align-self: end; min-height: 2.5rem;
       background: var(--color-accent); color: #fff; border: 0;
-      padding: 0.62rem 1rem; border-radius: 8px; font: inherit; cursor: pointer; font-weight: 600;
+      padding: 0.62rem 1.1rem; border-radius: 9px; font: inherit; cursor: pointer; font-weight: 700;
     }
+    form.search button:hover { filter: brightness(1.05); }
+    .tabs a.tab-clear { border-style: dashed; opacity: 0.85; margin-left: auto; }
+    .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
     section { scroll-margin-top: 80px; }
@@ -415,10 +460,10 @@ export function renderAgencySite(
     <h1>${heroTitle}</h1>
     <form class="search" method="get">
       <input type="hidden" name="dealType" value="${attr(filters.dealType)}" />
-      <label data-i18n="search.city">City
+      <label><span data-i18n="search.city">City</span>
         <input type="text" name="city" value="${attr(filters.city)}" data-i18n-ph="search.cityPh" placeholder="Any city" />
       </label>
-      <label data-i18n="search.type">Type
+      <label><span data-i18n="search.type">Type</span>
         <select name="type">
           <option value=""${typeSel("")} data-i18n="search.typeAny">Any type</option>
           <option value="residential"${typeSel("residential")} data-i18n="search.typeResidential">Residential</option>
@@ -426,16 +471,16 @@ export function renderAgencySite(
           <option value="commercial"${typeSel("commercial")} data-i18n="search.typeCommercial">Commercial</option>
         </select>
       </label>
-      <label data-i18n="search.minPrice">Min price (€)
-        <input type="number" name="minPrice" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
+      <label><span data-i18n="search.minPrice">Min price (€)</span>
+        <input type="number" name="minPrice" min="0" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
       </label>
-      <label data-i18n="search.maxPrice">Max price (€)
-        <input type="number" name="maxPrice" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
+      <label><span data-i18n="search.maxPrice">Max price (€)</span>
+        <input type="number" name="maxPrice" min="0" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
       </label>
-      <label data-i18n="search.bedrooms">Bedrooms
-        <input type="number" name="bedrooms" value="${attr(filters.bedrooms)}" />
+      <label><span data-i18n="search.bedrooms">Bedrooms</span>
+        <input type="number" name="bedrooms" min="0" value="${attr(filters.bedrooms)}" />
       </label>
-      <label data-i18n="search.code">Ref. code
+      <label><span data-i18n="search.code">Ref. code</span>
         <input type="text" name="code" value="${attr(filters.refCode ?? "")}" />
       </label>
       <button type="submit" data-i18n="search.submit">Search</button>
@@ -446,9 +491,10 @@ export function renderAgencySite(
     <section id="properties">
       <h2 class="section-head" data-i18n="properties.heading">Available properties</h2>
       <div class="tabs">
-        <a href="?" class="${tabActive("")}" data-i18n="tab.all">All</a>
-        <a href="?dealType=rent" class="${tabActive("rent")}" data-i18n="tab.rent">For rent</a>
-        <a href="?dealType=sale" class="${tabActive("sale")}" data-i18n="tab.sale">For sale</a>
+        <a href="${tabHref(filters, "")}" class="${tabActive("")}" data-i18n="tab.all">All</a>
+        <a href="${tabHref(filters, "rent")}" class="${tabActive("rent")}" data-i18n="tab.rent">For rent</a>
+        <a href="${tabHref(filters, "sale")}" class="${tabActive("sale")}" data-i18n="tab.sale">For sale</a>
+        ${hasActiveFilters(filters) ? `<a href="?" class="tab tab-clear" data-i18n="tab.clear">Clear filters</a>` : ""}
       </div>
       <div class="grid">${cards}</div>
       ${pager}
@@ -503,9 +549,9 @@ export function renderAgencySite(
       "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
       "search.city":"City","search.cityPh":"Any city","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
       "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search",
-      "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale",
+      "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale","tab.clear":"Clear filters",
       "pager.prev":"Previous","pager.next":"Next",
-      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.showNumber":"Show number","card.call":"Call",
+      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.priceOnRequest":"Price on request","card.showNumber":"Show number","card.call":"Call",
       "modal.close":"Close","modal.gallery":"Photos",
       "tour.heading":"Schedule a tour","tour.date":"Preferred date","tour.note":"Note (optional)","tour.submit":"Request tour","tour.done":"Tour requested — the agency will be in touch.",
       "auth.heading":"Sign in to schedule","auth.email":"Email","auth.password":"Password","auth.name":"Name","auth.login":"Log in","auth.register":"Register","auth.toggleToRegister":"New here? Register","auth.toggleToLogin":"Have an account? Log in","auth.signedInAs":"Signed in as",
@@ -519,9 +565,9 @@ export function renderAgencySite(
       "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
       "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja",
       "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga",
-      "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju",
+      "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju","tab.clear":"Poništi filtere",
       "pager.prev":"Prethodno","pager.next":"Sljedeće",
-      "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.",
+      "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.","card.priceOnRequest":"Cijena na upit",
       "properties.heading":"Dostupne nekretnine","properties.empty":"Nema nekretnina za vašu pretragu.",
       "about.body":"Pomažemo vam da pronađete pravi dom — za najam ili kupovinu. Javite nam se i naš tim će vas voditi, na vašem jeziku, na svakom koraku.",
       "contact.heading":"Zatražite informacije / zakažite obilazak","contact.name":"Vaše ime","contact.contact":"E-pošta ili telefon","contact.message":"Poruka","contact.submit":"Pošalji upit",
@@ -532,9 +578,9 @@ export function renderAgencySite(
       "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
       "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа",
       "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск",
-      "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа",
+      "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа","tab.clear":"Сбросить фильтры",
       "pager.prev":"Назад","pager.next":"Вперёд",
-      "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.",
+      "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.","card.priceOnRequest":"Цена по запросу",
       "properties.heading":"Доступные объекты","properties.empty":"Нет объектов по вашему запросу.",
       "about.body":"Мы поможем найти подходящее жильё — в аренду или для покупки. Свяжитесь с нами, и наша команда поможет вам на вашем языке на каждом шаге.",
       "contact.heading":"Запросить информацию / записаться на просмотр","contact.name":"Ваше имя","contact.contact":"Эл. почта или телефон","contact.message":"Сообщение","contact.submit":"Отправить запрос",
@@ -545,9 +591,9 @@ export function renderAgencySite(
       "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
       "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık",
       "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara",
-      "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık",
+      "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık","tab.clear":"Filtreleri temizle",
       "pager.prev":"Önceki","pager.next":"Sonraki",
-      "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay",
+      "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay","card.priceOnRequest":"Fiyat için sorun",
       "properties.heading":"Mevcut ilanlar","properties.empty":"Aramanıza uygun ilan yok.",
       "about.body":"Doğru evi bulmanıza yardımcı oluyoruz — kiralık ya da satılık. Bize ulaşın, ekibimiz her adımda kendi dilinizde size yardımcı olsun.",
       "contact.heading":"Bilgi isteyin / randevu alın","contact.name":"Adınız","contact.contact":"E-posta veya telefon","contact.message":"Mesaj","contact.submit":"Gönder",
@@ -558,7 +604,9 @@ export function renderAgencySite(
   let LANG = "en";
   function t(key) { return (T[LANG] && T[LANG][key]) != null ? T[LANG][key] : (T.en[key] != null ? T.en[key] : key); }
   function applyLang() {
-    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.getAttribute("data-i18n")); });
+    // Only rewrite leaf elements: setting textContent on a node that wraps form
+    // controls (e.g. a <label> around an <input>) would delete those controls.
+    document.querySelectorAll("[data-i18n]").forEach((el) => { if (!el.firstElementChild) el.textContent = t(el.getAttribute("data-i18n")); });
     document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
     document.documentElement.lang = LANG;
     document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
@@ -658,7 +706,8 @@ export function renderAgencySite(
         if (l.refCode) { elCode.textContent = String(l.refCode); elCode.hidden = false; }
         else { elCode.textContent = ""; elCode.hidden = true; }
         elTitle.textContent = String(l.name || "");
-        elPrice.textContent = fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : "");
+        var hasPrice = l.priceMinor != null && Number(l.priceMinor) > 0;
+        elPrice.textContent = hasPrice ? (fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : "")) : t("card.priceOnRequest");
         elCity.textContent = String(l.city || "");
         elBadges.textContent = "";
         var parts = [];
