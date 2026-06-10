@@ -11,6 +11,7 @@ import { ConsoleLayout } from "../components/ConsoleLayout";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
 import { listLeads, type Lead } from "../lib/api";
+import { groupPhoneClicks, type ClickGroup } from "../lib/clicks";
 
 type Tab = "tour" | "inquiry" | "phone_click";
 
@@ -75,6 +76,29 @@ function LeadRow({ lead }: { lead: Lead }) {
   );
 }
 
+function ClickGroupRow({ group }: { group: ClickGroup }) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowInfo}>
+        <View style={styles.clickTitleRow}>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {group.propertyName ?? "—"}
+          </Text>
+          {group.refCode ? (
+            <Text style={styles.codeChip}>{group.refCode}</Text>
+          ) : null}
+        </View>
+        <Text style={styles.rowMeta}>last {fmt(group.lastCreatedAt)}</Text>
+      </View>
+      <View style={styles.rowTimeCol}>
+        <Text style={styles.clickCount}>
+          {group.count} {group.count === 1 ? "click" : "clicks"}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function Leads() {
   const { token } = useAuth();
 
@@ -101,9 +125,13 @@ export default function Leads() {
     void refetch();
   }, [refetch]);
 
+  const clickGroups = tab === "phone_click" ? groupPhoneClicks(leads) : [];
+
   const subtitle = loading
     ? "Loading…"
-    : `${leads.length} ${leads.length === 1 ? "lead" : "leads"}`;
+    : tab === "phone_click"
+      ? `${leads.length} ${leads.length === 1 ? "click" : "clicks"} across ${clickGroups.length} ${clickGroups.length === 1 ? "listing" : "listings"}`
+      : `${leads.length} ${leads.length === 1 ? "lead" : "leads"}`;
 
   return (
     <ConsoleLayout>
@@ -155,6 +183,20 @@ export default function Leads() {
         ) : leads.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.empty}>{EMPTY[tab]}</Text>
+          </View>
+        ) : tab === "phone_click" ? (
+          <View style={styles.table}>
+            {clickGroups.map((group, i) => (
+              <View
+                key={group.key || "—"}
+                style={[
+                  styles.rowWrap,
+                  i < clickGroups.length - 1 && styles.rowDivider,
+                ]}
+              >
+                <ClickGroupRow group={group} />
+              </View>
+            ))}
           </View>
         ) : (
           <View style={styles.table}>
@@ -310,6 +352,27 @@ const styles = StyleSheet.create({
     color: colors.body,
     fontSize: 13,
     marginTop: 2,
+  },
+  clickTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  codeChip: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.navy,
+    backgroundColor: colors.sand,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  clickCount: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.ink,
   },
   rowMessage: {
     color: colors.muted,
