@@ -150,6 +150,15 @@ test("updateAgencyConfig rejects an unsupported language", async () => {
   ).rejects.toThrow("Invalid language");
 });
 
+test("updateAgencyConfig clears a text/URL field when sent null", async () => {
+  const a = await createAgency(db, { name: "Adriatic Homes" });
+  await updateAgencyConfig(db, a.id, { heroHeadline: "Find Your Home", heroImageUrl: "https://cdn.example/h.jpg" });
+  const cleared = await updateAgencyConfig(db, a.id, { heroHeadline: null, heroImageUrl: null, email: null });
+  expect(cleared.heroHeadline).toBeNull();
+  expect(cleared.heroImageUrl).toBeNull();
+  expect(cleared.email).toBeNull();
+});
+
 test("updateAgencyConfig ignores non-whitelisted keys", async () => {
   const a = await createAgency(db, { name: "Adriatic Homes" });
   const updated = await updateAgencyConfig(db, a.id, {

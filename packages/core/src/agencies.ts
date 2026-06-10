@@ -96,22 +96,22 @@ export interface Socials {
 }
 
 export interface AgencyConfigPatch {
-  logoUrl?: string;
+  logoUrl?: string | null;
   colorPrimary?: string;
   colorAccent?: string;
-  tagline?: string;
-  phone?: string;
-  heroHeadline?: string;
-  heroImageUrl?: string;
-  faviconUrl?: string;
-  email?: string;
-  whatsapp?: string;
-  viber?: string;
-  address?: string;
-  mapUrl?: string;
-  aboutBlurb?: string;
-  footerName?: string;
-  notifyEmail?: string;
+  tagline?: string | null;
+  phone?: string | null;
+  heroHeadline?: string | null;
+  heroImageUrl?: string | null;
+  faviconUrl?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  viber?: string | null;
+  address?: string | null;
+  mapUrl?: string | null;
+  aboutBlurb?: string | null;
+  footerName?: string | null;
+  notifyEmail?: string | null;
   defaultLang?: string;
   observeHolidays?: boolean;
   businessHours?: BusinessHours | null;
@@ -119,8 +119,9 @@ export interface AgencyConfigPatch {
   socials?: Socials | null;
 }
 
-/** Trim and cap a free-text field; throws if not a string. */
-function text_(value: unknown, max: number): string {
+/** Trim and cap a free-text field. `null` clears the column; throws on any other non-string. */
+function text_(value: unknown, max: number): string | null {
+  if (value === null) return null;
   if (typeof value !== "string") throw new Error("Invalid text");
   return value.trim().slice(0, max);
 }
@@ -153,12 +154,12 @@ export async function updateAgencyConfig(
     if (value !== undefined) (safe as Record<string, unknown>)[key] = text_(value, max);
   }
 
-  // URL-ish fields.
+  // URL-ish fields (null clears the column).
   for (const key of ["heroImageUrl", "faviconUrl", "mapUrl"] as const) {
     const value = patch[key];
     if (value !== undefined) {
       const trimmed = text_(value, 1000);
-      if (!safeUrl(trimmed)) throw new Error("Invalid URL");
+      if (trimmed !== null && !safeUrl(trimmed)) throw new Error("Invalid URL");
       safe[key] = trimmed;
     }
   }
