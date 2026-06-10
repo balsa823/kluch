@@ -172,6 +172,7 @@ export interface SearchFilters {
   bedrooms?: number;
   type?: PropertyType;
   dealType?: "rent" | "sale";
+  refCode?: string;
   page?: number;
 }
 
@@ -187,6 +188,7 @@ function searchConditions(agencyId: string, filters: SearchFilters): SQL[] {
   if (filters.bedrooms !== undefined) conditions.push(gte(properties.bedrooms, filters.bedrooms));
   if (filters.type !== undefined) conditions.push(eq(properties.type, filters.type));
   if (filters.dealType !== undefined) conditions.push(eq(properties.dealType, filters.dealType));
+  if (filters.refCode) conditions.push(eq(properties.refCode, filters.refCode));
   return conditions;
 }
 

@@ -203,6 +203,43 @@ test("deleteProperty refuses when the listing has leases", async () => {
   expect(await getProperty(db, p.id)).not.toBeNull(); // still there
 });
 
+test("searchProperties filters by minPrice/maxPrice range and by type", async () => {
+  const a = await agency();
+  const cheap = await createProperty(db, { agencyId: a.id, name: "Cheap", address: "A", city: "Budva", priceMinor: 80000, type: "residential" });
+  const mid = await createProperty(db, { agencyId: a.id, name: "Mid", address: "B", city: "Budva", priceMinor: 150000, type: "land" });
+  const dear = await createProperty(db, { agencyId: a.id, name: "Dear", address: "C", city: "Budva", priceMinor: 400000, type: "commercial" });
+  for (const p of [cheap, mid, dear]) await publishProperty(db, p.id);
+
+  expect((await searchProperties(db, a.id, { minPrice: 100000, maxPrice: 200000 })).map((r) => r.name)).toEqual(["Mid"]);
+  expect((await searchProperties(db, a.id, { minPrice: 90000 })).map((r) => r.name).sort()).toEqual(["Dear", "Mid"]);
+  expect((await searchProperties(db, a.id, { type: "land" })).map((r) => r.name)).toEqual(["Mid"]);
+  expect(await countProperties(db, a.id, { minPrice: 100000, maxPrice: 200000 })).toBe(1);
+});
+
+test("searchProperties finds a listing by its reference code", async () => {
+  const a = await agency();
+  const one = await createProperty(db, { agencyId: a.id, name: "One", address: "A", city: "Budva", priceMinor: 100000 });
+  const two = await createProperty(db, { agencyId: a.id, name: "Two", address: "B", city: "Kotor", priceMinor: 200000 });
+  await publishProperty(db, one.id);
+  await publishProperty(db, two.id);
+
+  const results = await searchProperties(db, a.id, { refCode: one.refCode! });
+  expect(results).toHaveLength(1);
+  expect(results[0].id).toBe(one.id);
+  expect(await countProperties(db, a.id, { refCode: one.refCode! })).toBe(1);
+
+  // A non-existent code matches nothing.
+  expect(await searchProperties(db, a.id, { refCode: "ZZ-9999" })).toEqual([]);
+  expect(await countProperties(db, a.id, { refCode: "ZZ-9999" })).toBe(0);
+});
+
+test("searchProperties by code still respects published-only", async () => {
+  const a = await agency();
+  const draft = await createProperty(db, { agencyId: a.id, name: "Draft", address: "A", city: "Budva", priceMinor: 100000 });
+  // not published
+  expect(await searchProperties(db, a.id, { refCode: draft.refCode! })).toEqual([]);
+});
+
 test("searchProperties is isolated per agency", async () => {
   const a = await agency("Agency A");
   const b = await agency("Agency B");
