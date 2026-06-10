@@ -10,21 +10,22 @@ import {
 import { ConsoleLayout } from "../components/ConsoleLayout";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { useT } from "../lib/i18n";
 import { listLeads, type Lead } from "../lib/api";
 import { groupPhoneClicks, type ClickGroup } from "../lib/clicks";
 
 type Tab = "tour" | "inquiry" | "phone_click";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "tour", label: "Tours" },
-  { key: "inquiry", label: "Inquiries" },
-  { key: "phone_click", label: "Clicks" },
+const TABS: { key: Tab; labelKey: string }[] = [
+  { key: "tour", labelKey: "leads.tab.tours" },
+  { key: "inquiry", labelKey: "leads.tab.inquiries" },
+  { key: "phone_click", labelKey: "leads.tab.clicks" },
 ];
 
-const EMPTY: Record<Tab, string> = {
-  tour: "No tours yet",
-  inquiry: "No inquiries yet",
-  phone_click: "No phone clicks yet",
+const EMPTY_KEY: Record<Tab, string> = {
+  tour: "leads.empty.tours",
+  inquiry: "leads.empty.inquiries",
+  phone_click: "leads.empty.clicks",
 };
 
 function fmt(iso: string): string {
@@ -41,6 +42,7 @@ function fmtDate(value: string): string {
 }
 
 function LeadRow({ lead }: { lead: Lead }) {
+  const { t } = useT();
   return (
     <View style={styles.row}>
       <View style={styles.rowInfo}>
@@ -48,7 +50,7 @@ function LeadRow({ lead }: { lead: Lead }) {
           {lead.propertyName ?? "—"}
         </Text>
         {lead.kind === "phone_click" ? (
-          <Text style={styles.rowMeta}>Phone click</Text>
+          <Text style={styles.rowMeta}>{t("leads.phoneClick")}</Text>
         ) : (
           <>
             {lead.name || lead.contact ? (
@@ -58,7 +60,7 @@ function LeadRow({ lead }: { lead: Lead }) {
             ) : null}
             {lead.kind === "tour" && lead.tourDate ? (
               <Text style={styles.rowMeta} numberOfLines={1}>
-                Tour: {fmtDate(lead.tourDate)}
+                {t("leads.tourPrefix", { date: fmtDate(lead.tourDate) })}
               </Text>
             ) : null}
             {lead.message ? (
@@ -77,6 +79,7 @@ function LeadRow({ lead }: { lead: Lead }) {
 }
 
 function ClickGroupRow({ group }: { group: ClickGroup }) {
+  const { t } = useT();
   return (
     <View style={styles.row}>
       <View style={styles.rowInfo}>
@@ -88,11 +91,15 @@ function ClickGroupRow({ group }: { group: ClickGroup }) {
             <Text style={styles.codeChip}>{group.refCode}</Text>
           ) : null}
         </View>
-        <Text style={styles.rowMeta}>last {fmt(group.lastCreatedAt)}</Text>
+        <Text style={styles.rowMeta}>
+          {t("leads.lastClick", { time: fmt(group.lastCreatedAt) })}
+        </Text>
       </View>
       <View style={styles.rowTimeCol}>
         <Text style={styles.clickCount}>
-          {group.count} {group.count === 1 ? "click" : "clicks"}
+          {t(group.count === 1 ? "leads.clickCountOne" : "leads.clickCount", {
+            n: group.count,
+          })}
         </Text>
       </View>
     </View>
@@ -101,6 +108,7 @@ function ClickGroupRow({ group }: { group: ClickGroup }) {
 
 export default function Leads() {
   const { token } = useAuth();
+  const { t } = useT();
 
   const [tab, setTab] = useState<Tab>("inquiry");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -115,11 +123,11 @@ export default function Leads() {
       const data = await listLeads(token, tab);
       setLeads(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load leads");
+      setError(e instanceof Error ? e.message : t("leads.error"));
     } finally {
       setLoading(false);
     }
-  }, [token, tab]);
+  }, [token, tab, t]);
 
   useEffect(() => {
     void refetch();
@@ -128,41 +136,41 @@ export default function Leads() {
   const clickGroups = tab === "phone_click" ? groupPhoneClicks(leads) : [];
 
   const subtitle = loading
-    ? "Loading…"
+    ? t("common.loading")
     : tab === "phone_click"
-      ? `${leads.length} ${leads.length === 1 ? "click" : "clicks"} across ${clickGroups.length} ${clickGroups.length === 1 ? "listing" : "listings"}`
-      : `${leads.length} ${leads.length === 1 ? "lead" : "leads"}`;
+      ? t("leads.clicksSummary", {
+          clicks: leads.length,
+          listings: clickGroups.length,
+        })
+      : t(leads.length === 1 ? "leads.countOne" : "leads.count", {
+          n: leads.length,
+        });
+
+  const tabs = (
+    <View style={styles.tabRow}>
+      {TABS.map((tabDef) => {
+        const active = tab === tabDef.key;
+        return (
+          <Pressable
+            key={tabDef.key}
+            accessibilityRole="button"
+            onPress={() => setTab(tabDef.key)}
+            style={[styles.tabChip, active && styles.tabChipActive]}
+          >
+            <Text
+              style={[styles.tabChipText, active && styles.tabChipTextActive]}
+            >
+              {t(tabDef.labelKey)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 
   return (
-    <ConsoleLayout>
-      <View style={styles.topbar}>
-        <View style={styles.topbarText}>
-          <Text style={styles.title}>Leads</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
-      </View>
-
+    <ConsoleLayout title={t("leads.title")} subtitle={subtitle} tabs={tabs}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.tabRow}>
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            return (
-              <Pressable
-                key={t.key}
-                accessibilityRole="button"
-                onPress={() => setTab(t.key)}
-                style={[styles.tabChip, active && styles.tabChipActive]}
-              >
-                <Text
-                  style={[styles.tabChipText, active && styles.tabChipTextActive]}
-                >
-                  {t.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
         {loading ? (
           <ActivityIndicator color={colors.navy} style={styles.spinner} />
         ) : error ? (
@@ -177,12 +185,12 @@ export default function Leads() {
                 pressed && styles.ghostBtnPressed,
               ]}
             >
-              <Text style={styles.ghostBtnText}>Retry</Text>
+              <Text style={styles.ghostBtnText}>{t("common.retry")}</Text>
             </Pressable>
           </View>
         ) : leads.length === 0 ? (
           <View style={styles.card}>
-            <Text style={styles.empty}>{EMPTY[tab]}</Text>
+            <Text style={styles.empty}>{t(EMPTY_KEY[tab])}</Text>
           </View>
         ) : tab === "phone_click" ? (
           <View style={styles.table}>
@@ -219,30 +227,6 @@ export default function Leads() {
 }
 
 const styles = StyleSheet.create({
-  topbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 30,
-    paddingVertical: 22,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.sand,
-    backgroundColor: colors.page,
-  },
-  topbarText: {
-    flexShrink: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: colors.ink,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 14,
-    marginTop: 2,
-  },
   scroll: {
     flex: 1,
   },

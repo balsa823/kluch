@@ -14,6 +14,7 @@ import { ConsoleLayout } from "../components/ConsoleLayout";
 import { TextField } from "../components/ui";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { useT } from "../lib/i18n";
 import {
   updateAgencyConfig,
   uploadAgencyLogo,
@@ -32,6 +33,7 @@ const PRESETS = [
 
 export default function Website() {
   const { token, agency, setAgency } = useAuth();
+  const { t } = useT();
   const router = useRouter();
 
   const [primary, setPrimary] = useState(agency?.colorPrimary ?? "#1F3A5C");
@@ -50,7 +52,7 @@ export default function Website() {
     return (
       <ConsoleLayout>
         <View style={styles.emptyWrap}>
-          <Text style={styles.empty}>Loading your agency…</Text>
+          <Text style={styles.empty}>{t("website.loading")}</Text>
         </View>
       </ConsoleLayout>
     );
@@ -77,7 +79,7 @@ export default function Website() {
         setLogoUrl(url);
         if (agency) setAgency({ ...agency, logoUrl: url });
       } catch (e) {
-        setLogoError(e instanceof Error ? e.message : "Failed to upload logo");
+        setLogoError(e instanceof Error ? e.message : t("website.errorUploadLogo"));
       } finally {
         setUploading(false);
       }
@@ -97,9 +99,9 @@ export default function Website() {
         tagline: tagline.trim() === "" ? null : tagline.trim(),
       });
       setAgency(updated);
-      setSaveMsg("Saved");
+      setSaveMsg(t("website.saved"));
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Failed to save");
+      setSaveError(e instanceof Error ? e.message : t("website.errorSave"));
     } finally {
       setSaving(false);
     }
@@ -113,24 +115,24 @@ export default function Website() {
           onPress={() => router.replace("/agency")}
           style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.backBtnText}>← Back</Text>
+          <Text style={styles.backBtnText}>{t("website.back")}</Text>
         </Pressable>
         <View style={styles.topbarText}>
-          <Text style={styles.title}>Website</Text>
-          <Text style={styles.subtitle}>Customise your white-label site</Text>
+          <Text style={styles.title}>{t("website.title")}</Text>
+          <Text style={styles.subtitle}>{t("website.subtitle")}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
           onPress={() => void Linking.openURL(agencySiteUrl(slug))}
           style={({ pressed }) => [styles.viewBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.viewBtnText}>View site ↗</Text>
+          <Text style={styles.viewBtnText}>{t("website.viewSite")}</Text>
         </Pressable>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Preview</Text>
+          <Text style={styles.sectionTitle}>{t("website.preview")}</Text>
           <View
             style={[
               styles.preview,
@@ -158,7 +160,7 @@ export default function Website() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Palette</Text>
+          <Text style={styles.sectionTitle}>{t("website.palette")}</Text>
           <View style={styles.swatchRow}>
             {PRESETS.map((p) => {
               const active = p.primary === primary && p.accent === accent;
@@ -199,18 +201,18 @@ export default function Website() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Tagline</Text>
+          <Text style={styles.sectionTitle}>{t("website.tagline")}</Text>
           <TextField
-            label="Tagline"
+            label={t("website.tagline")}
             value={tagline}
             onChangeText={setTagline}
-            placeholder="Your trusted agency in Montenegro"
+            placeholder={t("website.taglinePlaceholder")}
           />
         </View>
 
         {Platform.OS === "web" ? (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Logo</Text>
+            <Text style={styles.sectionTitle}>{t("website.logo")}</Text>
             <View style={styles.logoRow}>
               {logoUrl ? (
                 <Image
@@ -220,7 +222,7 @@ export default function Website() {
                 />
               ) : (
                 <View style={[styles.logoThumb, styles.logoThumbEmpty]}>
-                  <Text style={styles.logoThumbText}>No logo</Text>
+                  <Text style={styles.logoThumbText}>{t("website.noLogo")}</Text>
                 </View>
               )}
               <Pressable
@@ -234,7 +236,7 @@ export default function Website() {
                 ]}
               >
                 <Text style={styles.ghostBtnText}>
-                  {uploading ? "Uploading…" : "Upload logo"}
+                  {uploading ? t("website.uploading") : t("website.uploadLogo")}
                 </Text>
               </Pressable>
             </View>
@@ -253,7 +255,7 @@ export default function Website() {
               saving && styles.disabled,
             ]}
           >
-            <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save"}</Text>
+            <Text style={styles.saveBtnText}>{saving ? t("website.saving") : t("common.save")}</Text>
           </Pressable>
           {saveMsg ? <Text style={styles.savedMsg}>{saveMsg}</Text> : null}
           {saveError ? <Text style={styles.error}>{saveError}</Text> : null}

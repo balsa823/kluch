@@ -14,6 +14,7 @@ import { ConsoleLayout } from "../components/ConsoleLayout";
 import { Pill, TextField } from "../components/ui";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { useT } from "../lib/i18n";
 import {
   listListings,
   createListing,
@@ -31,12 +32,18 @@ import {
 const TYPES = ["residential", "land", "commercial"] as const;
 type ListingType = (typeof TYPES)[number];
 
-const STATUS_LABELS: Record<ListingStatus, string> = {
-  published: "Published",
-  rented: "Rented",
-  sold: "Sold",
-  draft: "Draft",
-};
+function statusLabelKey(status: string): string {
+  switch (status.toLowerCase()) {
+    case "published":
+      return "listings.status.published";
+    case "rented":
+      return "listings.status.rented";
+    case "sold":
+      return "listings.status.sold";
+    default:
+      return "listings.status.draft";
+  }
+}
 
 function statusPillStyles(status: string): {
   pill: object;
@@ -63,9 +70,10 @@ function StatusControl({
   busy: boolean;
   onChoose: (s: ListingStatus) => void;
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const cur = statusPillStyles(status);
-  const label = STATUS_LABELS[status as ListingStatus] ?? status;
+  const label = t(statusLabelKey(status));
 
   if (!open) {
     return (
@@ -95,7 +103,7 @@ function StatusControl({
             }}
           >
             <Pill
-              label={STATUS_LABELS[s]}
+              label={t(statusLabelKey(s))}
               style={[st.pill, active && styles.statusActive]}
               textStyle={st.text}
             />
@@ -119,6 +127,7 @@ function ListingRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useT();
   const photo = p.photos && p.photos.length > 0 ? mediaUrl(p.photos[0]) : null;
   return (
     <View style={styles.row}>
@@ -139,7 +148,7 @@ function ListingRow({
         <Text style={styles.rowPrice}>
           {formatMoney(p.priceMinor, p.currency)}
           {p.dealType === "rent" ? (
-            <Text style={styles.rowPriceUnit}>/mo</Text>
+            <Text style={styles.rowPriceUnit}>{t("listings.perMonth")}</Text>
           ) : null}
         </Text>
       </View>
@@ -157,7 +166,7 @@ function ListingRow({
             busy && styles.btnDisabled,
           ]}
         >
-          <Text style={styles.rowActionText}>Edit</Text>
+          <Text style={styles.rowActionText}>{t("common.edit")}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -170,7 +179,7 @@ function ListingRow({
             busy && styles.btnDisabled,
           ]}
         >
-          <Text style={styles.rowDeleteText}>Delete</Text>
+          <Text style={styles.rowDeleteText}>{t("common.delete")}</Text>
         </Pressable>
       </View>
     </View>
@@ -195,6 +204,7 @@ function EditModal({
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
+  const { t } = useT();
   const [name, setName] = useState(listing.name);
   const [address, setAddress] = useState(listing.address);
   const [city, setCity] = useState(listing.city);
@@ -222,11 +232,11 @@ function EditModal({
     setError(null);
     const euros = Number(price);
     if (!name.trim() || !address.trim() || !city.trim()) {
-      setError("Name, address, and city are required.");
+      setError(t("listings.validation.required"));
       return;
     }
     if (!Number.isFinite(euros) || euros <= 0) {
-      setError("Enter a valid price in euros.");
+      setError(t("listings.validation.price"));
       return;
     }
     setSaving(true);
@@ -245,7 +255,7 @@ function EditModal({
       onClose();
       await onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save listing");
+      setError(e instanceof Error ? e.message : t("listings.errorSave"));
     } finally {
       setSaving(false);
     }
@@ -258,40 +268,40 @@ function EditModal({
         contentContainerStyle={styles.modalScrollContent}
       >
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Edit listing</Text>
-          <TextField label="Name" value={name} onChangeText={setName} />
+          <Text style={styles.formTitle}>{t("listings.editListing")}</Text>
+          <TextField label={t("listings.field.name")} value={name} onChangeText={setName} />
           <TextField
-            label="Address"
+            label={t("listings.field.address")}
             value={address}
             onChangeText={setAddress}
           />
-          <TextField label="City" value={city} onChangeText={setCity} />
+          <TextField label={t("listings.field.city")} value={city} onChangeText={setCity} />
           <TextField
-            label="Price (EUR)"
+            label={t("listings.field.price")}
             value={price}
             onChangeText={setPrice}
             keyboardType="numeric"
           />
           <TextField
-            label="Bedrooms"
+            label={t("listings.field.bedrooms")}
             value={bedrooms}
             onChangeText={setBedrooms}
             keyboardType="number-pad"
           />
           <TextField
-            label="Bathrooms"
+            label={t("listings.field.bathrooms")}
             value={bathrooms}
             onChangeText={setBathrooms}
             keyboardType="number-pad"
           />
           <TextField
-            label="Area (m²)"
+            label={t("listings.field.area")}
             value={areaM2}
             onChangeText={setAreaM2}
             keyboardType="numeric"
           />
 
-          <Text style={styles.fieldLabel}>Deal</Text>
+          <Text style={styles.fieldLabel}>{t("listings.field.deal")}</Text>
           <View style={styles.typeRow}>
             {(["rent", "sale"] as const).map((d) => {
               const active = dealType === d;
@@ -308,22 +318,22 @@ function EditModal({
                       active && styles.typeChipTextActive,
                     ]}
                   >
-                    {d}
+                    {t(`listings.deal.${d}`)}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.fieldLabel}>Type</Text>
+          <Text style={styles.fieldLabel}>{t("listings.field.type")}</Text>
           <View style={styles.typeRow}>
-            {TYPES.map((t) => {
-              const active = type === t;
+            {TYPES.map((ty) => {
+              const active = type === ty;
               return (
                 <Pressable
-                  key={t}
+                  key={ty}
                   accessibilityRole="button"
-                  onPress={() => setType(t)}
+                  onPress={() => setType(ty)}
                   style={[styles.typeChip, active && styles.typeChipActive]}
                 >
                   <Text
@@ -332,7 +342,7 @@ function EditModal({
                       active && styles.typeChipTextActive,
                     ]}
                   >
-                    {t}
+                    {t(`listings.type.${ty}`)}
                   </Text>
                 </Pressable>
               );
@@ -350,7 +360,7 @@ function EditModal({
                 pressed && styles.addBtnPressed,
               ]}
             >
-              <Text style={styles.ghostBtnText}>Cancel</Text>
+              <Text style={styles.ghostBtnText}>{t("common.cancel")}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -364,7 +374,7 @@ function EditModal({
               ]}
             >
               <Text style={styles.addBtnText}>
-                {saving ? "Saving…" : "Save"}
+                {saving ? t("website.saving") : t("common.save")}
               </Text>
             </Pressable>
           </View>
@@ -376,6 +386,7 @@ function EditModal({
 
 export default function Agency() {
   const { token } = useAuth();
+  const { t } = useT();
 
   const [listings, setListings] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,7 +419,7 @@ export default function Agency() {
       const data = await listListings(token);
       setListings(data);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load listings");
+      setLoadError(e instanceof Error ? e.message : t("listings.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -435,16 +446,16 @@ export default function Agency() {
 
     const euros = Number(price);
     if (!name.trim() || !address.trim() || !city.trim()) {
-      setFormError("Name, address, and city are required.");
+      setFormError(t("listings.validation.required"));
       return;
     }
     if (!Number.isFinite(euros) || euros <= 0) {
-      setFormError("Enter a valid price in euros.");
+      setFormError(t("listings.validation.price"));
       return;
     }
     const beds = bedrooms.trim() === "" ? undefined : Number(bedrooms);
     if (beds !== undefined && (!Number.isInteger(beds) || beds < 0)) {
-      setFormError("Bedrooms must be a whole number.");
+      setFormError(t("listings.validation.bedrooms"));
       return;
     }
 
@@ -463,7 +474,7 @@ export default function Agency() {
       setShowForm(false);
       await refetch();
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Failed to add listing");
+      setFormError(e instanceof Error ? e.message : t("listings.errorAdd"));
     } finally {
       setSubmitting(false);
     }
@@ -474,7 +485,7 @@ export default function Agency() {
     const url = importUrl.trim();
     setImportError(null);
     if (!url) {
-      setImportError("Paste a listing URL to import.");
+      setImportError(t("listings.import.errorEmpty"));
       return;
     }
     setImporting(true);
@@ -483,7 +494,7 @@ export default function Agency() {
       setImportUrl("");
       await refetch();
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : "Failed to import listing");
+      setImportError(e instanceof Error ? e.message : t("listings.import.error"));
     } finally {
       setImporting(false);
     }
@@ -498,7 +509,7 @@ export default function Agency() {
       await refetch();
     } catch (e) {
       setRowError(
-        e instanceof Error ? e.message : "Failed to update status",
+        e instanceof Error ? e.message : t("listings.errorStatus"),
       );
     } finally {
       setBusyId(null);
@@ -513,9 +524,9 @@ export default function Agency() {
       await deleteListing(token, p.id);
       await refetch();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to delete listing";
+      const msg = e instanceof Error ? e.message : t("listings.errorDelete");
       setRowError(msg);
-      if (Platform.OS !== "web") Alert.alert("Cannot delete", msg);
+      if (Platform.OS !== "web") Alert.alert(t("listings.cannotDelete"), msg);
     } finally {
       setBusyId(null);
     }
@@ -523,16 +534,16 @@ export default function Agency() {
 
   function onDelete(p: Property) {
     if (busyId) return;
-    const message = `Delete “${p.name}”? This cannot be undone.`;
+    const message = t("listings.deleteConfirm", { name: p.name });
     if (Platform.OS === "web") {
       if (typeof window !== "undefined" && window.confirm(message)) {
         void doDelete(p);
       }
     } else {
-      Alert.alert("Delete listing", message, [
-        { text: "Cancel", style: "cancel" },
+      Alert.alert(t("listings.deleteTitle"), message, [
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: () => void doDelete(p),
         },
@@ -541,16 +552,14 @@ export default function Agency() {
   }
 
   const subtitle = loading
-    ? "Loading…"
-    : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`;
+    ? t("common.loading")
+    : t(listings.length === 1 ? "listings.countOne" : "listings.count", {
+        n: listings.length,
+      });
 
   return (
-    <ConsoleLayout>
+    <ConsoleLayout title={t("listings.title")} subtitle={subtitle}>
       <View style={styles.topbar}>
-        <View style={styles.topbarText}>
-          <Text style={styles.title}>Listings</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
         <Pressable
           accessibilityRole="button"
           onPress={() => setShowForm((s) => !s)}
@@ -561,7 +570,7 @@ export default function Agency() {
           ]}
         >
           <Text style={styles.addBtnText}>
-            {showForm ? "Close" : "+ Add listing"}
+            {showForm ? t("common.close") : t("listings.addListing")}
           </Text>
         </Pressable>
       </View>
@@ -571,14 +580,14 @@ export default function Agency() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.importCard}>
-          <Text style={styles.formTitle}>Import from a listing URL</Text>
+          <Text style={styles.formTitle}>{t("listings.import.title")}</Text>
           <Text style={styles.importHint}>
-            Paste a listing link (e.g. bestate4.me) to import it into your agency.
+            {t("listings.import.hint")}
           </Text>
           <View style={styles.importRow}>
             <View style={styles.importField}>
               <TextField
-                label="Listing URL"
+                label={t("listings.import.urlLabel")}
                 value={importUrl}
                 onChangeText={setImportUrl}
                 placeholder="https://www.bestate4.me/listing/…"
@@ -598,7 +607,7 @@ export default function Agency() {
               ]}
             >
               <Text style={styles.addBtnText}>
-                {importing ? "Importing…" : "Import"}
+                {importing ? t("listings.import.importing") : t("listings.import.button")}
               </Text>
             </Pressable>
           </View>
@@ -607,41 +616,41 @@ export default function Agency() {
 
         {showForm ? (
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Add listing</Text>
+            <Text style={styles.formTitle}>{t("listings.addListingForm")}</Text>
             <TextField
-              label="Name"
+              label={t("listings.field.name")}
               value={name}
               onChangeText={setName}
-              placeholder="Modern flat, Podgorica"
+              placeholder={t("listings.placeholder.name")}
             />
             <TextField
-              label="Address"
+              label={t("listings.field.address")}
               value={address}
               onChangeText={setAddress}
-              placeholder="Bulevar bb"
+              placeholder={t("listings.placeholder.address")}
             />
             <TextField
-              label="City"
+              label={t("listings.field.city")}
               value={city}
               onChangeText={setCity}
-              placeholder="Podgorica"
+              placeholder={t("listings.placeholder.city")}
             />
             <TextField
-              label="Price (EUR / mo)"
+              label={t("listings.field.priceMonthly")}
               value={price}
               onChangeText={setPrice}
-              placeholder="550"
+              placeholder={t("listings.placeholder.price")}
               keyboardType="numeric"
             />
             <TextField
-              label="Bedrooms"
+              label={t("listings.field.bedrooms")}
               value={bedrooms}
               onChangeText={setBedrooms}
-              placeholder="2"
+              placeholder={t("listings.placeholder.bedrooms")}
               keyboardType="number-pad"
             />
 
-            <Text style={styles.fieldLabel}>Deal</Text>
+            <Text style={styles.fieldLabel}>{t("listings.field.deal")}</Text>
             <View style={styles.typeRow}>
               {(["rent", "sale"] as const).map((d) => {
                 const active = dealType === d;
@@ -661,22 +670,22 @@ export default function Agency() {
                         active && styles.typeChipTextActive,
                       ]}
                     >
-                      {d}
+                      {t(`listings.deal.${d}`)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={styles.fieldLabel}>Type</Text>
+            <Text style={styles.fieldLabel}>{t("listings.field.type")}</Text>
             <View style={styles.typeRow}>
-              {TYPES.map((t) => {
-                const active = type === t;
+              {TYPES.map((ty) => {
+                const active = type === ty;
                 return (
                   <Pressable
-                    key={t}
+                    key={ty}
                     accessibilityRole="button"
-                    onPress={() => setType(t)}
+                    onPress={() => setType(ty)}
                     style={[
                       styles.typeChip,
                       active && styles.typeChipActive,
@@ -688,7 +697,7 @@ export default function Agency() {
                         active && styles.typeChipTextActive,
                       ]}
                     >
-                      {t}
+                      {t(`listings.type.${ty}`)}
                     </Text>
                   </Pressable>
                 );
@@ -711,7 +720,7 @@ export default function Agency() {
                   pressed && styles.addBtnPressed,
                 ]}
               >
-                <Text style={styles.ghostBtnText}>Cancel</Text>
+                <Text style={styles.ghostBtnText}>{t("common.cancel")}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -725,7 +734,7 @@ export default function Agency() {
                 ]}
               >
                 <Text style={styles.addBtnText}>
-                  {submitting ? "Adding…" : "Add listing"}
+                  {submitting ? t("listings.adding") : t("listings.addListingForm")}
                 </Text>
               </Pressable>
             </View>
@@ -733,7 +742,7 @@ export default function Agency() {
         ) : null}
 
         <View style={styles.sechead}>
-          <Text style={styles.sectionTitle}>Your listings</Text>
+          <Text style={styles.sectionTitle}>{t("listings.yourListings")}</Text>
         </View>
 
         {rowError ? <Text style={styles.error}>{rowError}</Text> : null}
@@ -752,14 +761,12 @@ export default function Agency() {
                 pressed && styles.addBtnPressed,
               ]}
             >
-              <Text style={styles.ghostBtnText}>Retry</Text>
+              <Text style={styles.ghostBtnText}>{t("common.retry")}</Text>
             </Pressable>
           </View>
         ) : listings.length === 0 ? (
           <View style={styles.card}>
-            <Text style={styles.empty}>
-              No listings yet. Add your first with “+ Add listing”.
-            </Text>
+            <Text style={styles.empty}>{t("listings.empty")}</Text>
           </View>
         ) : (
           <View style={styles.table}>

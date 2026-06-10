@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { useT } from "../lib/i18n";
 
 type NavItemProps = {
   label: string;
@@ -32,13 +33,14 @@ function NavItem({ label, icon, active = false, onPress }: NavItemProps) {
 
 export function Sidebar() {
   const { user, agency, logout } = useAuth();
+  const { t } = useT();
   const router = useRouter();
   const pathname = usePathname();
 
-  const agencyName = agency?.name ?? "Your agency";
+  const agencyName = agency?.name ?? t("nav.yourAgency");
   const agencyCity = "Podgorica";
   const initial = agencyName.charAt(0).toUpperCase() || "K";
-  const userName = user?.name || user?.email || "Account";
+  const userName = user?.name || user?.email || t("nav.account");
   const userInitial = userName.charAt(0).toUpperCase();
 
   const isAgency = pathname?.startsWith("/agency") ?? false;
@@ -76,13 +78,13 @@ export function Sidebar() {
 
       <View style={styles.menu}>
         <NavItem
-          label="Listings"
+          label={t("nav.listings")}
           icon="🏠"
           active={isAgency}
           onPress={() => router.push("/agency")}
         />
         <NavItem
-          label="Leads"
+          label={t("nav.leads")}
           icon="📥"
           active={isLeads}
           onPress={() => router.push("/leads")}
@@ -94,7 +96,7 @@ export function Sidebar() {
 
       <View style={styles.menu}>
         <NavItem
-          label="Website"
+          label={t("nav.website")}
           icon="🌐"
           active={isWebsite}
           onPress={() => router.push("/website")}
@@ -111,12 +113,12 @@ export function Sidebar() {
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Settings"
+            accessibilityLabel={t("nav.settings")}
             onPress={() => router.push("/settings")}
             style={({ pressed }) => [styles.cog, pressed && styles.cogHover]}
           >
             <Text style={styles.cogIcon}>⚙</Text>
-            <Text style={styles.cogText}>Settings</Text>
+            <Text style={styles.cogText}>{t("nav.settings")}</Text>
           </Pressable>
         </View>
         <Pressable
@@ -124,7 +126,7 @@ export function Sidebar() {
           onPress={onLogout}
           style={({ pressed }) => [styles.logout, pressed && styles.logoutHover]}
         >
-          <Text style={styles.logoutText}>⎋ Log out</Text>
+          <Text style={styles.logoutText}>⎋ {t("nav.logout")}</Text>
         </Pressable>
       </View>
     </View>

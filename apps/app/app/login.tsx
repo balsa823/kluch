@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen, Card, Button, Pill, TextField } from "../components/ui";
+import { LangSwitcher } from "../components/LangSwitcher";
 import { colors, space } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
+import { useT } from "../lib/i18n";
 import { routeToDashboard } from "../lib/platform";
 
 export default function Login() {
   const { login, token, dashboards } = useAuth();
+  const { t } = useT();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +34,7 @@ export default function Login() {
       await login(email.trim(), password);
       setSubmitted(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("login.error"));
     } finally {
       setSubmitting(false);
     }
@@ -40,14 +43,17 @@ export default function Login() {
   return (
     <Screen>
       <Card>
-        <Pill label="MONTENEGRO" />
+        <View style={styles.topRow}>
+          <Pill label={t("login.badge")} />
+          <LangSwitcher />
+        </View>
         <Text style={styles.wordmark}>Kluch</Text>
-        <Text style={styles.title}>Welcome to Kluch</Text>
-        <Text style={styles.subtitle}>Your keys to Montenegro</Text>
+        <Text style={styles.title}>{t("login.title")}</Text>
+        <Text style={styles.subtitle}>{t("login.subtitle")}</Text>
 
         <View style={styles.form}>
           <TextField
-            label="Email"
+            label={t("login.email")}
             value={email}
             onChangeText={setEmail}
             placeholder="you@agency.me"
@@ -57,7 +63,7 @@ export default function Login() {
             textContentType="emailAddress"
           />
           <TextField
-            label="Password"
+            label={t("login.password")}
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"
@@ -71,22 +77,28 @@ export default function Login() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Button
-          label={submitting ? "Logging in…" : "Log in"}
+          label={submitting ? t("login.submitting") : t("login.submit")}
           onPress={onSubmit}
           disabled={submitting}
         />
         <Button
-          label="Continue with Telegram"
+          label={t("login.telegram")}
           variant="ghost"
           disabled
         />
-        <Text style={styles.note}>Telegram login coming soon.</Text>
+        <Text style={styles.note}>{t("login.telegramNote")}</Text>
       </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.sm,
+  },
   wordmark: {
     fontSize: 40,
     fontWeight: "800",
