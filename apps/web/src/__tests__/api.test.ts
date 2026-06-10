@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries, createInquiry, updateAgencyConfig } from "@kluche/core";
+import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries, createInquiry, updateAgencyConfig, getProperty, listAgencyProperties } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -689,4 +689,131 @@ test("partner without an agency dashboard is denied agency listings", async () =
   const meBody = (await me.json()) as { dashboards: string[]; agency: unknown };
   expect(meBody.dashboards).toEqual(["law"]);
   expect(meBody.agency).toBeNull();
+});
+
+// --- owner-scoped listing edit / status / delete ---
+
+/** Seeds a second agency + partner ("rival@adriatic.me"). */
+async function seedRival() {
+  const agency = await createAgency(db, { name: "Adriatic Homes", slug: "adriatic" });
+  await createPartnerUser(db, {
+    email: "rival@adriatic.me", name: "Rival", password: "pw123",
+    dashboards: { agency: { agencyId: agency.id } },
+  });
+  return agency;
+}
+
+async function ownedSeed() {
+  const agency = await seedPartner();
+  const listing = await createProperty(db, {
+    agencyId: agency.id, name: "Old Name", address: "A St", city: "Budva", priceMinor: 50000, bedrooms: 1,
+  });
+  await publishProperty(db, listing.id);
+  return { agency, listing };
+}
+
+test("POST /api/listings/:id updates whitelisted fields (priceMinor in cents)", async () => {
+  const { agency, listing } = await ownedSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ name: "New", priceMinor: 99900 }),
+  }));
+  expect(res.status).toBe(200);
+  const all = await listAgencyProperties(db, agency.id);
+  expect(all[0].name).toBe("New");
+  expect(all[0].priceMinor).toBe(99900);
+});
+
+test("POST /api/listings/:id/status sets the status", async () => {
+  const { listing } = await ownedSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/status`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ status: "sold" }),
+  }));
+  expect(res.status).toBe(200);
+  const updated = await getProperty(db, listing.id);
+  expect(updated?.status).toBe("sold");
+});
+
+test("POST /api/listings/:id/status with an invalid status returns 400", async () => {
+  const { listing } = await ownedSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/status`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ status: "nope" }),
+  }));
+  expect(res.status).toBe(400);
+});
+
+test("DELETE /api/listings/:id removes the listing and preserves inquiries (null propertyId)", async () => {
+  const { agency, listing } = await ownedSeed();
+  await createInquiry(db, { agencyId: agency.id, propertyId: listing.id, kind: "phone_click" });
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(res.status).toBe(200);
+  expect(await getProperty(db, listing.id)).toBeNull();
+  const inquiries = await listInquiries(db, agency.id, { kind: "phone_click" });
+  expect(inquiries).toHaveLength(1);
+  expect(inquiries[0].propertyId).toBeNull();
+});
+
+test("a foreign agency cannot update, restatus, or delete another agency's listing", async () => {
+  const { listing } = await ownedSeed();
+  await seedRival();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "rival@adriatic.me", "pw123")).json()) as { token: string }).token;
+  const auth = { Authorization: `Bearer ${token}`, "content-type": "application/json" };
+
+  const update = await app.request(new Request(`http://localhost/api/listings/${listing.id}`, {
+    method: "POST", headers: auth, body: JSON.stringify({ name: "Hijack" }),
+  }));
+  expect(update.status).toBe(403);
+
+  const status = await app.request(new Request(`http://localhost/api/listings/${listing.id}/status`, {
+    method: "POST", headers: auth, body: JSON.stringify({ status: "sold" }),
+  }));
+  expect(status.status).toBe(403);
+
+  const del = await app.request(new Request(`http://localhost/api/listings/${listing.id}`, {
+    method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(del.status).toBe(403);
+
+  // Untouched.
+  const still = await getProperty(db, listing.id);
+  expect(still?.name).toBe("Old Name");
+  expect(still?.status).toBe("published");
+});
+
+test("owner-scoped listing endpoints reject a malformed id with 400", async () => {
+  await seedPartner();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const update = await app.request(new Request("http://localhost/api/listings/not-a-uuid", {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ name: "x" }),
+  }));
+  expect(update.status).toBe(400);
+
+  const del = await app.request(new Request("http://localhost/api/listings/not-a-uuid", {
+    method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+  }));
+  expect(del.status).toBe(400);
 });

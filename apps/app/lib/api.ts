@@ -1,5 +1,13 @@
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080";
 
+export const LISTING_STATUSES = [
+  "published",
+  "rented",
+  "sold",
+  "draft",
+] as const;
+export type ListingStatus = (typeof LISTING_STATUSES)[number];
+
 export type Property = {
   id: string;
   name: string;
@@ -11,6 +19,7 @@ export type Property = {
   bathrooms: number | null;
   areaM2: number | null;
   type: string | null;
+  dealType: "rent" | "sale";
   status: string;
   photos: string[];
 };
@@ -129,6 +138,55 @@ export function createListing(
     headers: headers(token),
     body: JSON.stringify(input),
   });
+}
+
+export type UpdateListingInput = {
+  name: string;
+  address: string;
+  city: string;
+  priceMinor: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  areaM2?: number;
+  type: string;
+  dealType: "rent" | "sale";
+};
+
+export function updateListing(
+  token: string,
+  id: string,
+  input: UpdateListingInput,
+): Promise<Property> {
+  return request(`/api/listings/${id}`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify(input),
+  });
+}
+
+export function setListingStatus(
+  token: string,
+  id: string,
+  status: ListingStatus,
+): Promise<Property> {
+  return request(`/api/listings/${id}/status`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteListing(token: string, id: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/listings/${id}`, {
+    method: "DELETE",
+    headers: headers(token),
+  });
+  if (!res.ok) {
+    const message =
+      ((await res.json().catch(() => ({}))) as { error?: string }).error ??
+      res.statusText;
+    throw new Error(message);
+  }
 }
 
 /** Imports a listing from an external URL, creating it under the caller's agency. */

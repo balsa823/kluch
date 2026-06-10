@@ -1,7 +1,9 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
+import { leases } from "@kluche/db";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, countProperties, createProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties } from "../listings.js";
+import { addPropertyPhotos, countProperties, createProperty, deleteProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties, setPropertyStatus, updateProperty, ListingHasLeasesError } from "../listings.js";
+import { createInquiry, listInquiries } from "../inquiries.js";
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -134,6 +136,71 @@ test("searchProperties paginates and countProperties counts the full match set",
   // A filter narrows both the page and the count.
   expect((await searchProperties(db, a.id, { dealType: "sale" }, { limit: 24, offset: 0 }))).toHaveLength(10);
   expect(await countProperties(db, a.id, { dealType: "sale" })).toBe(10);
+});
+
+test("updateProperty patches only whitelisted fields, leaving agencyId intact", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Old", address: "A", city: "Budva", priceMinor: 100000, bedrooms: 1,
+  });
+  const updated = await updateProperty(db, p.id, { name: "X", priceMinor: 12345, bedrooms: 3 });
+  expect(updated.name).toBe("X");
+  expect(updated.priceMinor).toBe(12345);
+  expect(updated.bedrooms).toBe(3);
+  expect(updated.agencyId).toBe(a.id);
+  expect(updated.address).toBe("A");
+  expect(updated.status).toBe("draft");
+});
+
+test("updateProperty accepts null for nullable numeric fields", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "N", address: "A", city: "Budva", priceMinor: 100000, bedrooms: 2, bathrooms: 1, areaM2: 50,
+  });
+  const updated = await updateProperty(db, p.id, { bedrooms: null, bathrooms: null, areaM2: null });
+  expect(updated.bedrooms).toBeNull();
+  expect(updated.bathrooms).toBeNull();
+  expect(updated.areaM2).toBeNull();
+});
+
+test("setPropertyStatus flips status to rented", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "S", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  const updated = await setPropertyStatus(db, p.id, "rented");
+  expect(updated.status).toBe("rented");
+});
+
+test("setPropertyStatus rejects an invalid status", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "S", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await expect(setPropertyStatus(db, p.id, "junk" as never)).rejects.toThrow("invalid status");
+});
+
+test("deleteProperty removes the property and nulls referencing inquiries", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "D", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await createInquiry(db, { agencyId: a.id, propertyId: p.id, kind: "phone_click" });
+  await deleteProperty(db, p.id);
+  expect(await getProperty(db, p.id)).toBeNull();
+  const inquiries = await listInquiries(db, a.id);
+  expect(inquiries).toHaveLength(1);
+  expect(inquiries[0].propertyId).toBeNull();
+});
+
+test("deleteProperty refuses when the listing has leases", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Leased", address: "A", city: "Budva", priceMinor: 100000,
+  });
+  await db.insert(leases).values({ propertyId: p.id, joinCode: "JOIN-DEL-1", rentMinor: 50000, dueDay: 1 });
+  await expect(deleteProperty(db, p.id)).rejects.toBeInstanceOf(ListingHasLeasesError);
+  expect(await getProperty(db, p.id)).not.toBeNull(); // still there
 });
 
 test("searchProperties is isolated per agency", async () => {

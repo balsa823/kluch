@@ -11,6 +11,10 @@ import {
   createProperty,
   createVisitor,
   dashboardKeys,
+  deleteProperty,
+  ListingHasLeasesError,
+  setPropertyStatus,
+  updateProperty,
   getAgency,
   getAgencyBySlug,
   getAgencyUserById,
@@ -31,6 +35,7 @@ import {
   type AgencyUser,
   type PartnerUser,
   type Visitor,
+  type Property,
   type PropertyType,
   countProperties,
   type SearchFilters,
@@ -198,6 +203,18 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return partner?.dashboards?.agency?.agencyId ?? null;
   }
 
+  /**
+   * Returns the property if `id` is a valid UUID owned by the caller's agency,
+   * else null (caller maps null to 403). Foreign or missing listings are indistinguishable.
+   */
+  async function ownedListing(c: Context, id: string): Promise<Property | null> {
+    if (!isUuid(id)) return null;
+    const scope = await agencyScope(c);
+    if (!scope) return null;
+    const p = await getProperty(db, id);
+    return p && p.agencyId === scope ? p : null;
+  }
+
   app.get("/health", (c) => c.text("ok"));
 
   app.use("/api/*", cors());
@@ -312,6 +329,62 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     } catch (e) {
       return c.json({ error: (e as Error).message }, 400);
     }
+  });
+
+  const PROPERTY_TYPE_VALUES: PropertyType[] = ["residential", "land", "commercial"];
+  const DEAL_TYPE_VALUES = ["rent", "sale"] as const;
+
+  app.post("/api/listings/:id", bodyLimit({ maxSize: 16 * 1024 }), async (c) => {
+    const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const p = await ownedListing(c, id);
+    if (!p) return c.json({ error: "forbidden" }, 403);
+    const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+    const patch: Parameters<typeof updateProperty>[2] = {};
+    if (typeof body.name === "string") patch.name = body.name.trim();
+    if (typeof body.address === "string") patch.address = body.address.trim();
+    if (typeof body.city === "string") patch.city = body.city.trim();
+    if (typeof body.priceMinor === "number") patch.priceMinor = body.priceMinor; // cents
+    if (typeof body.currency === "string") patch.currency = body.currency.trim().toUpperCase().slice(0, 3);
+    if (typeof body.bedrooms === "number") patch.bedrooms = body.bedrooms;
+    if (typeof body.bathrooms === "number") patch.bathrooms = body.bathrooms;
+    if (typeof body.areaM2 === "number") patch.areaM2 = body.areaM2;
+    if (typeof body.type === "string" && PROPERTY_TYPE_VALUES.includes(body.type as PropertyType)) {
+      patch.type = body.type as PropertyType;
+    }
+    if (typeof body.dealType === "string" && (DEAL_TYPE_VALUES as readonly string[]).includes(body.dealType)) {
+      patch.dealType = body.dealType as "rent" | "sale";
+    }
+    const updated = await updateProperty(db, id, patch);
+    return c.json(updated);
+  });
+
+  app.post("/api/listings/:id/status", bodyLimit({ maxSize: 16 * 1024 }), async (c) => {
+    const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const p = await ownedListing(c, id);
+    if (!p) return c.json({ error: "forbidden" }, 403);
+    const body = await c.req.json().catch(() => ({})) as { status?: unknown };
+    try {
+      const updated = await setPropertyStatus(db, id, body.status as never);
+      return c.json(updated);
+    } catch {
+      return c.json({ error: "invalid status" }, 400);
+    }
+  });
+
+  app.delete("/api/listings/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const p = await ownedListing(c, id);
+    if (!p) return c.json({ error: "forbidden" }, 403);
+    try {
+      await deleteProperty(db, id);
+    } catch (e) {
+      if (e instanceof ListingHasLeasesError) return c.json({ error: "listing has active leases" }, 409);
+      throw e;
+    }
+    return c.json({ ok: true });
   });
 
   app.get("/uploads/*", async (c) => {

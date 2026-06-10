@@ -1,8 +1,19 @@
 import { and, count, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
-import { properties, type Database } from "@kluche/db";
+import { inquiries, leases, properties, type Database } from "@kluche/db";
+
+/** Thrown by deleteProperty when the listing still has lease records (financial data). */
+export class ListingHasLeasesError extends Error {
+  constructor() {
+    super("listing has leases");
+    this.name = "ListingHasLeasesError";
+  }
+}
 
 export type Property = typeof properties.$inferSelect;
 export type PropertyType = NonNullable<Property["type"]>;
+export type PropertyStatus = NonNullable<Property["status"]>;
+
+const PROPERTY_STATUSES = ["draft", "published", "rented", "sold"] as const;
 
 export interface CreatePropertyInput {
   agencyId: string;
@@ -48,6 +59,67 @@ export async function publishProperty(db: Database, id: string): Promise<Propert
     .where(eq(properties.id, id))
     .returning();
   return property;
+}
+
+/** Fields a listing owner may patch. Excludes agencyId/slug/status/sourceId/photos/id. */
+export interface UpdatePropertyPatch {
+  name?: string;
+  address?: string;
+  city?: string;
+  priceMinor?: number;
+  currency?: string;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  areaM2?: number | null;
+  type?: PropertyType;
+  dealType?: "rent" | "sale";
+}
+
+/** Updates only the whitelisted, defined keys of a property; returns the updated row. */
+export async function updateProperty(
+  db: Database,
+  id: string,
+  patch: UpdatePropertyPatch,
+): Promise<Property> {
+  const keys = ["name", "address", "city", "priceMinor", "currency", "bedrooms", "bathrooms", "areaM2", "type", "dealType"] as const;
+  const safe: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (patch[key] !== undefined) safe[key] = patch[key];
+  }
+  const [property] = await db.update(properties)
+    .set(safe)
+    .where(eq(properties.id, id))
+    .returning();
+  return property;
+}
+
+/** Sets a property's lifecycle status; throws on an unknown status value. */
+export async function setPropertyStatus(
+  db: Database,
+  id: string,
+  status: PropertyStatus,
+): Promise<Property> {
+  if (!(PROPERTY_STATUSES as readonly string[]).includes(status)) throw new Error("invalid status");
+  const [property] = await db.update(properties)
+    .set({ status })
+    .where(eq(properties.id, id))
+    .returning();
+  return property;
+}
+
+/**
+ * Deletes a property. Detaches referencing inquiries (set to null) first. Refuses to delete
+ * a property that still has lease records (financial data) — throws ListingHasLeasesError so
+ * the caller can surface a 409 rather than hit an FK violation.
+ */
+export async function deleteProperty(db: Database, id: string): Promise<void> {
+  const [{ value: leaseCount }] = await db
+    .select({ value: count() })
+    .from(leases)
+    .where(eq(leases.propertyId, id));
+  if (leaseCount > 0) throw new ListingHasLeasesError();
+  await db.update(inquiries).set({ propertyId: null }).where(eq(inquiries.propertyId, id));
+  await db.delete(properties).where(eq(properties.id, id));
 }
 
 export async function getProperty(db: Database, id: string): Promise<Property | null> {
