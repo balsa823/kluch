@@ -31,7 +31,7 @@ function NavItem({ label, icon, active = false, onPress }: NavItemProps) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const { user, agency, logout } = useAuth();
   const { t } = useT();
   const router = useRouter();
@@ -81,13 +81,13 @@ export function Sidebar() {
           label={t("nav.listings")}
           icon="🏠"
           active={isAgency}
-          onPress={() => router.push("/agency")}
+          onPress={() => { router.push("/agency"); onNavigate?.(); }}
         />
         <NavItem
           label={t("nav.leads")}
           icon="📥"
           active={isLeads}
-          onPress={() => router.push("/leads")}
+          onPress={() => { router.push("/leads"); onNavigate?.(); }}
         />
       </View>
 
@@ -99,7 +99,7 @@ export function Sidebar() {
           label={t("nav.website")}
           icon="🌐"
           active={isWebsite}
-          onPress={() => router.push("/website")}
+          onPress={() => { router.push("/website"); onNavigate?.(); }}
         />
       </View>
 
@@ -114,7 +114,7 @@ export function Sidebar() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("nav.settings")}
-            onPress={() => router.push("/settings")}
+            onPress={() => { router.push("/settings"); onNavigate?.(); }}
             style={({ pressed }) => [styles.cog, pressed && styles.cogHover]}
           >
             <Text style={styles.cogIcon}>⚙</Text>
