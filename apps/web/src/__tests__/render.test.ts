@@ -551,3 +551,25 @@ test("footer looks fine for an unconfigured agency (no hours/socials/contact)", 
   expect(footer).not.toContain(`class="footer-contact"`);
   expect(footer).not.toContain(`class="footer-social"`);
 });
+
+test("nav has a mobile burger toggle", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain('id="navBurger"');
+  expect(html).toContain('class="nav-links" id="navLinks"');
+  expect(html).toContain(".nav-burger"); // CSS rule present
+  // burger toggles the panel open
+  expect(html).toContain('navLinks.classList.toggle("open")');
+});
+
+test("first-visit language picker modal is present + shown only when no stored lang", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain('id="langModal"');
+  // the four self-labelled language options
+  expect(html).toContain("English");
+  expect(html).toContain("Crnogorski / Srpski");
+  expect(html).toContain("Русский");
+  expect(html).toContain("Türkçe");
+  // init logic: stored lang applied, else show the modal
+  expect(html).toContain('localStorage.getItem("kluche_lang")');
+  expect(html).toContain('langModal.style.display = "flex"');
+});
