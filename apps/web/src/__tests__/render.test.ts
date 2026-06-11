@@ -561,7 +561,7 @@ test("nav has a mobile burger toggle", () => {
   expect(html).toContain('navLinks.classList.toggle("open")');
 });
 
-test("first-visit language picker modal is present + shown only when no stored lang", () => {
+test("first-visit language picker modal is present with the four self-labelled options", () => {
   const html = renderAgencySite(agency, listings);
   expect(html).toContain('id="langModal"');
   // the four self-labelled language options
@@ -569,7 +569,39 @@ test("first-visit language picker modal is present + shown only when no stored l
   expect(html).toContain("Crnogorski / Srpski");
   expect(html).toContain("Русский");
   expect(html).toContain("Türkçe");
-  // init logic: stored lang applied, else show the modal
-  expect(html).toContain('localStorage.getItem("kluche_lang")');
-  expect(html).toContain('langModal.style.display = "flex"');
+});
+
+test("language modal visibility is server-controlled by showLangPicker", () => {
+  expect(renderAgencySite(agency, listings, {}, { showLangPicker: true }))
+    .toContain('id="langModal" class="lang-modal" style="display:flex"');
+  expect(renderAgencySite(agency, listings, {}, { showLangPicker: false }))
+    .toContain('id="langModal" class="lang-modal" style="display:none"');
+  // default (no opts) hides the modal — the server only shows it when no cookie.
+  expect(renderAgencySite(agency, listings))
+    .toContain('id="langModal" class="lang-modal" style="display:none"');
+});
+
+test("setLang writes the kluche_lang cookie (so the server renders the choice next request)", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain('document.cookie = "kluche_lang=" + code');
+  expect(html).toContain("samesite=lax");
+});
+
+test("server-side localization: lang=sr renders Serbian text + html lang + active SR pill", () => {
+  const html = renderAgencySite(agency, listings, {}, { lang: "sr" });
+  expect(html).toContain('<html lang="sr">');
+  // nav / hero / footer in Serbian
+  expect(html).toContain(">O nama<"); // nav.about
+  expect(html).toContain(">Pronađite svoj savršen dom<"); // hero.title
+  expect(html).toContain(">Pokreće Kluche<"); // footer.powered
+  expect(html).toContain(">Dostupne nekretnine<"); // properties.heading
+  // SR pill pre-marked active server-side
+  expect(html).toContain('data-code="sr" class="active"');
+});
+
+test("default lang is English and emits <html lang=\"en\">", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain('<html lang="en">');
+  expect(html).toContain('data-code="en" class="active"');
+  expect(html).toContain(">Find Your Perfect Home<");
 });

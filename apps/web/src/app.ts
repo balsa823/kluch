@@ -42,8 +42,10 @@ import {
   type Storage,
 } from "@kluche/core";
 import type { Database } from "@kluche/db";
+import { getCookie } from "hono/cookie";
 import { resolveSite, type Site } from "./site.js";
 import { renderAgencySite } from "./render.js";
+import { isLang } from "./i18n.js";
 
 type Vars = { site: Site };
 
@@ -476,12 +478,17 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const offset = (page - 1) * pageSize;
     const listings = await searchProperties(db, agency.id, filters, { limit: pageSize, offset });
     const total = await countProperties(db, agency.id, filters);
+    const rawLang = getCookie(c, "kluche_lang");
+    const lang = isLang(rawLang) ? rawLang : "en";
+    const showLangPicker = !rawLang;
     return c.html(
       renderAgencySite(agency, listings, filters, {
         sent: c.req.query("sent") === "1",
         page,
         pageSize,
         total,
+        lang,
+        showLangPicker,
       }),
     );
   });
@@ -582,12 +589,17 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
           offset,
         });
         const total = await countProperties(db, site.agency.id, filters);
+        const rawLang = getCookie(c, "kluche_lang");
+        const lang = isLang(rawLang) ? rawLang : "en";
+        const showLangPicker = !rawLang;
         return c.html(
           renderAgencySite(site.agency, listings, filters, {
             sent: c.req.query("sent") === "1",
             page,
             pageSize,
             total,
+            lang,
+            showLangPicker,
           }),
         );
       }

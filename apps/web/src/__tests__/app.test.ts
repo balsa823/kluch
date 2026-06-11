@@ -94,6 +94,37 @@ test("/a/:slug renders the agency site, 404 for unknown", async () => {
   expect((await app.request(new Request("http://kluche.me/a/nope"))).status).toBe(404);
 });
 
+test("/a/:slug honours the kluche_lang cookie and shows the picker only without one", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const p = await createProperty(db, { agencyId: agency.id, name: "Flat", address: "x", city: "Kotor", priceMinor: 1000 });
+  await publishProperty(db, p.id);
+  const app = createApp(db);
+
+  // Serbian cookie → Serbian HTML, no first-visit picker.
+  const sr = await app.request(new Request("http://kluche.me/a/popovic", {
+    headers: { Cookie: "kluche_lang=sr" },
+  }));
+  expect(sr.status).toBe(200);
+  const srBody = await sr.text();
+  expect(srBody).toContain('<html lang="sr">');
+  expect(srBody).toContain(">O nama<"); // nav.about in Serbian
+  expect(srBody).toContain('id="langModal" class="lang-modal" style="display:none"');
+
+  // No cookie → English HTML + the picker is shown.
+  const en = await app.request(new Request("http://kluche.me/a/popovic"));
+  const enBody = await en.text();
+  expect(enBody).toContain('<html lang="en">');
+  expect(enBody).toContain('id="langModal" class="lang-modal" style="display:flex"');
+
+  // Garbage cookie → falls back to English, but no picker (a choice was made).
+  const bad = await app.request(new Request("http://kluche.me/a/popovic", {
+    headers: { Cookie: "kluche_lang=zz" },
+  }));
+  const badBody = await bad.text();
+  expect(badBody).toContain('<html lang="en">');
+  expect(badBody).toContain('id="langModal" class="lang-modal" style="display:none"');
+});
+
 test("query filters narrow the rendered listings", async () => {
   await seed();
   const app = createApp(db);
