@@ -10,6 +10,7 @@ export type ListingStatus = (typeof LISTING_STATUSES)[number];
 
 export type Property = {
   id: string;
+  refCode?: string | null;
   name: string;
   address: string;
   city: string;
@@ -307,6 +308,42 @@ export async function uploadAgencyLogo(
     );
   }
   return res.json() as Promise<{ logoUrl: string }>;
+}
+
+/** Upload one or more photos to a listing (appends). Returns the full updated photo array. */
+export async function uploadListingPhotos(
+  token: string,
+  id: string,
+  files: File[],
+): Promise<{ photos: string[] }> {
+  const form = new FormData();
+  for (const file of files) form.append("file", file);
+  const res = await fetch(`${BASE}/api/properties/${id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    throw new Error(
+      ((await res.json().catch(() => ({}))) as { error?: string }).error ??
+        res.statusText,
+    );
+  }
+  return res.json() as Promise<{ photos: string[] }>;
+}
+
+/** Reorder/remove a listing's photos. `photos` must be a subset/permutation of the
+ * existing photos (new photos come only via uploadListingPhotos). */
+export function setListingPhotos(
+  token: string,
+  id: string,
+  photos: string[],
+): Promise<Property> {
+  return request(`/api/listings/${id}/photos`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ photos }),
+  });
 }
 
 export function agencySiteUrl(slug: string): string {

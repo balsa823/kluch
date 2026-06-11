@@ -23,12 +23,15 @@ import {
   setListingStatus,
   deleteListing,
   importListing,
+  uploadListingPhotos,
+  setListingPhotos,
   formatMoney,
   mediaUrl,
   LISTING_STATUSES,
   type ListingStatus,
   type Property,
 } from "../lib/api";
+import { pickImages } from "../lib/files";
 
 const TYPES = ["residential", "land", "commercial"] as const;
 type ListingType = (typeof TYPES)[number];
@@ -132,19 +135,31 @@ function ListingRow({
   const photo = p.photos && p.photos.length > 0 ? mediaUrl(p.photos[0]) : null;
   return (
     <View style={styles.row}>
-      {photo ? (
-        <Image source={{ uri: photo }} style={styles.thumb} resizeMode="cover" />
-      ) : (
-        <View style={[styles.thumb, styles.thumbPlaceholder]} />
-      )}
-      <View style={styles.rowInfo}>
-        <Text style={styles.rowName} numberOfLines={1}>
-          {p.name}
-        </Text>
-        <Text style={styles.rowCity} numberOfLines={1}>
-          {p.city}
-        </Text>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={onEdit}
+        style={styles.rowMain}
+      >
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.thumb} resizeMode="cover" />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder]} />
+        )}
+        <View style={styles.rowInfo}>
+          <View style={styles.rowNameLine}>
+            {p.refCode ? (
+              <Text style={styles.rowCode}>{p.refCode}</Text>
+            ) : null}
+            <Text style={styles.rowName} numberOfLines={1}>
+              {p.name}
+            </Text>
+          </View>
+          <Text style={styles.rowCity} numberOfLines={1}>
+            {p.city}
+          </Text>
+        </View>
+      </Pressable>
       <View style={styles.rowPriceCol}>
         <Text style={styles.rowPrice}>
           {formatMoney(p.priceMinor, p.currency)}
@@ -283,6 +298,165 @@ function LocationFields({
   );
 }
 
+function PhotoManager({
+  listing,
+  token,
+  onError,
+}: {
+  listing: Property;
+  token: string;
+  onError: (msg: string | null) => void;
+}) {
+  const { t } = useT();
+  const [photos, setPhotos] = useState<string[]>(listing.photos ?? []);
+  const [busy, setBusy] = useState(false);
+
+  async function persist(next: string[]) {
+    if (busy) return;
+    onError(null);
+    setBusy(true);
+    const prev = photos;
+    setPhotos(next);
+    try {
+      const updated = await setListingPhotos(token, listing.id, next);
+      setPhotos(updated.photos);
+    } catch (e) {
+      setPhotos(prev);
+      onError(e instanceof Error ? e.message : t("listings.errorSave"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= photos.length) return;
+    const next = [...photos];
+    [next[index], next[target]] = [next[target], next[index]];
+    void persist(next);
+  }
+
+  function makeCover(index: number) {
+    if (index === 0) return;
+    const next = [...photos];
+    const [item] = next.splice(index, 1);
+    next.unshift(item);
+    void persist(next);
+  }
+
+  function remove(index: number) {
+    const next = photos.filter((_, i) => i !== index);
+    void persist(next);
+  }
+
+  async function onAddPhotos() {
+    if (busy) return;
+    const files = await pickImages();
+    if (!files.length) return;
+    onError(null);
+    setBusy(true);
+    try {
+      const { photos: updated } = await uploadListingPhotos(
+        token,
+        listing.id,
+        files,
+      );
+      setPhotos(updated);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : t("listings.errorSave"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={styles.photoSection}>
+      <View style={styles.photoHeader}>
+        <Text style={styles.fieldLabel}>{t("listings.images")}</Text>
+        {busy ? (
+          <Text style={styles.photoBusy}>{t("listings.uploading")}</Text>
+        ) : null}
+      </View>
+      {photos.length === 0 ? (
+        <Text style={styles.photoEmpty}>{t("listings.noPhotos")}</Text>
+      ) : (
+        <View style={styles.photoGrid}>
+          {photos.map((url, i) => (
+            <View key={`${url}-${i}`} style={styles.photoItem}>
+              <Image
+                source={{ uri: mediaUrl(url) }}
+                style={styles.photoThumb}
+                resizeMode="cover"
+              />
+              {i === 0 ? (
+                <View style={styles.coverBadge}>
+                  <Text style={styles.coverBadgeText}>{t("listings.cover")}</Text>
+                </View>
+              ) : null}
+              <View style={styles.photoControls}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy || i === 0}
+                  onPress={() => move(i, -1)}
+                  style={[styles.photoBtn, (busy || i === 0) && styles.btnDisabled]}
+                >
+                  <Text style={styles.photoBtnText}>↑</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy || i === photos.length - 1}
+                  onPress={() => move(i, 1)}
+                  style={[
+                    styles.photoBtn,
+                    (busy || i === photos.length - 1) && styles.btnDisabled,
+                  ]}
+                >
+                  <Text style={styles.photoBtnText}>↓</Text>
+                </Pressable>
+              </View>
+              {i !== 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy}
+                  onPress={() => makeCover(i)}
+                  style={[styles.photoTextBtn, busy && styles.btnDisabled]}
+                >
+                  <Text style={styles.photoTextBtnText}>
+                    {t("listings.makeCover")}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => remove(i)}
+                style={[styles.photoTextBtn, busy && styles.btnDisabled]}
+              >
+                <Text style={styles.photoRemoveText}>
+                  ✕ {t("listings.removePhoto")}
+                </Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => void onAddPhotos()}
+        style={({ pressed }) => [
+          styles.ghostBtn,
+          styles.addPhotosBtn,
+          pressed && styles.addBtnPressed,
+          busy && styles.btnDisabled,
+        ]}
+      >
+        <Text style={styles.ghostBtnText}>{t("listings.addPhotos")}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function EditModal({
   listing,
   token,
@@ -361,6 +535,7 @@ function EditModal({
       >
         <View style={styles.formCard}>
           <Text style={styles.formTitle}>{t("listings.editListing")}</Text>
+          <PhotoManager listing={listing} token={token} onError={setError} />
           <TextField label={t("listings.field.name")} value={name} onChangeText={setName} />
           <TextField
             label={t("listings.field.address")}
@@ -493,6 +668,7 @@ export default function Agency() {
   const [bedrooms, setBedrooms] = useState("");
   const [type, setType] = useState<ListingType>("residential");
   const [dealType, setDealType] = useState<"rent" | "sale">("rent");
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -531,6 +707,7 @@ export default function Agency() {
     setBedrooms("");
     setType("residential");
     setDealType("rent");
+    setNewFiles([]);
     setFormError(null);
   }
 
@@ -555,7 +732,7 @@ export default function Agency() {
 
     setSubmitting(true);
     try {
-      await createListing(token, {
+      const created = await createListing(token, {
         name: name.trim(),
         address: address.trim(),
         city: city.trim(),
@@ -565,6 +742,9 @@ export default function Agency() {
         type,
         dealType,
       });
+      if (newFiles.length) {
+        await uploadListingPhotos(token, created.id, newFiles);
+      }
       resetForm();
       setShowForm(false);
       await refetch();
@@ -792,6 +972,32 @@ export default function Agency() {
                   </Pressable>
                 );
               })}
+            </View>
+
+            <Text style={styles.fieldLabel}>{t("listings.images")}</Text>
+            <View style={styles.addPhotosRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={submitting}
+                onPress={() => {
+                  void pickImages().then((files) => {
+                    if (files.length) setNewFiles(files);
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.ghostBtn,
+                  styles.addPhotosBtn,
+                  pressed && styles.addBtnPressed,
+                  submitting && styles.btnDisabled,
+                ]}
+              >
+                <Text style={styles.ghostBtnText}>{t("listings.addPhotos")}</Text>
+              </Pressable>
+              {newFiles.length ? (
+                <Text style={styles.photoCount}>
+                  {t("listings.photosSelected", { n: newFiles.length })}
+                </Text>
+              ) : null}
             </View>
 
             {formError ? (
@@ -1136,14 +1342,38 @@ const styles = StyleSheet.create({
   thumbPlaceholder: {
     backgroundColor: colors.sand,
   },
+  rowMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    flex: 1,
+    minWidth: 0,
+  },
   rowInfo: {
     flex: 1,
     minWidth: 0,
+  },
+  rowNameLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 0,
+  },
+  rowCode: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.navy,
+    backgroundColor: colors.navy200,
+    borderRadius: radius.pill,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    overflow: "hidden",
   },
   rowName: {
     fontWeight: "700",
     color: colors.ink,
     fontSize: 15,
+    flexShrink: 1,
   },
   rowCity: {
     color: colors.muted,
@@ -1246,5 +1476,96 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     alignItems: "center",
     paddingVertical: space.lg,
+  },
+  photoSection: {
+    gap: space.sm,
+  },
+  photoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  photoBusy: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  photoEmpty: {
+    color: colors.muted,
+    fontSize: 13,
+  },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+  },
+  photoItem: {
+    width: 96,
+    gap: 4,
+  },
+  photoThumb: {
+    width: 96,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: colors.cream,
+  },
+  coverBadge: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: colors.navy,
+    borderRadius: radius.pill,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+  },
+  coverBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  photoControls: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  photoBtn: {
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.sand,
+    backgroundColor: colors.white,
+    paddingVertical: 4,
+    alignItems: "center",
+  },
+  photoBtnText: {
+    color: colors.navy,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  photoTextBtn: {
+    paddingVertical: 2,
+  },
+  photoTextBtnText: {
+    color: colors.navy,
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  photoRemoveText: {
+    color: "#B4513F",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  addPhotosBtn: {
+    flex: 0,
+    alignSelf: "flex-start",
+  },
+  addPhotosRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  photoCount: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
