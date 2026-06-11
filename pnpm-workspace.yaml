@@ -2,9 +2,6 @@ packages:
   - "packages/*"
   - "apps/*"
 allowBuilds:
-  sharp: false
-onlyBuiltDependencies:
-  - esbuild
-  - msgpackr-extract
-  - sharp
-verifyDepsBeforeRun: false
+  esbuild: true
+  msgpackr-extract: true
+  sharp: true
