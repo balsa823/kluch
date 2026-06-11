@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { leases } from "@kluche/db";
 import { createAgency } from "../agencies.js";
-import { addPropertyPhotos, countProperties, createProperty, deleteProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties, setPropertyStatus, updateProperty, ListingHasLeasesError } from "../listings.js";
+import { addPropertyPhotos, countProperties, createProperty, deleteProperty, getProperty, getPropertyBySource, listAgencyProperties, publishProperty, searchProperties, setPropertyPhotos, setPropertyStatus, updateProperty, ListingHasLeasesError } from "../listings.js";
 import { createInquiry, listInquiries } from "../inquiries.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -43,6 +43,18 @@ test("addPropertyPhotos appends to existing photos", async () => {
   expect(updated.photos).toEqual(["https://cdn/one.jpg", "https://cdn/two.jpg", "https://cdn/three.jpg"]);
   const reread = await getProperty(db, p.id);
   expect(reread?.photos).toEqual(updated.photos);
+});
+
+test("setPropertyPhotos replaces the photos array with the exact value given", async () => {
+  const a = await agency();
+  const p = await createProperty(db, {
+    agencyId: a.id, name: "Studio", address: "A", city: "Budva", priceMinor: 100000,
+    photos: ["https://cdn/one.jpg", "https://cdn/two.jpg", "https://cdn/three.jpg"],
+  });
+  const updated = await setPropertyPhotos(db, p.id, ["https://cdn/three.jpg", "https://cdn/one.jpg"]);
+  expect(updated.photos).toEqual(["https://cdn/three.jpg", "https://cdn/one.jpg"]);
+  const reread = await getProperty(db, p.id);
+  expect(reread?.photos).toEqual(["https://cdn/three.jpg", "https://cdn/one.jpg"]);
 });
 
 test("searchProperties excludes drafts, includes published", async () => {

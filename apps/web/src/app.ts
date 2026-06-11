@@ -14,6 +14,7 @@ import {
   dashboardKeys,
   deleteProperty,
   ListingHasLeasesError,
+  setPropertyPhotos,
   setPropertyStatus,
   updateProperty,
   getAgency,
@@ -755,9 +756,10 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
   app.post("/api/properties/:id/photos", async (c) => {
     const id = c.req.param("id");
     if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const owned = await ownedListing(c, id);
+    if (!owned) return c.json({ error: "forbidden" }, 403);
     if (!storage) return c.json({ error: "storage not configured" }, 500);
-    const existing = await getProperty(db, id);
-    if (!existing) return c.json({ error: "not found" }, 404);
+    const existing = owned;
     const form = await c.req.parseBody({ all: true });
     const raw = form.file;
     const files = (Array.isArray(raw) ? raw : [raw]).filter(
@@ -780,6 +782,29 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     }
     await addPropertyPhotos(db, id, photos);
     return c.json({ photos });
+  });
+
+  // Reorder / remove a listing's photos. Owner-scoped. The submitted array must be a subset or
+  // permutation of the listing's existing photos — this endpoint can only reorder or drop photos,
+  // never inject arbitrary URLs (new photos come only via the upload endpoint above).
+  app.post("/api/listings/:id/photos", bodyLimit({ maxSize: 16 * 1024 }), async (c) => {
+    const id = c.req.param("id");
+    if (!isUuid(id)) return c.json({ error: "invalid id" }, 400);
+    const owned = await ownedListing(c, id);
+    if (!owned) return c.json({ error: "forbidden" }, 403);
+    const body = await c.req.json().catch(() => ({})) as { photos?: unknown };
+    const photos = body.photos;
+    if (!Array.isArray(photos) || !photos.every((p): p is string => typeof p === "string")) {
+      return c.json({ error: "invalid photos" }, 400);
+    }
+    const existing = new Set(owned.photos);
+    const seen = new Set<string>();
+    for (const p of photos) {
+      if (!existing.has(p) || seen.has(p)) return c.json({ error: "invalid photos" }, 400);
+      seen.add(p);
+    }
+    const updated = await setPropertyPhotos(db, id, photos);
+    return c.json(updated);
   });
 
   return app;

@@ -422,16 +422,18 @@ test("POST /api/agency/:id/logo with no file returns 400 (not 500)", async () =>
   expect(storage.calls).toHaveLength(0);
 });
 
-test("POST /api/properties/:id/photos for an unknown property returns 404 and uploads nothing", async () => {
+test("POST /api/properties/:id/photos for an unknown/foreign property returns 403 and uploads nothing", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
   const storage = new FakeStorage();
   const app = createApp(db, { storage });
+  const token = await ownerToken(app, agency.id);
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1])], "1.jpg", { type: "image/jpeg" }));
   const res = await app.request(new Request(
     "http://kluche.me/api/properties/00000000-0000-0000-0000-000000000000/photos",
-    { method: "POST", body: form },
+    { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form },
   ));
-  expect(res.status).toBe(404);
+  expect(res.status).toBe(403);
   expect(storage.calls).toHaveLength(0);
 });
 
@@ -458,12 +460,14 @@ test("POST /api/properties/:id/photos uploads multiple files and persists them",
   });
   const storage = new FakeStorage();
   const app = createApp(db, { storage });
+  const token = await ownerToken(app, agency.id);
 
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1, 2])], "1.jpg", { type: "image/jpeg" }));
   form.append("file", new File([new Uint8Array([3, 4])], "2.png", { type: "image/png" }));
   const res = await app.request(new Request(`http://kluche.me/api/properties/${property.id}/photos`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   }));
   expect(res.status).toBe(200);

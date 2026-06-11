@@ -161,6 +161,23 @@ export async function addPropertyPhotos(
   return property;
 }
 
+/**
+ * Replaces a property's photos with the exact array given (set, not append). The caller is
+ * responsible for validating the contents (e.g. the web reorder endpoint restricts the array
+ * to a permutation/subset of the existing photos).
+ */
+export async function setPropertyPhotos(
+  db: Database,
+  id: string,
+  photos: string[],
+): Promise<Property> {
+  const [property] = await db.update(properties)
+    .set({ photos })
+    .where(eq(properties.id, id))
+    .returning();
+  return property;
+}
+
 /** All properties for an agency (drafts included), newest first. For the agency console. */
 export async function listAgencyProperties(db: Database, agencyId: string): Promise<Property[]> {
   return db.select().from(properties)
