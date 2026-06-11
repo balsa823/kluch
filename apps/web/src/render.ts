@@ -440,6 +440,34 @@ export function renderAgencySite(
       padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; font: inherit; font-size: 0.82rem;
     }
     .langmenu button.active { background: var(--color-accent); }
+    /* Mobile burger menu */
+    nav.site .nav-burger {
+      display: none; margin-left: auto; flex-direction: column; gap: 4px;
+      background: transparent; border: 0; cursor: pointer; padding: 0.45rem;
+    }
+    nav.site .nav-burger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; }
+    @media (max-width: 760px) {
+      nav.site .nav-burger { display: flex; }
+      nav.site .nav-links {
+        position: absolute; top: 100%; left: 0; right: 0; margin: 0; display: none;
+        flex-direction: column; align-items: flex-start; gap: 0.9rem;
+        background: var(--color-primary); padding: 1.1rem clamp(1rem, 4vw, 2.5rem) 1.3rem;
+        border-bottom: 3px solid var(--color-accent); box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      }
+      nav.site .nav-links.open { display: flex; }
+      nav.site .nav-links a { font-size: 1rem; }
+      .langmenu { margin-top: 0.3rem; }
+    }
+    /* First-visit language picker */
+    .lang-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
+    .lang-modal-card { background: #fff; color: var(--color-ink); border-radius: 16px; padding: 1.6rem; max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .lang-modal-title { font-weight: 700; font-size: 1.1rem; margin: 0 0 1.1rem; text-align: center; }
+    .lang-modal-opts { display: flex; flex-direction: column; gap: 0.6rem; }
+    .lang-modal-opts button {
+      background: #fff; border: 1px solid #d8d2c4; border-radius: 10px; padding: 0.75rem 1rem;
+      font: inherit; font-size: 1rem; cursor: pointer; text-align: left; color: var(--color-ink);
+    }
+    .lang-modal-opts button:hover { border-color: var(--color-primary); background: #f4f0e6; }
 
     /* Hero */
     header.hero {
@@ -675,18 +703,33 @@ export function renderAgencySite(
       ${logo}
       <span>${esc(agency.name)}</span>
     </a>
-    <div class="nav-links">
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="navLinks">
       <a href="#properties" data-i18n="nav.properties">Properties</a>
       <a href="#about" data-i18n="nav.about">About</a>
       <a href="#contact" data-i18n="nav.contact">Contact</a>
       <div class="langmenu" id="langMenu">
-        <button data-code="en">EN</button>
-        <button data-code="sr">SR</button>
-        <button data-code="ru">RU</button>
-        <button data-code="tr">TR</button>
+        <button type="button" data-code="en">EN</button>
+        <button type="button" data-code="sr">SR</button>
+        <button type="button" data-code="ru">RU</button>
+        <button type="button" data-code="tr">TR</button>
       </div>
     </div>
   </nav>
+
+  <div id="langModal" class="lang-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Choose language">
+    <div class="lang-modal-card">
+      <p class="lang-modal-title">🌐 Choose your language</p>
+      <div class="lang-modal-opts">
+        <button type="button" data-code="en">🇬🇧 English</button>
+        <button type="button" data-code="sr">🇲🇪 Crnogorski / Srpski</button>
+        <button type="button" data-code="ru">🇷🇺 Русский</button>
+        <button type="button" data-code="tr">🇹🇷 Türkçe</button>
+      </div>
+    </div>
+  </div>
 
   <header class="hero" id="top">
     ${heroH1}
@@ -930,9 +973,41 @@ export function renderAgencySite(
     applyLang();
   }
   document.querySelectorAll("#langMenu button").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.code)));
-  let saved = "en";
-  try { saved = localStorage.getItem("kluche_lang") || "en"; } catch (e) {}
-  setLang(T[saved] ? saved : "en");
+
+  // Mobile burger menu
+  var navBurger = document.getElementById("navBurger");
+  var navLinks = document.getElementById("navLinks");
+  if (navBurger && navLinks) {
+    navBurger.addEventListener("click", function () {
+      var open = navLinks.classList.toggle("open");
+      navBurger.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    navLinks.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () {
+        navLinks.classList.remove("open");
+        navBurger.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
+
+  // Language: use the stored choice; on first visit (nothing stored) ask the visitor.
+  var langModal = document.getElementById("langModal");
+  function pickLang(code) { setLang(code); if (langModal) langModal.style.display = "none"; }
+  if (langModal) {
+    langModal.querySelectorAll("[data-code]").forEach(function (b) {
+      b.addEventListener("click", function () { pickLang(b.dataset.code); });
+    });
+    // Dismiss via backdrop → default to English (and remember, so we don't nag).
+    langModal.addEventListener("click", function (e) { if (e.target === langModal) pickLang("en"); });
+  }
+  var saved = null;
+  try { saved = localStorage.getItem("kluche_lang"); } catch (e) {}
+  if (saved && T[saved]) {
+    setLang(saved);
+  } else {
+    applyLang(); // render in the default language behind the picker
+    if (langModal) langModal.style.display = "flex";
+  }
 
   // --- Hero search: chip popovers, Location multi-select, hidden-field sync ---
   (function () {
