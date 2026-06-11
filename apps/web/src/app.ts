@@ -780,8 +780,10 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       );
       photos.push(url);
     }
-    await addPropertyPhotos(db, id, photos);
-    return c.json({ photos });
+    // Return the FULL merged array (existing + new), not just the new URLs, so the
+    // client can replace its photo list directly without dropping pre-existing photos.
+    const updated = await addPropertyPhotos(db, id, photos);
+    return c.json({ photos: updated.photos });
   });
 
   // Reorder / remove a listing's photos. Owner-scoped. The submitted array must be a subset or

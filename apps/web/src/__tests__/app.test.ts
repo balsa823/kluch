@@ -481,3 +481,27 @@ test("POST /api/properties/:id/photos uploads multiple files and persists them",
   const reloaded = await getProperty(db, property.id);
   expect(reloaded?.photos).toEqual(body.photos);
 });
+
+test("POST /api/properties/:id/photos returns the FULL merged array when the listing already has photos", async () => {
+  const agency = await createAgency(db, { name: "Popović Nekretnine", slug: "popovic" });
+  const property = await createProperty(db, {
+    agencyId: agency.id, name: "Has Photos", address: "A 1",
+    city: "Bar", priceMinor: 50000, type: "residential",
+    photos: ["https://existing.example/old-0.jpg"],
+  });
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+  const token = await ownerToken(app, agency.id);
+
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([9])], "n.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(`http://kluche.me/api/properties/${property.id}/photos`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form,
+  }));
+  expect(res.status).toBe(200);
+  const body = await res.json() as { photos: string[] };
+  expect(body.photos).toEqual([
+    "https://existing.example/old-0.jpg",
+    `https://fake.storage/properties/${property.id}/photo-1.jpg`,
+  ]);
+});
