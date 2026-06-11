@@ -5,6 +5,15 @@ import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
 import { createAgency, createPartnerUser, createProperty, getProperty, publishProperty, FakeStorage, LocalDiskStorage } from "@kluche/core";
 import { createApp } from "../app.js";
+import sharp from "sharp";
+
+/** A tiny but valid JPEG so sharp's resize pipeline succeeds in-process. */
+async function tinyJpeg(): Promise<Uint8Array> {
+  const buf = await sharp({ create: { width: 8, height: 8, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+    .jpeg()
+    .toBuffer();
+  return new Uint8Array(buf);
+}
 
 beforeAll(async () => { await migrateTestDb(); });
 beforeEach(async () => { await resetDb(); });
@@ -63,6 +72,69 @@ test("GET /uploads/* serves a file written by LocalDiskStorage, 404 when missing
 
   const missing = await app.request(new Request("http://localhost/uploads/properties/x/nope.png"));
   expect(missing.status).toBe(404);
+});
+
+test("GET /t/* generates a thumbnail once, then serves the cached one", async () => {
+  const uuid = randomUUID();
+  const orig = `properties/${uuid}/photo-0.jpg`;
+  const storage = new FakeStorage();
+  await storage.upload(orig, await tinyJpeg(), "image/jpeg");
+  const uploadsAfterSeed = storage.calls.length; // 1
+
+  const app = createApp(db, { storage });
+
+  // First hit: generates + caches the w480 thumb, 302 to its public URL.
+  const r1 = await app.request(new Request(`http://kluche.me/t/${orig}?w=480`));
+  expect(r1.status).toBe(302);
+  expect(r1.headers.get("location")).toBe(`https://fake.storage/thumbs/w480/${orig}`);
+  expect(r1.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+  expect(storage.calls.length).toBe(uploadsAfterSeed + 1);
+  expect(storage.calls.at(-1)?.path).toBe(`thumbs/w480/${orig}`);
+
+  // Second hit: exists-hit, no new upload.
+  const r2 = await app.request(new Request(`http://kluche.me/t/${orig}?w=480`));
+  expect(r2.status).toBe(302);
+  expect(r2.headers.get("location")).toBe(`https://fake.storage/thumbs/w480/${orig}`);
+  expect(storage.calls.length).toBe(uploadsAfterSeed + 1);
+});
+
+test("GET /t/* 404s for a missing original and for path traversal", async () => {
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage });
+
+  const missing = await app.request(new Request(`http://kluche.me/t/properties/${randomUUID()}/photo-0.jpg?w=480`));
+  expect(missing.status).toBe(404);
+
+  const traversal = await app.request(new Request("http://kluche.me/t/properties/..%2f..%2fsecret.jpg"));
+  expect(traversal.status).toBe(404);
+
+  // Outside the allowed namespaces.
+  const outside = await app.request(new Request("http://kluche.me/t/other/thing.jpg"));
+  expect(outside.status).toBe(404);
+  expect(storage.calls).toHaveLength(0);
+});
+
+test("white-label HTML is no-cache; /brand/* and /uploads/* are public+max-age", async () => {
+  await seed();
+  const uploadDir = join(tmpdir(), `kluch-cache-${randomUUID()}`);
+  const storage = new LocalDiskStorage(uploadDir, "/uploads");
+  await storage.upload("properties/x/photo-0.png", new Uint8Array([1, 2, 3]), "image/png");
+  const app = createApp(db, { storage, uploadDir });
+
+  const html = await app.request(new Request("http://popovic.kluche.me/"));
+  expect(html.status).toBe(200);
+  expect(html.headers.get("cache-control")).toBe("no-cache");
+
+  const aSlug = await app.request(new Request("http://kluche.me/a/popovic"));
+  expect(aSlug.headers.get("cache-control")).toBe("no-cache");
+
+  const up = await app.request(new Request("http://kluche.me/uploads/properties/x/photo-0.png"));
+  expect(up.status).toBe(200);
+  expect(up.headers.get("cache-control")).toBe("public, max-age=86400");
+
+  const brand = await app.request(new Request("http://kluche.me/brand/kluch-icon.png"));
+  expect(brand.status).toBe(200);
+  expect(brand.headers.get("cache-control")).toBe("public, max-age=86400");
 });
 
 test("GET /health returns ok on any host", async () => {
