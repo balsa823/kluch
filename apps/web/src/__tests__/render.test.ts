@@ -658,3 +658,10 @@ test("nav + footer extend into the iOS safe-area insets (full-bleed top/bottom o
   expect(html).toContain("env(safe-area-inset-top");
   expect(html).toContain("env(safe-area-inset-bottom");
 });
+
+test("nav is collapsible on scroll (hide-on-down, show-on-up)", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("nav.site.nav-hidden");          // CSS rule
+  expect(html).toContain('classList.add("nav-hidden")');  // scroll handler
+  expect(html).toContain('classList.remove("nav-hidden")');
+});

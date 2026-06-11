@@ -451,6 +451,8 @@ export function renderAgencySite(
     /* Nav */
     nav.site {
       position: sticky; top: 0; z-index: 30;
+      transition: transform 0.25s ease;
+      will-change: transform;
       display: flex; align-items: center; gap: 1rem;
       /* Extend the dark nav under the iOS status bar (safe-area) so Safari, which
          tints its top bar from the content behind it, shows a full-bleed dark top
@@ -460,6 +462,8 @@ export function renderAgencySite(
       color: #fff;
       border-bottom: 3px solid var(--color-accent);
     }
+    /* Collapsible nav: slides up out of view when scrolling down, back on scroll up. */
+    nav.site.nav-hidden { transform: translateY(-100%); }
     nav.site .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; }
     nav.site .logo { height: 38px; width: auto; border-radius: 6px; }
     nav.site .nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; }
@@ -957,6 +961,30 @@ export function renderAgencySite(
       });
     });
   }
+
+  // Collapsible nav: hide on scroll-down, reveal on scroll-up.
+  (function () {
+    var nav = document.querySelector("nav.site");
+    if (!nav) return;
+    var lastY = window.scrollY || 0;
+    var ticking = false;
+    function update() {
+      var y = window.scrollY || 0;
+      if (y < 64) {
+        nav.classList.remove("nav-hidden"); // always visible near the top
+      } else if (y > lastY + 6) {
+        nav.classList.add("nav-hidden"); // scrolling down
+        if (navLinks) navLinks.classList.remove("open"); // close the mobile drawer too
+      } else if (y < lastY - 6) {
+        nav.classList.remove("nav-hidden"); // scrolling up
+      }
+      lastY = y;
+      ticking = false;
+    }
+    window.addEventListener("scroll", function () {
+      if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+    }, { passive: true });
+  })();
 
   // Language: the SERVER picked the initial LANG (from the kluche_lang cookie) and
   // decided whether to show this first-visit picker (showLangPicker → display:flex).
