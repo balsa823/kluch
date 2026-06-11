@@ -410,7 +410,8 @@ export function renderAgencySite(
 <html lang="${L}">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="${cssColor(agency.colorPrimary, "#1F3A5C")}" />
   <title>${esc(agency.name)}</title>${favicon}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -423,11 +424,17 @@ export function renderAgencySite(
       --color-ink: #1F2937;
     }
     * { box-sizing: border-box; }
+    /* Fill the screen on iOS Safari when its toolbar collapses: html carries the
+       page background (so revealed/overscroll areas never flash white) and body
+       stretches to the dynamic viewport height. */
+    html { background: var(--color-cream); min-height: 100%; }
     body {
       margin: 0;
       font-family: "Inter", system-ui, sans-serif;
       color: var(--color-ink);
       background: var(--color-cream);
+      min-height: 100vh;
+      min-height: 100dvh;
     }
     h1, h2, h3, .logo-text { font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
     a { color: inherit; }

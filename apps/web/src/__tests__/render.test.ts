@@ -612,3 +612,11 @@ test("default lang is English and emits <html lang=\"en\">", () => {
   expect(html).toContain('data-code="en" class="active"');
   expect(html).toContain(">Find Your Perfect Home<");
 });
+
+test("mobile viewport: dynamic-height fill + viewport-fit + theme-color (iOS Safari toolbar)", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("viewport-fit=cover");
+  expect(html).toContain('name="theme-color"');
+  expect(html).toContain("min-height: 100dvh");
+  expect(html).toMatch(/html \{ background: var\(--color-cream\); min-height: 100%/);
+});
