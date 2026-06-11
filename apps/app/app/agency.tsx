@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { ConsoleLayout } from "../components/ConsoleLayout";
 import { Pill, TextField } from "../components/ui";
@@ -132,7 +133,50 @@ function ListingRow({
   onDelete: () => void;
 }) {
   const { t } = useT();
+  const { width } = useWindowDimensions();
+  const isPhone = width < 768;
   const photo = p.photos && p.photos.length > 0 ? mediaUrl(p.photos[0]) : null;
+
+  // Phone: compact row — slug · title · status · edit/delete icons (delete confirms via onDelete).
+  if (isPhone) {
+    return (
+      <View style={styles.rowPhone}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={onEdit}
+          style={styles.rowPhoneMain}
+        >
+          {p.refCode ? <Text style={styles.rowCodePhone}>{p.refCode}</Text> : null}
+          <Text style={styles.rowNamePhone} numberOfLines={1}>
+            {p.name}
+          </Text>
+        </Pressable>
+        <View style={styles.rowPhoneActions}>
+          <StatusControl status={p.status} busy={busy} onChoose={onStatus} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("common.edit")}
+            disabled={busy}
+            onPress={onEdit}
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.addBtnPressed, busy && styles.btnDisabled]}
+          >
+            <Text style={styles.iconBtnText}>✎</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("common.delete")}
+            disabled={busy}
+            onPress={onDelete}
+            style={({ pressed }) => [styles.iconBtn, styles.iconBtnDanger, pressed && styles.addBtnPressed, busy && styles.btnDisabled]}
+          >
+            <Text style={styles.iconBtnTextDanger}>🗑</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.row}>
       <Pressable
@@ -534,7 +578,10 @@ function EditModal({
         contentContainerStyle={styles.modalScrollContent}
       >
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>{t("listings.editListing")}</Text>
+          <Text style={styles.formTitle}>
+            {t("listings.editListing")}
+            {listing.refCode ? `  ·  ${listing.refCode}` : ""}
+          </Text>
           <PhotoManager listing={listing} token={token} onError={setError} />
           <TextField label={t("listings.field.name")} value={name} onChangeText={setName} />
           <TextField
@@ -1368,6 +1415,65 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 7,
     overflow: "hidden",
+    flexShrink: 0,
+  },
+  // --- Phone listing row ---
+  rowPhone: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  rowPhoneMain: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  rowCodePhone: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.navy,
+    backgroundColor: colors.navy200,
+    borderRadius: radius.pill,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  rowNamePhone: {
+    flexShrink: 1,
+    fontWeight: "700",
+    color: colors.ink,
+    fontSize: 14,
+  },
+  rowPhoneActions: {
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.sand,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBtnText: {
+    fontSize: 17,
+    color: colors.navy,
+  },
+  iconBtnDanger: {
+    borderColor: "#E7C9C2",
+  },
+  iconBtnTextDanger: {
+    fontSize: 16,
   },
   rowName: {
     fontWeight: "700",
