@@ -199,16 +199,27 @@ test("thumbSrc rewrites blob URLs to /t/ and leaves others alone", () => {
   expect(thumbSrc("/uploads/properties/abc/photo-0.jpg", 480)).toBe("/uploads/properties/abc/photo-0.jpg");
 });
 
-test("card image uses the /t thumbnail endpoint with an onerror fallback to the full URL", () => {
+test("card image uses the /t thumbnail endpoint with a data-full fallback to the full URL", () => {
   const blobUrl = "https://kluchprod.blob.core.windows.net/photos/properties/abc/photo-0.jpg";
   const withBlob: Property[] = [{ ...listings[0], photos: [blobUrl] }] as Property[];
   const html = renderAgencySite(agency, withBlob);
   // card <img> src points at the thumb endpoint at w=480
   expect(html).toContain(`src="/t/properties/abc/photo-0.jpg?w=480"`);
-  // onerror falls back to the original full-size blob URL
-  expect(html).toContain(`onerror="this.onerror=null;this.src='${blobUrl}'"`);
+  // fallback is a data attribute (not an inline JS-string onerror) + a delegated handler
+  expect(html).toContain(`data-full="${blobUrl}"`);
+  expect(html).not.toContain("onerror=");
+  expect(html).toContain('img.card-photo[data-full]');
   // the modal/listings JSON still carries the FULL blob URL (quality)
   expect(html).toContain(`"photos":["${blobUrl}"]`);
+});
+
+test("a crafted photo URL cannot inject an attribute/handler on the card image", () => {
+  // Scraped (attacker-influenced) URLs can try to break out of the attribute with a quote.
+  const evil = 'https://x.example/a" onerror="alert(1)';
+  const withEvil: Property[] = [{ ...listings[0], photos: [evil] }] as Property[];
+  const html = renderAgencySite(agency, withEvil);
+  expect(html).not.toContain('onerror="alert(1)'); // the breakout is neutralized
+  expect(html).toContain("&quot;"); // the quote is HTML-escaped inside the attribute
 });
 
 test("renders a GET search form with the free-text q input and price popover fields", () => {

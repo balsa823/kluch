@@ -62,7 +62,7 @@ function renderCard(listing: Property, lang: Lang = "en"): string {
   const t_ = (key: string) => esc(tr(lang, key));
   const photo = safeUrl(listing.photos?.[0]);
   const image = photo
-    ? `<img class="card-photo" src="${esc(thumbSrc(photo, 480))}" alt="${esc(listing.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${esc(photo)}'" />`
+    ? `<img class="card-photo" src="${esc(thumbSrc(photo, 480))}" data-full="${attr(photo)}" alt="${esc(listing.name)}" loading="lazy" decoding="async" />`
     : `<div class="card-photo card-photo--empty"></div>`;
 
   const isRent = listing.dealType === "rent";
@@ -1230,6 +1230,15 @@ export function renderAgencySite(
         card.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(card.dataset.id); }
         });
+      });
+
+      // If a thumbnail fails to load, fall back to the original full-size photo.
+      // Uses a data attribute + DOM assignment (no inline JS string) so a photo
+      // URL can never break out into executable markup.
+      document.querySelectorAll("img.card-photo[data-full]").forEach(function (img) {
+        function fallback() { if (img.dataset.full && img.src !== img.dataset.full) img.src = img.dataset.full; }
+        img.addEventListener("error", fallback, { once: true });
+        if (img.complete && img.naturalWidth === 0) fallback();
       });
 
       // --- Tour / visitor auth panel --------------------------------------
