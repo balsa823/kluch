@@ -267,17 +267,18 @@ test("no pager when total fits on one page", () => {
   expect(html).not.toContain(`<nav class="pager"`);
 });
 
-test("renders a call button per listing when the agency has a phone", () => {
+test("the call button is in the modal, not on the card face", () => {
   const withPhone = { ...agency, phone: "+382 67 111 222" };
   const html = renderAgencySite(withPhone, listings);
-  expect(html).toContain(`class="call-btn"`);
-  expect(html).toContain(`data-pid="p1"`);
-  expect(html).toContain(`data-pid="p2"`);
+  // exactly one call button (the modal's), no per-listing call buttons on the cards
+  expect(html).toContain(`class="call-btn modal-call"`);
+  expect(html).not.toContain(`data-pid="p1"`);
+  expect(html).not.toContain(`data-pid="p2"`);
 });
 
-test("renders no call button when the agency has no phone", () => {
-  const html = renderAgencySite(agency, listings);
-  expect(html).not.toContain(`class="call-btn"`);
+test("modal call button is hidden when the agency has no phone", () => {
+  const html = renderAgencySite(agency, listings); // fixture has phone: null
+  expect(html).toMatch(/class="call-btn modal-call"[^>]*style="display:none"/);
 });
 
 test("emits a listings JSON blob, modal container and tour panel", () => {
@@ -294,12 +295,18 @@ test("cards carry a data-id and are keyboard-activatable", () => {
   expect(html).toMatch(/class="card" data-id="p1" role="button" tabindex="0"/);
 });
 
-test("call control is a phone icon button with stopPropagation", () => {
+test("modal call control is a phone-icon button", () => {
   const withPhone = { ...agency, phone: "+382 67 111 222" };
   const html = renderAgencySite(withPhone, listings);
   expect(html).toContain(`data-i18n="card.call"`);
-  expect(html).toContain(`onclick="event.stopPropagation()"`);
   expect(html).toContain("📞");
+  expect(html).toContain(`class="call-btn modal-call"`);
+});
+
+test("phones show two cards per row (compact grid media query)", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("@media (max-width: 560px)");
+  expect(html).toMatch(/@media \(max-width: 560px\)[^}]*\.grid\s*\{\s*grid-template-columns: 1fr 1fr/s);
 });
 
 test("listings JSON blob escapes < to avoid breaking out of the script tag", () => {

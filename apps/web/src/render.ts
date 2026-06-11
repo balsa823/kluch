@@ -49,7 +49,7 @@ function cssUrl(u: unknown): string {
 }
 
 /** Renders a single property card: photo, deal price, city, badge row and type. */
-function renderCard(listing: Property, hasPhone: boolean, lang: Lang = "en"): string {
+function renderCard(listing: Property, lang: Lang = "en"): string {
   const t_ = (key: string) => esc(tr(lang, key));
   const photo = safeUrl(listing.photos?.[0]);
   const image = photo
@@ -79,12 +79,6 @@ function renderCard(listing: Property, hasPhone: boolean, lang: Lang = "en"): st
 
   const typeLabel = listing.type ? `<p class="card-type">${esc(listing.type)}</p>` : "";
 
-  const callBtn = hasPhone
-    ? `<button class="call-btn" type="button" data-pid="${esc(listing.id)}" onclick="event.stopPropagation()" aria-label="Call">
-            <span aria-hidden="true">📞</span> <span data-i18n="card.call">${t_("card.call")}</span>
-          </button>`
-    : "";
-
   const codeChip = listing.refCode
     ? `<span class="card-code">${esc(listing.refCode)}</span>`
     : "";
@@ -99,7 +93,6 @@ function renderCard(listing: Property, hasPhone: boolean, lang: Lang = "en"): st
           <p class="card-city">${esc(listing.city)}</p>
           ${badgeRow}
           ${typeLabel}
-          ${callBtn}
         </div>
       </article>`;
 }
@@ -266,9 +259,8 @@ export function renderAgencySite(
     `<span${active ? "" : ` data-i18n="${i18nKey}"`}>${active ? esc(label) : T_(i18nKey)}</span>` +
     `${active ? `<span class="clear" role="button" aria-label="Clear">✕</span>` : caretSvg}</button>`;
 
-  const hasPhone = !!agency.phone;
   const cards = listings.length
-    ? listings.map((l) => renderCard(l, hasPhone, L)).join("")
+    ? listings.map((l) => renderCard(l, L)).join("")
     : `<p class="empty" data-i18n="properties.empty">${T_("properties.empty")}</p>`;
 
   // Pager: only shown when there are more results than fit on one page.
@@ -624,6 +616,20 @@ export function renderAgencySite(
     }
     .call-btn:hover { filter: brightness(0.95); }
     .empty { color: #6b6557; }
+    /* Phones: two compact cards per row. */
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+      .card-photo { height: 120px; }
+      .card-body { padding: 0.6rem 0.65rem 0.75rem; }
+      .card-code { font-size: 0.6rem; padding: 0.14rem 0.36rem; }
+      .card-tag { font-size: 0.6rem; padding: 0.14rem 0.4rem; margin-bottom: 0.4rem; }
+      .card-price { font-size: 0.98rem; }
+      .card-title { font-size: 0.9rem; }
+      .card-city { font-size: 0.8rem; margin-bottom: 0.35rem; }
+      .card-badges { gap: 0.3rem; font-size: 0.75rem; flex-wrap: wrap; }
+      .card-type { font-size: 0.72rem; }
+      .call-btn { font-size: 0.82rem; padding: 0.5rem; }
+    }
 
     /* About */
     section.about {
