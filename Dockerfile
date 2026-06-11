@@ -25,5 +25,9 @@ ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 
-# On boot: apply migrations, seed (idempotent), then start the web server.
-CMD ["sh", "-c", "pnpm --filter @kluche/db migrate && pnpm --filter @kluche/web seed && pnpm --filter @kluche/web start"]
+# On boot: apply migrations, then start the web server. We invoke tsx directly
+# (not via `pnpm --filter`, which re-scans the whole workspace and adds ~10s per
+# call) and we no longer run the seed on boot — it's a one-off for a fresh DB; run
+# `pnpm --filter @kluche/web seed` manually when bootstrapping a new environment.
+# migrate.ts resolves its migrations folder via import.meta.url, so cwd=/app is fine.
+CMD ["sh", "-c", "node_modules/.bin/tsx packages/db/src/migrate.ts && node_modules/.bin/tsx apps/web/src/index.ts"]

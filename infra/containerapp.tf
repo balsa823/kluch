@@ -55,7 +55,9 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
-    min_replicas = 0
+    # Keep one replica warm so visitors never pay a cold start (the white-label
+    # sites are latency-sensitive). Scale up to 2 under load.
+    min_replicas = 1
     max_replicas = 2
 
     container {
