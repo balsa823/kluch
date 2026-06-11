@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
@@ -63,6 +64,14 @@ function isUuid(s: string): boolean {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 20;
+
+/** Cache-Control for immutable, content-addressed image blobs (originals + thumbs). */
+const IMMUTABLE_CACHE = "public, max-age=31536000, immutable";
+/** Cache-Control for app-served static assets (revalidate daily). */
+const STATIC_CACHE = "public, max-age=86400";
+/** Allowed thumbnail widths; anything else clamps to the default. */
+const THUMB_WIDTHS = new Set([240, 480, 960, 1600]);
+const DEFAULT_THUMB_WIDTH = 480;
 
 /** Bearer-token lifetime: 7 days. */
 const TOKEN_TTL = 60 * 60 * 24 * 7;
@@ -432,13 +441,64 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     return c.json({ ok: true });
   });
 
+  // On-demand image thumbnails, cached back to storage. `/t/<path>?w=<width>`
+  // serves (and lazily generates) a resized JPEG; the browser is redirected to
+  // the cached blob's public URL so subsequent loads hit storage directly.
+  app.get("/t/*", async (c) => {
+    const raw = toInt(c.req.query("w"));
+    const w = raw !== undefined && THUMB_WIDTHS.has(raw) ? raw : DEFAULT_THUMB_WIDTH;
+
+    let path = c.req.path.slice("/t/".length);
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      return c.text("Not found", 404);
+    }
+    // Guard against traversal and limit to known photo namespaces.
+    if (path.includes("..") || !(path.startsWith("properties/") || path.startsWith("agencies/"))) {
+      return c.text("Not found", 404);
+    }
+
+    // No storage, or a storage that can't read/resolve (e.g. plain Supabase in a
+    // test) → just send the browser to the original public URL.
+    if (!storage || typeof storage.exists !== "function" || typeof storage.publicUrlFor !== "function") {
+      return c.text("Not found", 404);
+    }
+
+    const original = storage.publicUrlFor(path);
+    const thumbPath = `thumbs/w${w}/${path}`;
+    try {
+      if (await storage.exists(thumbPath)) {
+        c.header("Cache-Control", IMMUTABLE_CACHE);
+        return c.redirect(storage.publicUrlFor(thumbPath), 302);
+      }
+      const buf = await storage.download(path);
+      if (!buf) return c.text("Not found", 404);
+      const out = await sharp(Buffer.from(buf))
+        .rotate()
+        .resize({ width: w, withoutEnlargement: true })
+        .jpeg({ quality: 72, mozjpeg: true })
+        .toBuffer();
+      await storage.upload(thumbPath, new Uint8Array(out), "image/jpeg");
+      c.header("Cache-Control", IMMUTABLE_CACHE);
+      return c.redirect(storage.publicUrlFor(thumbPath), 302);
+    } catch {
+      // Anything goes wrong (download/resize/upload) → never break the image;
+      // fall back to the full-size original.
+      return c.redirect(original, 302);
+    }
+  });
+
   app.get("/uploads/*", async (c) => {
     const rest = c.req.path.slice("/uploads/".length);
     // Reject path traversal before touching the filesystem.
     if (rest.includes("..")) return c.text("Not found", 404);
     try {
       const bytes = await readFile(join(uploadDir, rest));
-      return c.body(bytes, 200, { "content-type": contentTypeFor(rest) });
+      return c.body(bytes, 200, {
+        "content-type": contentTypeFor(rest),
+        "cache-control": STATIC_CACHE,
+      });
     } catch {
       return c.text("Not found", 404);
     }
@@ -450,7 +510,10 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     if (rest.includes("..")) return c.text("Not found", 404);
     try {
       const bytes = await readFile(join(STATIC_DIR, "brand", rest));
-      return c.body(bytes, 200, { "content-type": contentTypeFor(rest) });
+      return c.body(bytes, 200, {
+        "content-type": contentTypeFor(rest),
+        "cache-control": STATIC_CACHE,
+      });
     } catch {
       return c.text("Not found", 404);
     }
@@ -462,7 +525,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
       try {
         const bytes = await readFile(join(STATIC_DIR, file));
         const type = file.endsWith(".html") ? "text/html; charset=utf-8" : contentTypeFor(file);
-        return c.body(bytes, 200, { "content-type": type });
+        return c.body(bytes, 200, { "content-type": type, "cache-control": STATIC_CACHE });
       } catch {
         return c.text("Not found", 404);
       }
@@ -481,6 +544,9 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
     const rawLang = getCookie(c, "kluche_lang");
     const lang = isLang(rawLang) ? rawLang : "en";
     const showLangPicker = !rawLang;
+    // HTML stays uncached so config/listing edits show immediately; images carry
+    // their own long-lived cache headers.
+    c.header("Cache-Control", "no-cache");
     return c.html(
       renderAgencySite(agency, listings, filters, {
         sent: c.req.query("sent") === "1",
@@ -592,6 +658,7 @@ export function createApp(db: Database, opts: CreateAppOptions = {}) {
         const rawLang = getCookie(c, "kluche_lang");
         const lang = isLang(rawLang) ? rawLang : "en";
         const showLangPicker = !rawLang;
+        c.header("Cache-Control", "no-cache");
         return c.html(
           renderAgencySite(site.agency, listings, filters, {
             sent: c.req.query("sent") === "1",

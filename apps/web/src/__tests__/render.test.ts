@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Agency, Property } from "@kluche/core";
-import { renderAgencySite } from "../render.js";
+import { renderAgencySite, thumbSrc } from "../render.js";
 
 const agency: Agency = {
   id: "a1",
@@ -188,6 +188,27 @@ test("shows a thank-you message when sent", () => {
 test("uses the first photo as the card image when present", () => {
   const html = renderAgencySite(agency, listings);
   expect(html).toContain("https://cdn.example/p1.jpg");
+});
+
+test("thumbSrc rewrites blob URLs to /t/ and leaves others alone", () => {
+  expect(
+    thumbSrc("https://kluchprod.blob.core.windows.net/photos/properties/abc/photo-0.jpg", 480),
+  ).toBe("/t/properties/abc/photo-0.jpg?w=480");
+  // non-blob URLs pass through untouched
+  expect(thumbSrc("https://cdn.example/p1.jpg", 480)).toBe("https://cdn.example/p1.jpg");
+  expect(thumbSrc("/uploads/properties/abc/photo-0.jpg", 480)).toBe("/uploads/properties/abc/photo-0.jpg");
+});
+
+test("card image uses the /t thumbnail endpoint with an onerror fallback to the full URL", () => {
+  const blobUrl = "https://kluchprod.blob.core.windows.net/photos/properties/abc/photo-0.jpg";
+  const withBlob: Property[] = [{ ...listings[0], photos: [blobUrl] }] as Property[];
+  const html = renderAgencySite(agency, withBlob);
+  // card <img> src points at the thumb endpoint at w=480
+  expect(html).toContain(`src="/t/properties/abc/photo-0.jpg?w=480"`);
+  // onerror falls back to the original full-size blob URL
+  expect(html).toContain(`onerror="this.onerror=null;this.src='${blobUrl}'"`);
+  // the modal/listings JSON still carries the FULL blob URL (quality)
+  expect(html).toContain(`"photos":["${blobUrl}"]`);
 });
 
 test("renders a GET search form with the free-text q input and price popover fields", () => {
