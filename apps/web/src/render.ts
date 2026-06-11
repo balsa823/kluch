@@ -1,5 +1,6 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
 import { MNE_LOCATIONS } from "@kluche/locations";
+import { DICT, tr, type Lang } from "./i18n.js";
 
 /** Minimal HTML-escaping for text interpolated into the template. */
 function esc(value: unknown): string {
@@ -48,7 +49,8 @@ function cssUrl(u: unknown): string {
 }
 
 /** Renders a single property card: photo, deal price, city, badge row and type. */
-function renderCard(listing: Property, hasPhone: boolean): string {
+function renderCard(listing: Property, hasPhone: boolean, lang: Lang = "en"): string {
+  const t_ = (key: string) => esc(tr(lang, key));
   const photo = safeUrl(listing.photos?.[0]);
   const image = photo
     ? `<img class="card-photo" src="${esc(photo)}" alt="${esc(listing.name)}" loading="lazy" />`
@@ -58,12 +60,12 @@ function renderCard(listing: Property, hasPhone: boolean): string {
   const hasPrice = listing.priceMinor != null && listing.priceMinor > 0;
   const priceLine = hasPrice
     ? (isRent
-        ? `<p class="card-price">${esc(formatMoney(listing.priceMinor!, listing.currency))}<span class="card-permo" data-i18n="card.perMonth"> / mo</span></p>`
+        ? `<p class="card-price">${esc(formatMoney(listing.priceMinor!, listing.currency))}<span class="card-permo" data-i18n="card.perMonth">${t_("card.perMonth")}</span></p>`
         : `<p class="card-price">${esc(formatMoney(listing.priceMinor!, listing.currency))}</p>`)
-    : `<p class="card-price card-price--ask" data-i18n="card.priceOnRequest">Price on request</p>`;
+    : `<p class="card-price card-price--ask" data-i18n="card.priceOnRequest">${t_("card.priceOnRequest")}</p>`;
   const tag = isRent
-    ? `<span class="card-tag card-tag--rent" data-i18n="card.forRent">For rent</span>`
-    : `<span class="card-tag card-tag--sale" data-i18n="card.forSale">For sale</span>`;
+    ? `<span class="card-tag card-tag--rent" data-i18n="card.forRent">${t_("card.forRent")}</span>`
+    : `<span class="card-tag card-tag--sale" data-i18n="card.forSale">${t_("card.forSale")}</span>`;
   const priceBlock = `${priceLine}
           ${tag}`;
 
@@ -79,7 +81,7 @@ function renderCard(listing: Property, hasPhone: boolean): string {
 
   const callBtn = hasPhone
     ? `<button class="call-btn" type="button" data-pid="${esc(listing.id)}" onclick="event.stopPropagation()" aria-label="Call">
-            <span aria-hidden="true">📞</span> <span data-i18n="card.call">Call</span>
+            <span aria-hidden="true">📞</span> <span data-i18n="card.call">${t_("card.call")}</span>
           </button>`
     : "";
 
@@ -163,8 +165,21 @@ export function renderAgencySite(
   agency: Agency,
   listings: Property[],
   filters: SearchFilters = {},
-  opts: { sent?: boolean; page?: number; pageSize?: number; total?: number; now?: Date } = {},
+  opts: {
+    sent?: boolean;
+    page?: number;
+    pageSize?: number;
+    total?: number;
+    now?: Date;
+    lang?: Lang;
+    showLangPicker?: boolean;
+  } = {},
 ): string {
+  // Server-side language: translate the initial HTML so there's no English flash
+  // and the page works without JS. `L` drives every data-i18n default below.
+  const L: Lang = opts.lang ?? "en";
+  const T_ = (key: string) => esc(tr(L, key));
+
   const logoUrl = safeUrl(agency.logoUrl);
   const logo = logoUrl
     ? `<img class="logo" src="${esc(logoUrl)}" alt="${esc(agency.name)}" />`
@@ -176,7 +191,7 @@ export function renderAgencySite(
   // default copy tagged for client-side localization (the server can't call t()).
   const heroH1 = agency.heroHeadline
     ? `<h1>${esc(agency.heroHeadline)}</h1>`
-    : `<h1 data-i18n="hero.title">Find Your Perfect Home</h1>`;
+    : `<h1 data-i18n="hero.title">${T_("hero.title")}</h1>`;
 
   // Hero background: configured hero image → first listing photo → gradient.
   const heroImage = cssUrl(agency.heroImageUrl) || cssUrl(listings[0]?.photos?.[0]);
@@ -214,13 +229,18 @@ export function renderAgencySite(
 
   // Chip labels reflect the active selection so the page renders correctly even
   // before the inline JS runs (and for no-JS clients).
-  const dealLabel: Record<string, string> = { rent: "For rent", sale: "For sale" };
+  // Active-chip labels reflect the selected value; localize them so a server
+  // render (e.g. after Search) shows the chip in the visitor's language. The
+  // chip() helper localizes the *inactive* default itself via its i18nKey.
+  const dealLabel: Record<string, string> = { rent: tr(L, "tab.rent"), sale: tr(L, "tab.sale") };
   const typeLabel: Record<string, string> = {
-    residential: "Residential", land: "Land", commercial: "Commercial",
+    residential: tr(L, "search.typeResidential"),
+    land: tr(L, "search.typeLand"),
+    commercial: tr(L, "search.typeCommercial"),
   };
   const locActive = !!filters.locations?.length;
   const locChipLabel = !locActive
-    ? "Location"
+    ? tr(L, "filter.location")
     : filters.locations!.length === 1
       ? (filters.locations![0].area
           ? `${filters.locations![0].city} / ${filters.locations![0].area}`
@@ -231,22 +251,25 @@ export function renderAgencySite(
   // after a server render (Search), instead of reverting to the plain "Price" label.
   const priceMinEuro = filters.minPrice !== undefined ? String(filters.minPrice / 100) : "";
   const priceMaxEuro = filters.maxPrice !== undefined ? String(filters.maxPrice / 100) : "";
-  const priceLabel = priceActive ? `€${priceMinEuro || "0"}–${priceMaxEuro || "∞"}` : "Price";
+  const priceLabel = priceActive ? `€${priceMinEuro || "0"}–${priceMaxEuro || "∞"}` : tr(L, "filter.price");
   const dealActive = !!filters.dealType;
   const bedsActive = filters.bedrooms !== undefined;
   const typeActive = !!filters.type;
 
   const caretSvg = `<svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
   // A chip header: active chips carry an ✕ to clear, inactive ones a caret.
+  // Active chips render the (already-localized) selection label; inactive chips
+  // render the localized default for `i18nKey` (so it's correct pre-JS), keeping
+  // the data-i18n attr so the client can re-localize on a live language switch.
   const chip = (pop: string, i18nKey: string, label: string, active: boolean) =>
     `<button type="button" class="chip${active ? " active" : ""}" data-pop="${pop}">` +
-    `<span${active ? "" : ` data-i18n="${i18nKey}"`}>${esc(label)}</span>` +
+    `<span${active ? "" : ` data-i18n="${i18nKey}"`}>${active ? esc(label) : T_(i18nKey)}</span>` +
     `${active ? `<span class="clear" role="button" aria-label="Clear">✕</span>` : caretSvg}</button>`;
 
   const hasPhone = !!agency.phone;
   const cards = listings.length
-    ? listings.map((l) => renderCard(l, hasPhone)).join("")
-    : `<p class="empty" data-i18n="properties.empty">No properties match your search.</p>`;
+    ? listings.map((l) => renderCard(l, hasPhone, L)).join("")
+    : `<p class="empty" data-i18n="properties.empty">${T_("properties.empty")}</p>`;
 
   // Pager: only shown when there are more results than fit on one page.
   const pageSize = opts.pageSize ?? 0;
@@ -258,46 +281,43 @@ export function renderAgencySite(
       ? `<nav class="pager" aria-label="Pagination">
         ${
           page > 1
-            ? `<a class="pager-link pager-prev" href="${pageHref(filters, page - 1)}" data-i18n="pager.prev">Previous</a>`
+            ? `<a class="pager-link pager-prev" href="${pageHref(filters, page - 1)}" data-i18n="pager.prev">${T_("pager.prev")}</a>`
             : ""
         }
         <span class="pager-info">Page ${esc(page)} of ${esc(pages)}</span>
         ${
           page < pages
-            ? `<a class="pager-link pager-next" href="${pageHref(filters, page + 1)}" data-i18n="pager.next">Next</a>`
+            ? `<a class="pager-link pager-next" href="${pageHref(filters, page + 1)}" data-i18n="pager.next">${T_("pager.next")}</a>`
             : ""
         }
       </nav>`
       : "";
 
   const contactInner = opts.sent
-    ? `<p class="thankyou" data-i18n="contact.thankyou">Thank you — we'll be in touch shortly.</p>`
+    ? `<p class="thankyou" data-i18n="contact.thankyou">${T_("contact.thankyou")}</p>`
     : `<form class="contact-form" method="post" action="/a/${slug}/inquiry">
           <label class="hp" aria-hidden="true">Company
             <input type="text" name="company" tabindex="-1" autocomplete="off" />
           </label>
-          <label><span data-i18n="contact.name">Your name</span>
+          <label><span data-i18n="contact.name">${T_("contact.name")}</span>
             <input type="text" name="name" maxlength="120" required />
           </label>
-          <label><span data-i18n="contact.contact">Email or phone</span>
+          <label><span data-i18n="contact.contact">${T_("contact.contact")}</span>
             <input type="text" name="contact" maxlength="200" required />
           </label>
-          <label><span data-i18n="contact.message">Message</span>
+          <label><span data-i18n="contact.message">${T_("contact.message")}</span>
             <textarea name="message" rows="4" maxlength="2000"></textarea>
           </label>
-          <button type="submit" data-i18n="contact.submit">Send request</button>
+          <button type="submit" data-i18n="contact.submit">${T_("contact.submit")}</button>
         </form>`;
 
   // --- Footer (themed, multi-column, driven by agency settings) -------------
   const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-  const DAY_LABELS: Record<string, string> = {
-    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
-  };
 
   // About column: aboutBlurb when set, else the localizable default copy.
   const aboutText = agency.aboutBlurb
     ? `<p class="footer-text">${esc(agency.aboutBlurb)}</p>`
-    : `<p class="footer-text" data-i18n="about.body">We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.</p>`;
+    : `<p class="footer-text" data-i18n="about.body">${T_("about.body")}</p>`;
 
   const SOCIAL_KEYS = ["facebook", "instagram", "linkedin", "youtube", "tiktok"] as const;
   const SOCIAL_LABELS: Record<string, string> = {
@@ -326,16 +346,16 @@ export function renderAgencySite(
           const c = (day as { close?: unknown }).close;
           value = typeof o === "string" && typeof c === "string" && o && c
             ? `<span class="footer-htime">${esc(o)}–${esc(c)}</span>`
-            : `<span class="footer-htime" data-i18n="footer.closedDay">Closed</span>`;
+            : `<span class="footer-htime" data-i18n="footer.closedDay">${T_("footer.closedDay")}</span>`;
         } else {
-          value = `<span class="footer-htime" data-i18n="footer.closedDay">Closed</span>`;
+          value = `<span class="footer-htime" data-i18n="footer.closedDay">${T_("footer.closedDay")}</span>`;
         }
-        return `<div class="footer-hrow"><span data-i18n="day.${d}">${esc(DAY_LABELS[d])}</span>${value}</div>`;
+        return `<div class="footer-hrow"><span data-i18n="day.${d}">${T_(`day.${d}`)}</span>${value}</div>`;
       }).join("")
     : "";
   const hoursColumn = bh
     ? `<div class="footer-col footer-hours">
-          <h4 data-i18n="footer.hours">Opening hours</h4>
+          <h4 data-i18n="footer.hours">${T_("footer.hours")}</h4>
           ${hourRows}
         </div>`
     : "";
@@ -343,10 +363,10 @@ export function renderAgencySite(
   // Open-now badge: localizable when open; the holiday name (escaped) or a
   // localizable "Closed" when closed. Literal English fallback shows pre-JS.
   const openBadge = status.open
-    ? `<span class="open-badge is-open" data-i18n="footer.openNow">Open now</span>`
+    ? `<span class="open-badge is-open" data-i18n="footer.openNow">${T_("footer.openNow")}</span>`
     : status.holiday
       ? `<span class="open-badge is-closed">${esc(status.holiday)}</span>`
-      : `<span class="open-badge is-closed" data-i18n="footer.closed">Closed</span>`;
+      : `<span class="open-badge is-closed" data-i18n="footer.closed">${T_("footer.closed")}</span>`;
 
   // Contact column: only render the bits that are set.
   const phoneRow = agency.phone
@@ -365,12 +385,12 @@ export function renderAgencySite(
     ? `<address class="footer-address">${esc(agency.address).replace(/\n/g, "<br />")}</address>`
     : "";
   const mapRow = safeUrl(agency.mapUrl)
-    ? `<a class="footer-link" href="${esc(safeUrl(agency.mapUrl))}" target="_blank" rel="noopener noreferrer" data-i18n="footer.map">View on map</a>`
+    ? `<a class="footer-link" href="${esc(safeUrl(agency.mapUrl))}" target="_blank" rel="noopener noreferrer" data-i18n="footer.map">${T_("footer.map")}</a>`
     : "";
   const contactBits = [phoneRow, whatsappRow, viberRow, emailRow, addressRow, mapRow].filter(Boolean).join("");
   const contactColumn = contactBits
     ? `<div class="footer-col footer-contact">
-          <h4 data-i18n="footer.contact">Contact</h4>
+          <h4 data-i18n="footer.contact">${T_("footer.contact")}</h4>
           ${contactBits}
         </div>`
     : "";
@@ -390,12 +410,12 @@ export function renderAgencySite(
     </div>
     <div class="footer-bar">
       ${openBadge}
-      <span class="footer-legal">${footerLegalName} · <span data-i18n="footer.powered">Powered by Kluche</span></span>
+      <span class="footer-legal">${footerLegalName} · <span data-i18n="footer.powered">${T_("footer.powered")}</span></span>
     </div>
   </footer>`;
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${L}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -707,19 +727,19 @@ export function renderAgencySite(
       <span></span><span></span><span></span>
     </button>
     <div class="nav-links" id="navLinks">
-      <a href="#properties" data-i18n="nav.properties">Properties</a>
-      <a href="#about" data-i18n="nav.about">About</a>
-      <a href="#contact" data-i18n="nav.contact">Contact</a>
+      <a href="#properties" data-i18n="nav.properties">${T_("nav.properties")}</a>
+      <a href="#about" data-i18n="nav.about">${T_("nav.about")}</a>
+      <a href="#contact" data-i18n="nav.contact">${T_("nav.contact")}</a>
       <div class="langmenu" id="langMenu">
-        <button type="button" data-code="en">EN</button>
-        <button type="button" data-code="sr">SR</button>
-        <button type="button" data-code="ru">RU</button>
-        <button type="button" data-code="tr">TR</button>
+        <button type="button" data-code="en"${L === "en" ? ' class="active"' : ""}>EN</button>
+        <button type="button" data-code="sr"${L === "sr" ? ' class="active"' : ""}>SR</button>
+        <button type="button" data-code="ru"${L === "ru" ? ' class="active"' : ""}>RU</button>
+        <button type="button" data-code="tr"${L === "tr" ? ' class="active"' : ""}>TR</button>
       </div>
     </div>
   </nav>
 
-  <div id="langModal" class="lang-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Choose language">
+  <div id="langModal" class="lang-modal" style="display:${opts.showLangPicker ? "flex" : "none"}" role="dialog" aria-modal="true" aria-label="Choose language">
     <div class="lang-modal-card">
       <p class="lang-modal-title">🌐 Choose your language</p>
       <div class="lang-modal-opts">
@@ -736,10 +756,10 @@ export function renderAgencySite(
     ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
     <form class="search" method="get" id="hero-form">
       <div class="searchbar">
-        <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="Search by address or ref code (e.g. ST-0042)" />
+        <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="${T_("search.placeholder")}" />
         <button type="submit" class="search-go">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
-          <span data-i18n="search.submit">Search</span>
+          <span data-i18n="search.submit">${T_("search.submit")}</span>
         </button>
       </div>
 
@@ -748,10 +768,10 @@ export function renderAgencySite(
         <div class="chip-wrap">
           ${chip("loc", "filter.location", locChipLabel, locActive)}
           <div class="pop loc" id="pop-loc">
-            <h4 data-i18n="filter.location">Location</h4>
-            <input class="loc-search" id="loc-search" type="text" data-i18n-ph="loc.searchPh" placeholder="Search city or area…" />
+            <h4 data-i18n="filter.location">${T_("filter.location")}</h4>
+            <input class="loc-search" id="loc-search" type="text" data-i18n-ph="loc.searchPh" placeholder="${T_("loc.searchPh")}" />
             <div class="loc-list" id="loc-list"></div>
-            <div class="pop-actions"><button type="button" class="reset" id="loc-reset" data-i18n="loc.clear">Clear</button><button type="button" class="apply" id="loc-apply" data-i18n="loc.done">Done</button></div>
+            <div class="pop-actions"><button type="button" class="reset" id="loc-reset" data-i18n="loc.clear">${T_("loc.clear")}</button><button type="button" class="apply" id="loc-apply" data-i18n="loc.done">${T_("loc.done")}</button></div>
           </div>
         </div>
 
@@ -759,11 +779,11 @@ export function renderAgencySite(
         <div class="chip-wrap">
           ${chip("price", "filter.price", priceLabel, priceActive)}
           <div class="pop" id="pop-price">
-            <h4 data-i18n="filter.price">Price (€)</h4>
+            <h4 data-i18n="filter.price">${T_("filter.price")}</h4>
             <div class="price-row">
-              <input type="number" name="minPrice" min="0" data-i18n-ph="search.minPrice" placeholder="Min" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
+              <input type="number" name="minPrice" min="0" data-i18n-ph="search.minPrice" placeholder="${T_("search.minPrice")}" value="${attr(filters.minPrice ? filters.minPrice / 100 : "")}" />
               <span>–</span>
-              <input type="number" name="maxPrice" min="0" data-i18n-ph="search.maxPrice" placeholder="Max" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
+              <input type="number" name="maxPrice" min="0" data-i18n-ph="search.maxPrice" placeholder="${T_("search.maxPrice")}" value="${attr(filters.maxPrice ? filters.maxPrice / 100 : "")}" />
             </div>
           </div>
         </div>
@@ -772,11 +792,11 @@ export function renderAgencySite(
         <div class="chip-wrap">
           ${chip("deal", "filter.listing", dealActive ? dealLabel[filters.dealType!] : "Listing", dealActive)}
           <div class="pop" id="pop-deal">
-            <h4 data-i18n="filter.listing">Listing</h4>
+            <h4 data-i18n="filter.listing">${T_("filter.listing")}</h4>
             <div class="col">
-              <button type="button" class="${optClass("deal", "")}" data-group="deal" data-value="" data-i18n="opt.any">Any</button>
-              <button type="button" class="${optClass("deal", "rent")}" data-group="deal" data-value="rent" data-i18n="tab.rent">For rent</button>
-              <button type="button" class="${optClass("deal", "sale")}" data-group="deal" data-value="sale" data-i18n="tab.sale">For sale</button>
+              <button type="button" class="${optClass("deal", "")}" data-group="deal" data-value="" data-i18n="opt.any">${T_("opt.any")}</button>
+              <button type="button" class="${optClass("deal", "rent")}" data-group="deal" data-value="rent" data-i18n="tab.rent">${T_("tab.rent")}</button>
+              <button type="button" class="${optClass("deal", "sale")}" data-group="deal" data-value="sale" data-i18n="tab.sale">${T_("tab.sale")}</button>
             </div>
           </div>
         </div>
@@ -785,13 +805,13 @@ export function renderAgencySite(
         <div class="chip-wrap">
           ${chip("beds", "filter.beds", bedsActive ? `${filters.bedrooms}+` : "Beds", bedsActive)}
           <div class="pop" id="pop-beds">
-            <h4 data-i18n="filter.beds">Bedrooms</h4>
+            <h4 data-i18n="filter.beds">${T_("filter.beds")}</h4>
             <div class="opts">
-              <button type="button" class="${optClass("beds", "")}" data-group="beds" data-value="" data-i18n="opt.any">Any</button>
-              <button type="button" class="${optClass("beds", "1")}" data-group="beds" data-value="1" data-i18n="beds.1plus">1+</button>
-              <button type="button" class="${optClass("beds", "2")}" data-group="beds" data-value="2" data-i18n="beds.2plus">2+</button>
-              <button type="button" class="${optClass("beds", "3")}" data-group="beds" data-value="3" data-i18n="beds.3plus">3+</button>
-              <button type="button" class="${optClass("beds", "4")}" data-group="beds" data-value="4" data-i18n="beds.4plus">4+</button>
+              <button type="button" class="${optClass("beds", "")}" data-group="beds" data-value="" data-i18n="opt.any">${T_("opt.any")}</button>
+              <button type="button" class="${optClass("beds", "1")}" data-group="beds" data-value="1" data-i18n="beds.1plus">${T_("beds.1plus")}</button>
+              <button type="button" class="${optClass("beds", "2")}" data-group="beds" data-value="2" data-i18n="beds.2plus">${T_("beds.2plus")}</button>
+              <button type="button" class="${optClass("beds", "3")}" data-group="beds" data-value="3" data-i18n="beds.3plus">${T_("beds.3plus")}</button>
+              <button type="button" class="${optClass("beds", "4")}" data-group="beds" data-value="4" data-i18n="beds.4plus">${T_("beds.4plus")}</button>
             </div>
           </div>
         </div>
@@ -800,12 +820,12 @@ export function renderAgencySite(
         <div class="chip-wrap">
           ${chip("type", "filter.type", typeActive ? typeLabel[filters.type!] : "Type", typeActive)}
           <div class="pop" id="pop-type">
-            <h4 data-i18n="filter.type">Type</h4>
+            <h4 data-i18n="filter.type">${T_("filter.type")}</h4>
             <div class="col">
-              <button type="button" class="${optClass("type", "")}" data-group="type" data-value="" data-i18n="opt.any">Any</button>
-              <button type="button" class="${optClass("type", "residential")}" data-group="type" data-value="residential" data-i18n="search.typeResidential">Residential</button>
-              <button type="button" class="${optClass("type", "land")}" data-group="type" data-value="land" data-i18n="search.typeLand">Land</button>
-              <button type="button" class="${optClass("type", "commercial")}" data-group="type" data-value="commercial" data-i18n="search.typeCommercial">Commercial</button>
+              <button type="button" class="${optClass("type", "")}" data-group="type" data-value="" data-i18n="opt.any">${T_("opt.any")}</button>
+              <button type="button" class="${optClass("type", "residential")}" data-group="type" data-value="residential" data-i18n="search.typeResidential">${T_("search.typeResidential")}</button>
+              <button type="button" class="${optClass("type", "land")}" data-group="type" data-value="land" data-i18n="search.typeLand">${T_("search.typeLand")}</button>
+              <button type="button" class="${optClass("type", "commercial")}" data-group="type" data-value="commercial" data-i18n="search.typeCommercial">${T_("search.typeCommercial")}</button>
             </div>
           </div>
         </div>
@@ -818,7 +838,7 @@ export function renderAgencySite(
         ${hiddenField("type", filters.type ?? "")}
         ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
       </div>
-      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">Clear filters</a></p>` : ""}
+      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">${T_("tab.clear")}</a></p>` : ""}
     </form>
   </header>
 
@@ -826,7 +846,7 @@ export function renderAgencySite(
 
   <main>
     <section id="properties">
-      <h2 class="section-head" data-i18n="properties.heading">Available properties</h2>
+      <h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>
       <div class="grid">${cards}</div>
       ${pager}
     </section>
@@ -834,11 +854,11 @@ export function renderAgencySite(
     <section class="about" id="about">
       <h2>${esc(agency.name)}</h2>
       ${agency.tagline ? `<p>${esc(agency.tagline)}</p>` : ""}
-      <p data-i18n="about.body">We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.</p>
+      <p data-i18n="about.body">${T_("about.body")}</p>
     </section>
 
     <section class="contact" id="contact">
-      <h2 class="section-head" data-i18n="contact.heading">Request info / book a viewing</h2>
+      <h2 class="section-head" data-i18n="contact.heading">${T_("contact.heading")}</h2>
       ${contactInner}
     </section>
   </main>
@@ -864,7 +884,7 @@ export function renderAgencySite(
         <div class="modal-badges"></div>
         <p class="modal-type"></p>
         <button class="call-btn modal-call" type="button" aria-label="Call"${agency.phone ? "" : ' style="display:none"'}>
-          <span aria-hidden="true">📞</span> <span data-i18n="card.call">Call</span>
+          <span aria-hidden="true">📞</span> <span data-i18n="card.call">${T_("card.call")}</span>
         </button>
         <div id="kluche-tour" class="modal-tour"></div>
       </div>
@@ -874,89 +894,9 @@ export function renderAgencySite(
   <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => ({ id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)) })))}</script>
 
   <script>
-  // SR/RU/TR are first-pass translations — review with a native speaker before launch.
-  const T = {
-    en: {
-      "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
-      "search.city":"City","search.cityPh":"Any city","search.dealType":"Listing","search.dealAny":"Any","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
-      "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search","search.placeholder":"Search by address or ref code (e.g. ST-0042)",
-      "filter.location":"Location","filter.price":"Price","filter.listing":"Listing","filter.beds":"Beds","filter.type":"Type","opt.any":"Any",
-      "loc.searchPh":"Search city or area…","loc.clear":"Clear","loc.done":"Done",
-      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
-      "tab.all":"All","tab.rent":"For rent","tab.sale":"For sale","tab.clear":"Clear filters",
-      "pager.prev":"Previous","pager.next":"Next",
-      "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.priceOnRequest":"Price on request","card.showNumber":"Show number","card.call":"Call",
-      "modal.close":"Close","modal.gallery":"Photos",
-      "tour.heading":"Schedule a tour","tour.date":"Preferred date","tour.note":"Note (optional)","tour.submit":"Request tour","tour.done":"Tour requested — the agency will be in touch.",
-      "auth.heading":"Sign in to schedule","auth.email":"Email","auth.password":"Password","auth.name":"Name","auth.login":"Log in","auth.register":"Register","auth.toggleToRegister":"New here? Register","auth.toggleToLogin":"Have an account? Log in","auth.signedInAs":"Signed in as",
-      "properties.heading":"Available properties","properties.empty":"No properties match your search.",
-      "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
-      "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
-      "contact.thankyou":"Thank you — we'll be in touch shortly.",
-      "hero.title":"Find Your Perfect Home",
-      "footer.hours":"Opening hours","footer.openNow":"Open now","footer.closed":"Closed","footer.closedDay":"Closed","footer.contact":"Contact","footer.explore":"Explore","footer.about":"About","footer.map":"View on map",
-      "day.mon":"Mon","day.tue":"Tue","day.wed":"Wed","day.thu":"Thu","day.fri":"Fri","day.sat":"Sat","day.sun":"Sun",
-      "footer.powered":"Powered by Kluche"
-    },
-    sr: {
-      "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
-      "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja","search.typeResidential":"Stambeno","search.typeLand":"Zemljište","search.typeCommercial":"Poslovno",
-      "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga","search.placeholder":"Pretraga po adresi ili šifri (npr. ST-0042)",
-      "filter.location":"Lokacija","filter.price":"Cijena","filter.listing":"Tip","filter.beds":"Sobe","filter.type":"Vrsta","opt.any":"Sve",
-      "loc.searchPh":"Pretraži grad ili oblast…","loc.clear":"Poništi","loc.done":"Gotovo",
-      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
-      "tab.all":"Sve","tab.rent":"Za najam","tab.sale":"Za prodaju","tab.clear":"Poništi filtere",
-      "pager.prev":"Prethodno","pager.next":"Sljedeće",
-      "card.forRent":"Za najam","card.forSale":"Za prodaju","card.perMonth":" / mj.","card.priceOnRequest":"Cijena na upit",
-      "properties.heading":"Dostupne nekretnine","properties.empty":"Nema nekretnina za vašu pretragu.",
-      "about.body":"Pomažemo vam da pronađete pravi dom — za najam ili kupovinu. Javite nam se i naš tim će vas voditi, na vašem jeziku, na svakom koraku.",
-      "contact.heading":"Zatražite informacije / zakažite obilazak","contact.name":"Vaše ime","contact.contact":"E-pošta ili telefon","contact.message":"Poruka","contact.submit":"Pošalji upit",
-      "contact.thankyou":"Hvala — javićemo vam se uskoro.",
-      "hero.title":"Pronađite svoj savršen dom",
-      "footer.hours":"Radno vrijeme","footer.openNow":"Otvoreno","footer.closed":"Zatvoreno","footer.closedDay":"Zatvoreno","footer.contact":"Kontakt","footer.explore":"Istražite","footer.about":"O nama","footer.map":"Prikaži na mapi",
-      "day.mon":"Pon","day.tue":"Uto","day.wed":"Sri","day.thu":"Čet","day.fri":"Pet","day.sat":"Sub","day.sun":"Ned",
-      "footer.powered":"Pokreće Kluche"
-    },
-    ru: {
-      "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
-      "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа","search.typeResidential":"Жилая","search.typeLand":"Земля","search.typeCommercial":"Коммерческая",
-      "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск","search.placeholder":"Поиск по адресу или коду (напр. ST-0042)",
-      "filter.location":"Локация","filter.price":"Цена","filter.listing":"Тип","filter.beds":"Спальни","filter.type":"Вид","opt.any":"Все",
-      "loc.searchPh":"Поиск города или района…","loc.clear":"Сбросить","loc.done":"Готово",
-      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
-      "tab.all":"Все","tab.rent":"Аренда","tab.sale":"Продажа","tab.clear":"Сбросить фильтры",
-      "pager.prev":"Назад","pager.next":"Вперёд",
-      "card.forRent":"Аренда","card.forSale":"Продажа","card.perMonth":" / мес.","card.priceOnRequest":"Цена по запросу",
-      "properties.heading":"Доступные объекты","properties.empty":"Нет объектов по вашему запросу.",
-      "about.body":"Мы поможем найти подходящее жильё — в аренду или для покупки. Свяжитесь с нами, и наша команда поможет вам на вашем языке на каждом шаге.",
-      "contact.heading":"Запросить информацию / записаться на просмотр","contact.name":"Ваше имя","contact.contact":"Эл. почта или телефон","contact.message":"Сообщение","contact.submit":"Отправить запрос",
-      "contact.thankyou":"Спасибо — мы скоро свяжемся с вами.",
-      "hero.title":"Найдите свой идеальный дом",
-      "footer.hours":"Часы работы","footer.openNow":"Открыто","footer.closed":"Закрыто","footer.closedDay":"Закрыто","footer.contact":"Контакты","footer.explore":"Обзор","footer.about":"О нас","footer.map":"Показать на карте",
-      "day.mon":"Пн","day.tue":"Вт","day.wed":"Ср","day.thu":"Чт","day.fri":"Пт","day.sat":"Сб","day.sun":"Вс",
-      "footer.powered":"Работает на Kluche"
-    },
-    tr: {
-      "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
-      "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık","search.typeResidential":"Konut","search.typeLand":"Arsa","search.typeCommercial":"Ticari",
-      "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara","search.placeholder":"Adres veya koda göre ara (örn. ST-0042)",
-      "filter.location":"Konum","filter.price":"Fiyat","filter.listing":"Tür","filter.beds":"Oda","filter.type":"Tip","opt.any":"Tümü",
-      "loc.searchPh":"Şehir veya bölge ara…","loc.clear":"Temizle","loc.done":"Tamam",
-      "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
-      "tab.all":"Tümü","tab.rent":"Kiralık","tab.sale":"Satılık","tab.clear":"Filtreleri temizle",
-      "pager.prev":"Önceki","pager.next":"Sonraki",
-      "card.forRent":"Kiralık","card.forSale":"Satılık","card.perMonth":" / ay","card.priceOnRequest":"Fiyat için sorun",
-      "properties.heading":"Mevcut ilanlar","properties.empty":"Aramanıza uygun ilan yok.",
-      "about.body":"Doğru evi bulmanıza yardımcı oluyoruz — kiralık ya da satılık. Bize ulaşın, ekibimiz her adımda kendi dilinizde size yardımcı olsun.",
-      "contact.heading":"Bilgi isteyin / randevu alın","contact.name":"Adınız","contact.contact":"E-posta veya telefon","contact.message":"Mesaj","contact.submit":"Gönder",
-      "contact.thankyou":"Teşekkürler — en kısa sürede sizinle iletişime geçeceğiz.",
-      "hero.title":"Mükemmel Evinizi Bulun",
-      "footer.hours":"Çalışma saatleri","footer.openNow":"Açık","footer.closed":"Kapalı","footer.closedDay":"Kapalı","footer.contact":"İletişim","footer.explore":"Keşfet","footer.about":"Hakkımızda","footer.map":"Haritada göster",
-      "day.mon":"Pzt","day.tue":"Sal","day.wed":"Çar","day.thu":"Per","day.fri":"Cum","day.sat":"Cmt","day.sun":"Paz",
-      "footer.powered":"Kluche tarafından sağlanır"
-    }
-  };
-  let LANG = "en";
+  // Translation dict + initial language are injected server-side (see i18n.ts).
+  var T = ${jsonForScript(DICT)};
+  var LANG = ${JSON.stringify(L)};
   function t(key) { return (T[LANG] && T[LANG][key]) != null ? T[LANG][key] : (T.en[key] != null ? T.en[key] : key); }
   function applyLang() {
     // Only rewrite leaf elements: setting textContent on a node that wraps form
@@ -969,6 +909,9 @@ export function renderAgencySite(
   function setLang(code) {
     if (!T[code]) return;
     LANG = code;
+    // Persist in a cookie so the SERVER renders this language on the next request
+    // (no English flash). Mirror to localStorage harmlessly.
+    document.cookie = "kluche_lang=" + code + "; path=/; max-age=31536000; samesite=lax";
     try { localStorage.setItem("kluche_lang", code); } catch (e) {}
     applyLang();
   }
@@ -990,7 +933,9 @@ export function renderAgencySite(
     });
   }
 
-  // Language: use the stored choice; on first visit (nothing stored) ask the visitor.
+  // Language: the SERVER picked the initial LANG (from the kluche_lang cookie) and
+  // decided whether to show this first-visit picker (showLangPicker → display:flex).
+  // The pills/modal only need to write the cookie + live-switch the page.
   var langModal = document.getElementById("langModal");
   function pickLang(code) { setLang(code); if (langModal) langModal.style.display = "none"; }
   if (langModal) {
@@ -1000,14 +945,8 @@ export function renderAgencySite(
     // Dismiss via backdrop → default to English (and remember, so we don't nag).
     langModal.addEventListener("click", function (e) { if (e.target === langModal) pickLang("en"); });
   }
-  var saved = null;
-  try { saved = localStorage.getItem("kluche_lang"); } catch (e) {}
-  if (saved && T[saved]) {
-    setLang(saved);
-  } else {
-    applyLang(); // render in the default language behind the picker
-    if (langModal) langModal.style.display = "flex";
-  }
+  // Idempotent sync of the active pill / placeholders (text is already translated server-side).
+  applyLang();
 
   // --- Hero search: chip popovers, Location multi-select, hidden-field sync ---
   (function () {
