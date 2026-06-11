@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, afterAll, expect, test } from "vitest";
 import { db, client, migrateTestDb, resetDb } from "@kluche/db/test-helpers";
-import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries, createInquiry, updateAgencyConfig, getProperty, listAgencyProperties } from "@kluche/core";
+import { createAgency, createAgencyUser, createPartnerUser, createProperty, publishProperty, listInquiries, createInquiry, updateAgencyConfig, getProperty, listAgencyProperties, addPropertyPhotos, FakeStorage } from "@kluche/core";
 import { createApp } from "../app.js";
 
 beforeAll(async () => { await migrateTestDb(); });
@@ -840,4 +840,102 @@ test("owner-scoped listing endpoints reject a malformed id with 400", async () =
     method: "DELETE", headers: { Authorization: `Bearer ${token}` },
   }));
   expect(del.status).toBe(400);
+});
+
+// --- owner-scoped photo upload + reorder/remove ---
+
+/** Seeds agency A (popovic) + partner with a published listing carrying three photos. */
+async function photoSeed() {
+  const agency = await seedPartner();
+  const listing = await createProperty(db, {
+    agencyId: agency.id, name: "Photo Flat", address: "A St", city: "Budva", priceMinor: 50000, bedrooms: 1,
+  });
+  await addPropertyPhotos(db, listing.id, [
+    "https://cdn/one.jpg", "https://cdn/two.jpg", "https://cdn/three.jpg",
+  ]);
+  await publishProperty(db, listing.id);
+  return { agency, listing };
+}
+
+test("POST /api/properties/:id/photos with a foreign agency's token returns 403", async () => {
+  const { listing } = await photoSeed();
+  await seedRival();
+  const storage = new FakeStorage();
+  const app = createApp(db, { storage, sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "rival@adriatic.me", "pw123")).json()) as { token: string }).token;
+
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array([1, 2])], "x.jpg", { type: "image/jpeg" }));
+  const res = await app.request(new Request(`http://localhost/api/properties/${listing.id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  }));
+  expect(res.status).toBe(403);
+  expect(storage.calls).toHaveLength(0);
+  // Photos untouched.
+  expect((await getProperty(db, listing.id))?.photos).toHaveLength(3);
+});
+
+test("POST /api/listings/:id/photos reorders the photos (persists the new order)", async () => {
+  const { listing } = await photoSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const reversed = ["https://cdn/three.jpg", "https://cdn/two.jpg", "https://cdn/one.jpg"];
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ photos: reversed }),
+  }));
+  expect(res.status).toBe(200);
+  expect((await getProperty(db, listing.id))?.photos).toEqual(reversed);
+});
+
+test("POST /api/listings/:id/photos with a subset removes a photo", async () => {
+  const { listing } = await photoSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const subset = ["https://cdn/one.jpg", "https://cdn/three.jpg"];
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ photos: subset }),
+  }));
+  expect(res.status).toBe(200);
+  const photos = (await getProperty(db, listing.id))?.photos;
+  expect(photos).toEqual(subset);
+  expect(photos).not.toContain("https://cdn/two.jpg");
+});
+
+test("POST /api/listings/:id/photos with a URL not in the existing set returns 400", async () => {
+  const { listing } = await photoSeed();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "partner@popovic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ photos: ["https://cdn/one.jpg", "https://evil/inject.jpg"] }),
+  }));
+  expect(res.status).toBe(400);
+  expect(((await res.json()) as { error: string }).error).toBe("invalid photos");
+  // Untouched.
+  expect((await getProperty(db, listing.id))?.photos).toHaveLength(3);
+});
+
+test("POST /api/listings/:id/photos with a foreign agency's token returns 403", async () => {
+  const { listing } = await photoSeed();
+  await seedRival();
+  const app = createApp(db, { sessionSecret: SECRET });
+  const token = ((await (await platformLogin(app, "rival@adriatic.me", "pw123")).json()) as { token: string }).token;
+
+  const res = await app.request(new Request(`http://localhost/api/listings/${listing.id}/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ photos: ["https://cdn/one.jpg"] }),
+  }));
+  expect(res.status).toBe(403);
+  expect((await getProperty(db, listing.id))?.photos).toHaveLength(3);
 });
