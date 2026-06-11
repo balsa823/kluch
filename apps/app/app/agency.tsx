@@ -536,6 +536,40 @@ function EditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Unsaved-changes guard for the ✕/Cancel close. Image edits persist immediately
+  // (independent of Save), so only the text fields count as "unsaved".
+  const initialType = (TYPES as readonly string[]).includes(listing.type ?? "")
+    ? (listing.type as ListingType)
+    : "residential";
+  const dirty =
+    name !== listing.name ||
+    address !== listing.address ||
+    city !== (listing.city || cityNames()[0]) ||
+    area !== (listing.area ?? "") ||
+    price !== String(listing.priceMinor / 100) ||
+    bedrooms !== (listing.bedrooms == null ? "" : String(listing.bedrooms)) ||
+    bathrooms !== (listing.bathrooms == null ? "" : String(listing.bathrooms)) ||
+    areaM2 !== (listing.areaM2 == null ? "" : String(listing.areaM2)) ||
+    type !== initialType ||
+    dealType !== listing.dealType;
+
+  function requestClose() {
+    if (!dirty) {
+      onClose();
+      return;
+    }
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined" || window.confirm(t("listings.discardConfirm"))) {
+        onClose();
+      }
+      return;
+    }
+    Alert.alert(t("common.close"), t("listings.discardConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("listings.discard"), style: "destructive", onPress: onClose },
+    ]);
+  }
+
   async function onSave() {
     if (saving) return;
     setError(null);
@@ -578,6 +612,14 @@ function EditModal({
         contentContainerStyle={styles.modalScrollContent}
       >
         <View style={styles.formCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
+            onPress={requestClose}
+            style={({ pressed }) => [styles.modalClose, pressed && styles.addBtnPressed]}
+          >
+            <Text style={styles.modalCloseText}>✕</Text>
+          </Pressable>
           <Text style={styles.formTitle}>
             {t("listings.editListing")}
             {listing.refCode ? `  ·  ${listing.refCode}` : ""}
@@ -668,7 +710,7 @@ function EditModal({
           <View style={styles.formActions}>
             <Pressable
               accessibilityRole="button"
-              onPress={onClose}
+              onPress={requestClose}
               style={({ pressed }) => [
                 styles.ghostBtn,
                 pressed && styles.addBtnPressed,
@@ -1222,6 +1264,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: colors.ink,
+    paddingRight: 40,
+  },
+  modalClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.sand,
+    zIndex: 5,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.ink,
+    lineHeight: 18,
   },
   importCard: {
     backgroundColor: colors.paper,

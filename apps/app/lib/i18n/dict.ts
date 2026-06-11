@@ -104,6 +104,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     "listings.removePhoto": "Remove",
     "listings.uploading": "Uploading…",
     "listings.noPhotos": "No photos yet.",
+    "listings.discardConfirm": "You have unsaved changes. Discard them?",
+    "listings.discard": "Discard",
     "listings.photosSelected": "{n} selected",
 
     "website.title": "Website",
@@ -300,6 +302,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     "listings.removePhoto": "Ukloni",
     "listings.uploading": "Učitavanje…",
     "listings.noPhotos": "Još nema slika.",
+    "listings.discardConfirm": "Imate nesačuvane izmjene. Odbaciti ih?",
+    "listings.discard": "Odbaci",
     "listings.photosSelected": "{n} izabrano",
 
     "website.title": "Sajt",
