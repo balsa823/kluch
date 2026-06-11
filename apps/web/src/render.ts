@@ -452,7 +452,10 @@ export function renderAgencySite(
     nav.site {
       position: sticky; top: 0; z-index: 30;
       display: flex; align-items: center; gap: 1rem;
-      padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
+      /* Extend the dark nav under the iOS status bar (safe-area) so Safari, which
+         tints its top bar from the content behind it, shows a full-bleed dark top
+         like Chrome — not the light page background. */
+      padding: calc(0.75rem + env(safe-area-inset-top, 0px)) clamp(1rem, 4vw, 2.5rem) 0.75rem;
       background: var(--color-primary);
       color: #fff;
       border-bottom: 3px solid var(--color-accent);
@@ -665,7 +668,7 @@ export function renderAgencySite(
     /* visually-hidden honeypot */
     .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
-    footer.site { background: var(--color-primary); color: #fff; margin-top: 3rem; }
+    footer.site { background: var(--color-primary); color: #fff; margin-top: 3rem; padding-bottom: env(safe-area-inset-bottom, 0px); }
     .footer-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem;
       max-width: 1180px; margin: 0 auto; padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem) 1.5rem;

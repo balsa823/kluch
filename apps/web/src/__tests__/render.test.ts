@@ -652,3 +652,9 @@ test("mobile viewport: dynamic-height fill + viewport-fit + theme-color (iOS Saf
   expect(html).toContain("min-height: 100dvh");
   expect(html).toMatch(/html \{ background: var\(--color-cream\); min-height: 100%/);
 });
+
+test("nav + footer extend into the iOS safe-area insets (full-bleed top/bottom on Safari)", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("env(safe-area-inset-top");
+  expect(html).toContain("env(safe-area-inset-bottom");
+});
