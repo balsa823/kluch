@@ -5,7 +5,7 @@ export type MneCity = { city: string; areas: string[] };
 /** Fixed Montenegro cities + curated areas. Single source of truth for both the
  * white-label site (render + parse) and the agency console (editor dropdowns). */
 export const MNE_LOCATIONS: MneCity[] = [
-  { city: "Podgorica", areas: ["Blok 5", "Blok 6", "Blok 9", "Stari Aerodrom", "Zabjelo", "Konik", "City Kvart", "Preko Morače", "Tološi", "Momišići", "Dalmatinska", "Drač", "Masline", "Zagorič"] },
+  { city: "Podgorica", areas: ["Blok 5", "Blok 6", "Blok 9", "Stari Aerodrom", "Stara Varoš", "Zabjelo", "Konik", "City Kvart", "Preko Morače", "Tološi", "Momišići", "Dalmatinska", "Drač", "Masline", "Zagorič"] },
   { city: "Budva", areas: ["Stari grad", "Bečići", "Rafailovići", "Pržno", "Sveti Stefan", "Petrovac", "Babin Do", "Rozino"] },
   { city: "Bar", areas: ["Stari Bar", "Šušanj", "Topolica", "Bjeliši", "Sutomore", "Čanj", "Dobra Voda"] },
   { city: "Kotor", areas: ["Stari grad", "Dobrota", "Muo", "Prčanj", "Škaljari", "Risan", "Perast", "Stoliv"] },
@@ -79,6 +79,7 @@ const AREA_COORDS: Record<string, Record<string, LatLng>> = {
     "Blok 6": { lat: 42.4345, lng: 19.2438 },
     "Blok 9": { lat: 42.4308, lng: 19.2505 },
     "Stari Aerodrom": { lat: 42.4262, lng: 19.2625 },
+    "Stara Varoš": { lat: 42.4362, lng: 19.2565 },
     Zabjelo: { lat: 42.4185, lng: 19.2585 },
     Momišići: { lat: 42.4305, lng: 19.2705 },
     Konik: { lat: 42.4525, lng: 19.2895 },

@@ -342,12 +342,16 @@ export function renderAgencySite(
     const byKey = new Map<string, MapArea>();
     for (const l of listings) {
       const area = (l as { area?: string | null }).area;
+      // Group at the area level when the area resolves to *either* a drawn
+      // polygon or a legacy centre point; otherwise group at the city level.
+      const ap = area ? areaPolygon(l.city, area) : null;
       const ac = area ? areaCoords(l.city, area) : null;
+      const grouped = !!area && (!!ap || !!ac);
       const centre = ac || cityCoords(l.city);
       if (!centre) continue; // unknown city → not grouped
-      const name = ac && area ? area : l.city;
-      const loc = ac && area ? `${l.city}|${area}` : l.city;
-      const polygon = (area && areaPolygon(l.city, area)) || cityPolygon(l.city) || undefined;
+      const name = grouped ? (area as string) : l.city;
+      const loc = grouped ? `${l.city}|${area}` : l.city;
+      const polygon = ap || cityPolygon(l.city) || undefined;
       const key = `${centre.lat},${centre.lng}|${name}`;
       const existing = byKey.get(key);
       if (existing) existing.count += 1;
