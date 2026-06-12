@@ -62,6 +62,24 @@ function cssColor(value: unknown, fallback: string): string {
   return /^#[0-9a-fA-F]{3,8}$/.test(s) || /^[a-zA-Z]+$/.test(s) ? s : fallback;
 }
 
+/** WCAG relative luminance (0=black … 1=white) of a #hex colour, or null. */
+function hexLuminance(hex: string): number | null {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) return null;
+  const chan = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * chan(0) + 0.7152 * chan(2) + 0.0722 * chan(4);
+}
+
+/** True when a colour is light enough that white text on it reads poorly. */
+function isLightColor(value: string): boolean {
+  const l = hexLuminance(value);
+  return l != null && l > 0.6;
+}
+
 /**
  * Returns the URL only if it's an http(s) URL or a same-origin root-relative
  * path (e.g. "/uploads/..."), else an empty string. Blocks javascript:/data:
@@ -316,6 +334,10 @@ export function renderAgencySite(
     ? listings.map((l) => renderCard(l, L)).join("")
     : `<p class="empty" data-i18n="properties.empty">${T_("properties.empty")}</p>`;
 
+  // Overlay text flips to dark ink when the agency's primary colour is light,
+  // so the map navbar labels stay legible whatever palette they chose.
+  const primaryIsLight = isLightColor(cssColor(agency.colorPrimary, "#1F3A5C"));
+
   // --- Map view (only when the agency has enabled it) -----------------------
   const mapEnabled = !!agency.mapEnabled;
   // Distinct area/city centres present among this page's listings. Each centre
@@ -519,6 +541,8 @@ export function renderAgencySite(
       --color-accent: ${cssColor(agency.colorAccent, "#4E827A")};
       --color-cream: #F1ECE0;
       --color-ink: #1F2937;
+      --overlay-ink: ${primaryIsLight ? "#1F2937" : "#ffffff"};
+      --overlay-ink-shadow: ${primaryIsLight ? "none" : "0 1px 3px rgba(0,0,0,.45)"};
     }
     * { box-sizing: border-box; }
     /* Fill the screen on iOS Safari when its toolbar collapses: html carries the
@@ -878,12 +902,12 @@ export function renderAgencySite(
     }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
-    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.8); margin: 0 0 .4rem .15rem; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--overlay-ink); opacity: .82; margin: 0 0 .4rem .15rem; text-shadow: var(--overlay-ink-shadow); }
     .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
     .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
     .map-city:hover { border-color: #fff; }
-    .map-city.active { background: var(--color-primary); color: #fff; border-color: #fff; }
+    .map-city.active { background: var(--color-primary); color: var(--overlay-ink); border-color: #fff; }
     /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
     .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
@@ -891,10 +915,10 @@ export function renderAgencySite(
        (any overflow value would force overflow-y:auto and clip them); the 5 short
        chips wrap to a second line on very narrow screens instead of scrolling. */
     .map-overlay .chips { margin: 0; gap: 1.1rem 1.4rem; overflow: visible; flex-wrap: wrap; padding: .15rem .15rem .1rem; }
-    .map-overlay .chip { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
-    .map-overlay .chip .caret { stroke: #fff; }
+    .map-overlay .chip { color: var(--overlay-ink); text-shadow: var(--overlay-ink-shadow); }
+    .map-overlay .chip .caret { stroke: var(--overlay-ink); }
     /* Overlay sits at the top → popovers open downward (the default). */
-    .map-note { margin: 0; color: rgba(255,255,255,.7); font-size: 0.72rem; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+    .map-note { margin: 0; color: var(--overlay-ink); opacity: .7; font-size: 0.72rem; text-shadow: var(--overlay-ink-shadow); }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
