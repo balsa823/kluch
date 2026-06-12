@@ -855,8 +855,9 @@ export function renderAgencySite(
       font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
     }
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
-    #kluche-map { position: relative; margin: 0 0 1rem; }
-    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
+    #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
+    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
     .map-overlay {
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
       background: rgba(255,255,255,0.97); backdrop-filter: blur(6px);
