@@ -1801,6 +1801,7 @@ export function renderAgencySite(
           var MNE_BOUNDS = [[41.6, 18.2], [43.7, 20.5]];
           leafletMap = L.map("kluche-map-canvas", {
             scrollWheelZoom: true,
+            zoomControl: false, // no +/- buttons; pinch / scroll / double-tap still zoom
             maxBounds: MNE_BOUNDS,
             maxBoundsViscosity: 1.0,
             minZoom: 8
@@ -1808,8 +1809,6 @@ export function renderAgencySite(
           L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
           }).addTo(leafletMap);
-          // Overlay covers the top-left → move the zoom control out from under it.
-          if (leafletMap.zoomControl) { try { leafletMap.zoomControl.setPosition("bottomleft"); } catch (e) {} }
 
           var bounds = [];
 
