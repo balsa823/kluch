@@ -1,0 +1,1 @@
+ALTER TABLE "agencies" ADD COLUMN "map_enabled" boolean DEFAULT false NOT NULL;

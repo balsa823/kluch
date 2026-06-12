@@ -114,6 +114,7 @@ export interface AgencyConfigPatch {
   notifyEmail?: string | null;
   defaultLang?: string;
   observeHolidays?: boolean;
+  mapEnabled?: boolean;
   businessHours?: BusinessHours | null;
   customClosures?: CustomClosure[] | null;
   socials?: Socials | null;
@@ -172,6 +173,11 @@ export async function updateAgencyConfig(
   if (patch.observeHolidays !== undefined) {
     if (typeof patch.observeHolidays !== "boolean") throw new Error("Invalid observeHolidays");
     safe.observeHolidays = patch.observeHolidays;
+  }
+
+  if (patch.mapEnabled !== undefined) {
+    if (typeof patch.mapEnabled !== "boolean") throw new Error("Invalid mapEnabled");
+    safe.mapEnabled = patch.mapEnabled;
   }
 
   if (patch.businessHours !== undefined) {
