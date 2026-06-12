@@ -883,8 +883,10 @@ export function renderAgencySite(
     /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
     .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
-    .map-overlay .chips { margin: 0; gap: 1.4rem; overflow-x: auto; flex-wrap: nowrap; padding: .15rem .15rem .1rem; }
-    .map-overlay .chips::-webkit-scrollbar { display: none; }
+    /* overflow stays visible so the filter popovers can drop down over the map
+       (any overflow value would force overflow-y:auto and clip them); the 5 short
+       chips wrap to a second line on very narrow screens instead of scrolling. */
+    .map-overlay .chips { margin: 0; gap: 1.1rem 1.4rem; overflow: visible; flex-wrap: wrap; padding: .15rem .15rem .1rem; }
     .map-overlay .chip { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
     .map-overlay .chip .caret { stroke: #fff; }
     /* Overlay sits at the top → popovers open downward (the default). */
