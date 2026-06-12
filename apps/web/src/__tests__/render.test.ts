@@ -682,3 +682,13 @@ test("card has no arrow buttons when a listing has a single photo", () => {
   const html = renderAgencySite(agency, one);
   expect(html).not.toContain('<button class="card-arrow card-arrow-prev"');
 });
+
+test("the inline <script> is syntactically valid JS (no template-literal escape breakage)", () => {
+  const html = renderAgencySite(agency, listings);
+  // The executable script has a bare <script> tag; the data blobs use type="application/json".
+  const m = html.match(/<script>([\s\S]*?)<\/script>/);
+  expect(m).toBeTruthy();
+  const body = m![1];
+  // new Function parses (doesn't run) the body — throws on any syntax error.
+  expect(() => new Function(body)).not.toThrow();
+});
