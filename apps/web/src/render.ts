@@ -1,5 +1,5 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
-import { MNE_LOCATIONS, cityCoords, areaCoords } from "@kluche/locations";
+import { MNE_LOCATIONS, cityCoords, areaCoords, cityPolygon, areaPolygon, type PolyGeometry } from "@kluche/locations";
 import { DICT, tr, type Lang } from "./i18n.js";
 
 /**
@@ -60,6 +60,24 @@ function attr(value: unknown): string {
 function cssColor(value: unknown, fallback: string): string {
   const s = String(value ?? "");
   return /^#[0-9a-fA-F]{3,8}$/.test(s) || /^[a-zA-Z]+$/.test(s) ? s : fallback;
+}
+
+/** WCAG relative luminance (0=black … 1=white) of a #hex colour, or null. */
+function hexLuminance(hex: string): number | null {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) return null;
+  const chan = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * chan(0) + 0.7152 * chan(2) + 0.0722 * chan(4);
+}
+
+/** True when a colour is light enough that white text on it reads poorly. */
+function isLightColor(value: string): boolean {
+  const l = hexLuminance(value);
+  return l != null && l > 0.6;
 }
 
 /**
@@ -316,42 +334,52 @@ export function renderAgencySite(
     ? listings.map((l) => renderCard(l, L)).join("")
     : `<p class="empty" data-i18n="properties.empty">${T_("properties.empty")}</p>`;
 
+  // Overlay text flips to dark ink when the agency's primary colour is light,
+  // so the map navbar labels stay legible whatever palette they chose.
+  const primaryIsLight = isLightColor(cssColor(agency.colorPrimary, "#1F3A5C"));
+
   // --- Map view (only when the agency has enabled it) -----------------------
   const mapEnabled = !!agency.mapEnabled;
   // Distinct area/city centres present among this page's listings. Each centre
   // gets a name (the area when it resolved to area coords, else the city), the
   // coord, a count, and the `?loc=` value the chip/circle navigates to.
-  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string };
+  // `polygon` is the hand-drawn outline when one exists for this area/city;
+  // the client draws it instead of a circle (lat/lng stay as the label anchor).
+  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
   const mapAreas: MapArea[] = [];
-  // Distinct known cities present among this page's listings, in first-seen
-  // order (first city is the default-active shortcut later). Each gets a name,
-  // its centre coords, and a sensible default zoom.
+  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist
+  // for now — not derived from listings. Each gets coords + a default zoom.
+  const MAP_SHORTCUT_CITIES = ["Podgorica", "Budva"];
   type MapCity = { name: string; lat: number; lng: number; zoom: number };
   const mapCities: MapCity[] = [];
   if (mapEnabled) {
-    const seen = new Map<string, MapCity>();
-    for (const l of listings) {
-      if (seen.has(l.city)) continue;
-      const c = cityCoords(l.city);
+    for (const city of MAP_SHORTCUT_CITIES) {
+      const c = cityCoords(city);
       if (!c) continue;
-      const zoom = l.city === "Podgorica" || l.city === "Nikšić" ? 13 : 14;
-      seen.set(l.city, { name: l.city, lat: c.lat, lng: c.lng, zoom });
+      const zoom = city === "Podgorica" || city === "Nikšić" ? 13 : 14;
+      mapCities.push({ name: city, lat: c.lat, lng: c.lng, zoom });
     }
-    mapCities.push(...seen.values());
   }
   if (mapEnabled) {
     const byKey = new Map<string, MapArea>();
     for (const l of listings) {
       const area = (l as { area?: string | null }).area;
+      // Group at the area level when the area resolves to *either* a drawn
+      // polygon or a legacy centre point; otherwise group at the city level.
+      const ap = area ? areaPolygon(l.city, area) : null;
       const ac = area ? areaCoords(l.city, area) : null;
+      const grouped = !!area && (!!ap || !!ac);
       const centre = ac || cityCoords(l.city);
       if (!centre) continue; // unknown city → not grouped
-      const name = ac && area ? area : l.city;
-      const loc = ac && area ? `${l.city}|${area}` : l.city;
+      const name = grouped ? (area as string) : l.city;
+      const loc = grouped ? `${l.city}|${area}` : l.city;
+      // Area-grouped → its own polygon or nothing (circle); never the city shape.
+      // City-grouped (no/unknown area) → the city's combined MultiPolygon.
+      const polygon = (grouped ? ap : cityPolygon(l.city)) || undefined;
       const key = `${centre.lat},${centre.lng}|${name}`;
       const existing = byKey.get(key);
       if (existing) existing.count += 1;
-      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc });
+      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc, polygon });
     }
     mapAreas.push(...byKey.values());
   }
@@ -515,6 +543,8 @@ export function renderAgencySite(
       --color-accent: ${cssColor(agency.colorAccent, "#4E827A")};
       --color-cream: #F1ECE0;
       --color-ink: #1F2937;
+      --overlay-ink: ${primaryIsLight ? "#1F2937" : "#ffffff"};
+      --overlay-ink-shadow: ${primaryIsLight ? "none" : "0 1px 3px rgba(0,0,0,.45)"};
     }
     * { box-sizing: border-box; }
     /* Fill the screen on iOS Safari when its toolbar collapses: html carries the
@@ -859,27 +889,49 @@ export function renderAgencySite(
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
     #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Floats over the top of the map: a navy gradient that fades down into
+       transparent, so the city chips read as floating on the map and the filter
+       row reads as a translucent navbar. No search box here. */
     .map-overlay {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
-      background: rgba(255,255,255,0.97); backdrop-filter: blur(6px);
-      border-top: 1px solid var(--color-accent); border-radius: 18px 18px 0 0;
-      box-shadow: 0 -8px 30px rgba(0,0,0,.18);
-      padding: 0.7rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom,0px));
-      display: flex; flex-direction: column; gap: 0.6rem;
+      position: absolute; left: 0; right: 0; top: 0; z-index: 500;
+      /* Tint from the agency's chosen primary colour, fading down to transparent. */
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
+        transparent 100%);
+      padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
+      display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
-    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a8676; margin: 0 0 .35rem .15rem; }
-    .map-overlay-cities { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
+    /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
+    .map-overlay > * { pointer-events: auto; }
+    .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+    /* Viewport buttons: back-to-top / fit-to-screen / jump-below. */
+    .map-vp { display: flex; gap: 0.4rem; flex: 0 0 auto; }
+    .map-vp button {
+      width: 2.3rem; height: 2.3rem; display: flex; align-items: center; justify-content: center;
+      border: 1px solid color-mix(in srgb, var(--overlay-ink) 45%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 55%, transparent);
+      border-radius: 11px; cursor: pointer; color: var(--overlay-ink); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+      box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: background .15s, transform .1s;
+    }
+    .map-vp button:hover { background: var(--color-primary); transform: translateY(-1px); }
+    .map-vp button:active { transform: translateY(0); }
+    .map-vp svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
-    .map-city { flex: 0 0 auto; border: 1.5px solid var(--color-accent); background: #fff; border-radius: 999px; padding: .42rem .85rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; }
-    .map-city:hover { border-color: var(--color-primary); }
-    .map-city.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
-    /* hero-form relocated into overlay: compact + popovers open UPWARD */
+    .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .map-city:hover { border-color: #fff; }
+    .map-city.active { background: var(--color-primary); color: var(--overlay-ink); border-color: #fff; }
+    /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
-    .map-overlay .chips { margin: 0; gap: 1.1rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .1rem; }
-    .map-overlay .chips::-webkit-scrollbar { display: none; }
-    .map-overlay .pop { top: auto; bottom: calc(100% + 14px); }
-    .map-overlay .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
-    .map-note { margin: 0; color: #6b6557; font-size: 0.78rem; }
+    .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
+    /* overflow stays visible so the filter popovers can drop down over the map
+       (any overflow value would force overflow-y:auto and clip them); the 5 short
+       chips wrap to a second line on very narrow screens instead of scrolling. */
+    .map-overlay .chips { margin: 0; gap: 1.1rem 1.4rem; overflow: visible; flex-wrap: wrap; padding: .15rem .15rem .1rem; }
+    .map-overlay .chip { color: var(--overlay-ink); text-shadow: var(--overlay-ink-shadow); }
+    .map-overlay .chip .caret { stroke: var(--overlay-ink); }
+    /* Overlay sits at the top → popovers open downward (the default). */
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
@@ -1025,12 +1077,23 @@ export function renderAgencySite(
       <section id="kluche-map" style="display:none">
         <div id="kluche-map-canvas"></div>
         <div class="map-overlay">
-          <div class="map-overlay-cities-wrap">
-            <p class="map-overlay-label" data-i18n="map.jumpToCity">${T_("map.jumpToCity")}</p>
-            <div class="map-overlay-cities" id="map-overlay-cities"></div>
+          <div class="map-overlay-top">
+            <div class="map-overlay-cities-wrap">
+              <div class="map-overlay-cities" id="map-overlay-cities"></div>
+            </div>
+            <div class="map-vp">
+              <button type="button" id="vp-top" aria-label="${attr(T_("map.toTop"))}" title="${attr(T_("map.toTop"))}">
+                <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button type="button" id="vp-fit" aria-label="${attr(T_("map.fitScreen"))}" title="${attr(T_("map.fitScreen"))}">
+                <svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
+              </button>
+              <button type="button" id="vp-below" aria-label="${attr(T_("map.below"))}" title="${attr(T_("map.below"))}">
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
           </div>
           <div id="map-overlay-filters"></div>
-          <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
         </div>
       </section>
       <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
@@ -1634,6 +1697,26 @@ export function renderAgencySite(
           if (citiesBox) citiesBox.appendChild(b);
         });
 
+        // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
+        var mapEl = document.getElementById("kluche-map");
+        var vpTop = document.getElementById("vp-top");
+        var vpFit = document.getElementById("vp-fit");
+        var vpBelow = document.getElementById("vp-below");
+        function scrollToY(y) {
+          try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
+        }
+        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
+        if (vpFit && mapEl) vpFit.addEventListener("click", function () {
+          // Align the map's top with the viewport top so it fills the screen.
+          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
+          scrollToY(y);
+        });
+        if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
+          // Scroll just past the bottom of the map to reveal what's below it.
+          var r = mapEl.getBoundingClientRect();
+          scrollToY(r.bottom + window.pageYOffset);
+        });
+
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
         // the visitor's other active filters out of the way — same convention the
         // hero uses. encodeURIComponent keeps the pipe + spaces safe.
@@ -1665,25 +1748,55 @@ export function renderAgencySite(
           if (areas.length) { center = [areas[0].lat, areas[0].lng]; zoom = 13; }
           else if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
 
-          leafletMap = L.map("kluche-map-canvas", { scrollWheelZoom: true }).setView(center, zoom);
+          // Keep the view inside Montenegro: panning is clamped to the national
+          // bounding box (viscosity 1 = hard wall) and you can't zoom out past it.
+          var MNE_BOUNDS = [[41.6, 18.2], [43.7, 20.5]];
+          leafletMap = L.map("kluche-map-canvas", {
+            scrollWheelZoom: true,
+            maxBounds: MNE_BOUNDS,
+            maxBoundsViscosity: 1.0,
+            minZoom: 8
+          }).setView(center, zoom);
           L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
           }).addTo(leafletMap);
+          // Overlay covers the top-left → move the zoom control out from under it.
+          if (leafletMap.zoomControl) { try { leafletMap.zoomControl.setPosition("bottomleft"); } catch (e) {} }
 
           var bounds = [];
 
-          // Area circles + permanent label (name · count). Click → ?loc= filter.
+          // Area regions. The outline sits quiet by default; hovering reveals the
+          // name (tooltip) and emphasises the shape (darker fill/stroke). Clicking
+          // zooms the map to fit that region's bounds.
+          // A hand-drawn polygon (a.polygon) is shaded as its true outline; areas
+          // with no polygon yet fall back to an abstract circle at the centre.
+          var regionStyle = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.22 };
+          var regionHover = { color: "#1F3A5C", weight: 3.5, fillColor: "#1F3A5C", fillOpacity: 0.4 };
           areas.forEach(function (a) {
-            var circle = L.circle([a.lat, a.lng], {
-              radius: 520, color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.12
-            }).addTo(leafletMap);
             // Build the label as a DOM node (textContent escapes) rather than a raw
             // string — bindTooltip renders strings via innerHTML.
             var lbl = document.createElement("span");
             lbl.textContent = String(a.name) + " · " + String(a.count);
-            circle.bindTooltip(lbl, { permanent: true, direction: "center", className: "area-label" });
-            circle.on("click", function () { window.location.href = locHref(a.loc); });
-            bounds.push([a.lat, a.lng]);
+            var region;
+            if (a.polygon) {
+              region = L.geoJSON({ type: "Feature", geometry: a.polygon, properties: {} }, { style: regionStyle }).addTo(leafletMap);
+              try {
+                var b = region.getBounds();
+                bounds.push([b.getNorth(), b.getEast()]);
+                bounds.push([b.getSouth(), b.getWest()]);
+              } catch (e) { bounds.push([a.lat, a.lng]); }
+            } else {
+              region = L.circle([a.lat, a.lng], Object.assign({ radius: 520 }, regionStyle)).addTo(leafletMap);
+              bounds.push([a.lat, a.lng]);
+            }
+            // Tooltip shows on hover (sticky → follows the cursor), not permanently.
+            region.bindTooltip(lbl, { sticky: true, direction: "top", className: "area-label" });
+            region.on("mouseover", function () { region.setStyle(regionHover); });
+            region.on("mouseout", function () { region.setStyle(regionStyle); });
+            // Click → zoom to fit this region perfectly.
+            region.on("click", function () {
+              try { leafletMap.fitBounds(region.getBounds(), { padding: [30, 30] }); } catch (e) {}
+            });
           });
 
           // Price pins. Pin click → open the listing modal (reused opener).

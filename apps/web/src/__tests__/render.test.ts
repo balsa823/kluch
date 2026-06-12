@@ -802,20 +802,47 @@ describe("map overlay city shortcuts", () => {
     expect(Math.abs(pg.lat - 42.44)).toBeLessThan(0.01);
   });
 
-  test("excludes listings with an unknown city", () => {
-    const withUnknown: Property[] = [
-      ...cityListings,
-      { ...listings[0], id: "c3", city: "Atlantis" } as Property,
-    ];
-    const html = renderAgencySite(mapAgency, withUnknown);
+  test("is a fixed Podgorica+Budva shortlist, independent of which cities have listings", () => {
+    // Listings only in Kotor — shortcuts stay the curated [Podgorica, Budva].
+    const kotorOnly: Property[] = [{ ...listings[0], id: "k1", city: "Kotor" } as Property];
+    const html = renderAgencySite(mapAgency, kotorOnly);
     const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
     const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
-    expect(data.find((d: { name: string }) => d.name === "Atlantis")).toBeUndefined();
+    expect(data.map((d: { name: string }) => d.name)).toEqual(["Podgorica", "Budva"]);
   });
 
   test("emits no kluche-map-cities blob when mapEnabled is false", () => {
     const html = renderAgencySite(agency, cityListings);
     expect(html).not.toContain("kluche-map-cities");
+  });
+});
+
+// --- Map region polygon assignment -----------------------------------------
+
+describe("map area polygon assignment", () => {
+  const areasOf = (html: string) => {
+    const m = html.match(/<script type="application\/json" id="kluche-map-areas">([\s\S]*?)<\/script>/);
+    return JSON.parse(m![1].replace(/\\u003c/g, "<")) as Array<{ name: string; polygon?: { type: string } }>;
+  };
+
+  test("area WITH a drawn polygon → that polygon", () => {
+    const ls = [{ ...listings[0], id: "p1", city: "Podgorica", area: "Stari Aerodrom" } as Property];
+    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Stari Aerodrom");
+    expect(a?.polygon?.type).toBe("Polygon");
+  });
+
+  test("area WITHOUT a drawn polygon → no polygon (circle), NOT the city shape", () => {
+    // Zabjelo has centre coords but no hand-drawn polygon.
+    const ls = [{ ...listings[0], id: "p2", city: "Podgorica", area: "Zabjelo" } as Property];
+    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Zabjelo");
+    expect(a).toBeTruthy();
+    expect(a?.polygon).toBeUndefined();
+  });
+
+  test("city-grouped listing (no area) → the city's combined MultiPolygon", () => {
+    const ls = [{ ...listings[0], id: "p3", city: "Podgorica", area: null } as Property];
+    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Podgorica");
+    expect(a?.polygon?.type).toBe("MultiPolygon");
   });
 });
 
@@ -829,9 +856,11 @@ describe("map overlay markup", () => {
     expect(html).toContain('id="map-overlay-filters"');
   });
 
-  test("the map-note (map.approx) text is still present in the overlay", () => {
+  test("renders the three viewport buttons (top / fit / below)", () => {
     const html = renderAgencySite(mapAgency, listings);
-    expect(html).toContain('data-i18n="map.approx"');
+    expect(html).toContain('id="vp-top"');
+    expect(html).toContain('id="vp-fit"');
+    expect(html).toContain('id="vp-below"');
   });
 });
 
