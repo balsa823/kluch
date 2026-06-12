@@ -904,10 +904,10 @@ export function renderAgencySite(
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
-    /* When the map's top scrolls off-screen, the navbar pins to the viewport
-       bottom instead (gradient + popovers flip to match). */
+    /* When the map's top scrolls off-screen, the navbar moves to the bottom of
+       the MAP (scrolls away with it, never floats over the footer). */
     .map-overlay.at-bottom {
-      position: fixed; top: auto; bottom: 0;
+      position: absolute; top: auto; bottom: 0;
       background: linear-gradient(to top,
         color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
         color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
@@ -1750,13 +1750,11 @@ export function renderAgencySite(
         function positionOverlay() {
           if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
           var r = mapEl.getBoundingClientRect();
-          var vh = window.innerHeight;
-          // Pin to the viewport bottom only while the map's top is off-screen AND
-          // the map still covers the lower part of the screen — so the navbar
-          // never floats over the footer/contact once you've scrolled past the map.
-          var topHidden = r.top < -2;
-          var coversBottom = r.bottom >= vh * 0.66;
-          if (topHidden && coversBottom) overlayEl.classList.add("at-bottom");
+          // When the map's top scrolls off-screen, move the navbar to the bottom
+          // of the map. It's absolutely positioned within the map, so it simply
+          // rides the map's bottom edge and scrolls away with it (no viewport
+          // pinning → never floats over the footer).
+          if (r.top < -2) overlayEl.classList.add("at-bottom");
           else overlayEl.classList.remove("at-bottom");
         }
         window.addEventListener("scroll", positionOverlay, { passive: true });
