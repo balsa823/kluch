@@ -373,7 +373,9 @@ export function renderAgencySite(
       if (!centre) continue; // unknown city → not grouped
       const name = grouped ? (area as string) : l.city;
       const loc = grouped ? `${l.city}|${area}` : l.city;
-      const polygon = ap || cityPolygon(l.city) || undefined;
+      // Area-grouped → its own polygon or nothing (circle); never the city shape.
+      // City-grouped (no/unknown area) → the city's combined MultiPolygon.
+      const polygon = (grouped ? ap : cityPolygon(l.city)) || undefined;
       const key = `${centre.lat},${centre.lng}|${name}`;
       const existing = byKey.get(key);
       if (existing) existing.count += 1;
