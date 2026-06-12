@@ -1283,9 +1283,18 @@ export function renderAgencySite(
       document.addEventListener("keydown", function (e) { if (e.key === "Escape" && modal.style.display !== "none") closeModal(); });
 
       // Rewrite a full blob URL to our thumbnail endpoint (mirrors server thumbSrc).
+      // String ops, not a regex: this code lives in a template literal, where regex
+      // backslash-escapes would be stripped and break the script.
       function thumb(u) {
-        var m = /^https:\/\/[^/]+\.blob\.core\.windows\.net\/[^/]+\/(.+)$/.exec(u || "");
-        return m ? "/t/" + m[1] + "?w=480" : u;
+        u = u || "";
+        if (u.indexOf("https://") !== 0) return u;
+        var marker = ".blob.core.windows.net/";
+        var i = u.indexOf(marker);
+        if (i < 0) return u;
+        var after = u.slice(i + marker.length); // "<container>/<path...>"
+        var slash = after.indexOf("/");
+        if (slash < 0) return u;
+        return "/t/" + after.slice(slash + 1) + "?w=480";
       }
       document.querySelectorAll(".card[data-id]").forEach(function (card) {
         card.addEventListener("click", function (e) {
