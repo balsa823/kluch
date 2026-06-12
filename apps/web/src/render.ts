@@ -904,6 +904,18 @@ export function renderAgencySite(
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
+    /* When the map's top scrolls off-screen, the navbar pins to the viewport
+       bottom instead (gradient + popovers flip to match). */
+    .map-overlay.at-bottom {
+      position: fixed; top: auto; bottom: 0;
+      background: linear-gradient(to top,
+        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
+        transparent 100%);
+      padding: 1.8rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
+    }
+    .map-overlay.at-bottom .pop { top: auto; bottom: calc(100% + 14px); }
+    .map-overlay.at-bottom .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
     .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
@@ -1730,8 +1742,21 @@ export function renderAgencySite(
           var y = mapEl.getBoundingClientRect().top + window.pageYOffset - navHeight();
           scrollToY(y < 0 ? 0 : y);
         }
-        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(sizeMap, 150); });
-        window.addEventListener("orientationchange", function () { setTimeout(sizeMap, 250); });
+        // Keep the overlay navbar on screen: anchored at the map top normally,
+        // but pinned to the viewport bottom once the map's top scrolls off-screen
+        // (and the map is still substantially in view).
+        var overlayEl = mapEl ? mapEl.querySelector(".map-overlay") : null;
+        function positionOverlay() {
+          if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
+          var r = mapEl.getBoundingClientRect();
+          var topHidden = r.top < navHeight();
+          var mapInView = r.bottom > 140 && r.top < window.innerHeight;
+          if (topHidden && mapInView) overlayEl.classList.add("at-bottom");
+          else overlayEl.classList.remove("at-bottom");
+        }
+        window.addEventListener("scroll", positionOverlay, { passive: true });
+        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(function () { sizeMap(); positionOverlay(); }, 150); });
+        window.addEventListener("orientationchange", function () { setTimeout(function () { sizeMap(); positionOverlay(); }, 250); });
         if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
         if (vpFit) vpFit.addEventListener("click", fitMapToScreen);
         if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
@@ -1847,6 +1872,7 @@ export function renderAgencySite(
           initMap();
           // Size the canvas to the viewport, then let Leaflet recalc.
           sizeMap();
+          positionOverlay();
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
           // Relocate the live hero search form into the overlay (move, don't clone).
           if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
