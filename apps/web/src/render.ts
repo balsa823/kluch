@@ -888,7 +888,9 @@ export function renderAgencySite(
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
-    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Fallback height before JS sizes it to the exact viewport; JS sets the
+       precise height (innerHeight − nav) and keeps it updated on resize. */
+    #kluche-map-canvas { height: calc(100dvh - 64px); min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
     /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
@@ -1704,18 +1706,34 @@ export function renderAgencySite(
 
         // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
         var mapEl = document.getElementById("kluche-map");
+        var mapCanvasEl = document.getElementById("kluche-map-canvas");
+        var siteNav = document.querySelector("nav.site");
         var vpTop = document.getElementById("vp-top");
         var vpFit = document.getElementById("vp-fit");
         var vpBelow = document.getElementById("vp-below");
+        function navHeight() { return siteNav ? siteNav.offsetHeight : 0; }
+        // Size the map canvas to exactly fill the viewport below the sticky nav,
+        // so it shows as much map as possible on any phone/desktop screen.
+        function sizeMap() {
+          if (!mapCanvasEl) return;
+          var h = Math.max(320, window.innerHeight - navHeight());
+          mapCanvasEl.style.height = h + "px";
+          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+        }
         function scrollToY(y) {
           try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
         }
+        // Snap the map so its top sits just under the nav → it fills the screen.
+        function fitMapToScreen() {
+          if (!mapEl) return;
+          sizeMap();
+          var y = mapEl.getBoundingClientRect().top + window.pageYOffset - navHeight();
+          scrollToY(y < 0 ? 0 : y);
+        }
+        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(sizeMap, 150); });
+        window.addEventListener("orientationchange", function () { setTimeout(sizeMap, 250); });
         if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
-        if (vpFit && mapEl) vpFit.addEventListener("click", function () {
-          // Align the map's top with the viewport top so it fills the screen.
-          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
-          scrollToY(y);
-        });
+        if (vpFit) vpFit.addEventListener("click", fitMapToScreen);
         if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
           // Scroll just past the bottom of the map to reveal what's below it.
           var r = mapEl.getBoundingClientRect();
@@ -1827,7 +1845,8 @@ export function renderAgencySite(
           grid.style.display = "none";
           mapSection.style.display = "";
           initMap();
-          // Leaflet needs a size recalc once its container becomes visible.
+          // Size the canvas to the viewport, then let Leaflet recalc.
+          sizeMap();
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
           // Relocate the live hero search form into the overlay (move, don't clone).
           if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
@@ -1844,7 +1863,8 @@ export function renderAgencySite(
             heroHost.appendChild(heroForm);
           }
         }
-        mapBtn.addEventListener("click", showMap);
+        // Clicking the Map tab also snaps the map to fill the screen.
+        mapBtn.addEventListener("click", function () { showMap(); fitMapToScreen(); });
         listBtn.addEventListener("click", showList);
         // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
         showMap();
