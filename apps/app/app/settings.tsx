@@ -37,7 +37,6 @@ export default function Settings() {
   const [heroHeadline, setHeroHeadline] = useState(agency?.heroHeadline ?? "");
   const [heroImageUrl, setHeroImageUrl] = useState(agency?.heroImageUrl ?? "");
   const [faviconUrl, setFaviconUrl] = useState(agency?.faviconUrl ?? "");
-  const [mapEnabled, setMapEnabled] = useState(agency?.mapEnabled ?? false);
 
   const [phone, setPhone] = useState(agency?.phone ?? "");
   const [whatsapp, setWhatsapp] = useState(agency?.whatsapp ?? "");
@@ -151,7 +150,6 @@ export default function Settings() {
       mapUrl: nullable(mapUrl),
       businessHours,
       observeHolidays,
-      mapEnabled,
       customClosures: closures,
       socials,
       aboutBlurb: nullable(aboutBlurb),
@@ -203,11 +201,6 @@ export default function Settings() {
             placeholder={t("settings.faviconUrlPh")}
             autoCapitalize="none"
           />
-          <View style={styles.switchRow}>
-            <Switch value={mapEnabled} onValueChange={setMapEnabled} />
-            <Text style={styles.switchLabel}>{t("settings.mapEnabled")}</Text>
-          </View>
-          <Text style={styles.hint}>{t("settings.mapEnabledHelp")}</Text>
         </View>
 
         {/* Contact */}

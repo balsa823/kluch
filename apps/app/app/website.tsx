@@ -8,9 +8,11 @@ import {
   Image,
   Platform,
   Linking,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ConsoleLayout } from "../components/ConsoleLayout";
+import { MapPreview } from "../components/MapPreview";
 import { TextField } from "../components/ui";
 import { colors, space, radius } from "../theme/tokens";
 import { useAuth } from "../lib/auth";
@@ -40,6 +42,7 @@ export default function Website() {
   const [accent, setAccent] = useState(agency?.colorAccent ?? "#4E827A");
   const [tagline, setTagline] = useState(agency?.tagline ?? "");
   const [logoUrl, setLogoUrl] = useState<string | null>(agency?.logoUrl ?? null);
+  const [mapEnabled, setMapEnabled] = useState(agency?.mapEnabled ?? false);
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -97,6 +100,7 @@ export default function Website() {
         colorPrimary: primary,
         colorAccent: accent,
         tagline: tagline.trim() === "" ? null : tagline.trim(),
+        mapEnabled,
       });
       setAgency(updated);
       setSaveMsg(t("website.saved"));
@@ -208,6 +212,18 @@ export default function Website() {
             onChangeText={setTagline}
             placeholder={t("website.taglinePlaceholder")}
           />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{t("website.mapView")}</Text>
+          <View style={styles.switchRow}>
+            <Switch value={mapEnabled} onValueChange={setMapEnabled} />
+            <Text style={styles.switchLabel}>{t("website.mapView")}</Text>
+          </View>
+          <Text style={styles.caption}>{t("website.mapViewHelp")}</Text>
+          <View style={!mapEnabled ? styles.mapDimmed : undefined}>
+            <MapPreview token={authToken} agency={agency} />
+          </View>
         </View>
 
         {Platform.OS === "web" ? (
@@ -344,6 +360,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: colors.ink,
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  switchLabel: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 14,
+  },
+  caption: {
+    color: colors.muted,
+    fontSize: 14,
+  },
+  mapDimmed: {
+    opacity: 0.5,
   },
   preview: {
     borderRadius: radius.md,
