@@ -720,11 +720,19 @@ export function renderAgencySite(
     .card[role="button"]:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
 
     /* Modal */
-    .modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal {
+      position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+      /* Pad by the iOS safe-area so the centered card (and its ✕) never tuck under
+         the status/URL bar. */
+      padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
+    }
     .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
     .modal-card {
       position: relative; z-index: 1; background: #fff; border-radius: 16px;
-      width: 100%; max-width: 860px; max-height: 92vh; overflow-y: auto;
+      width: 100%; max-width: 860px; overflow-y: auto;
+      /* dvh = the *dynamic* viewport (Safari toolbar-aware), so the card fits the
+         visible area instead of being clipped at the top. */
+      max-height: 92vh; max-height: 88dvh;
       display: grid; grid-template-columns: 1.1fr 1fr; gap: 0;
       box-shadow: 0 20px 60px rgba(0,0,0,.4);
     }
@@ -736,7 +744,7 @@ export function renderAgencySite(
     }
     .modal-gallery { position: relative; background: #000; min-height: 240px; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
     @media (max-width: 720px) { .modal-gallery { border-radius: 16px 16px 0 0; } }
-    .gal-img { width: 100%; height: 100%; max-height: 92vh; object-fit: cover; display: block; }
+    .gal-img { width: 100%; height: 100%; max-height: 92vh; max-height: 88dvh; object-fit: cover; display: block; }
     .gal-nav {
       position: absolute; top: 50%; transform: translateY(-50%);
       background: rgba(0,0,0,0.5); color: #fff; border: 0; width: 2.4rem; height: 2.4rem;

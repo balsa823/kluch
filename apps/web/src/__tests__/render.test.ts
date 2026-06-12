@@ -692,3 +692,9 @@ test("the inline <script> is syntactically valid JS (no template-literal escape 
   // new Function parses (doesn't run) the body — throws on any syntax error.
   expect(() => new Function(body)).not.toThrow();
 });
+
+test("modal sizes with dvh + safe-area padding so the ✕ isn't clipped on iOS Safari", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).toContain("88dvh");
+  expect(html).toMatch(/\.modal \{[^}]*env\(safe-area-inset-top/s);
+});
