@@ -1,5 +1,5 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
-import { MNE_LOCATIONS, cityCoords, areaCoords } from "@kluche/locations";
+import { MNE_LOCATIONS, cityCoords, areaCoords, cityPolygon, areaPolygon, type PolyGeometry } from "@kluche/locations";
 import { DICT, tr, type Lang } from "./i18n.js";
 
 /**
@@ -321,7 +321,9 @@ export function renderAgencySite(
   // Distinct area/city centres present among this page's listings. Each centre
   // gets a name (the area when it resolved to area coords, else the city), the
   // coord, a count, and the `?loc=` value the chip/circle navigates to.
-  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string };
+  // `polygon` is the hand-drawn outline when one exists for this area/city;
+  // the client draws it instead of a circle (lat/lng stay as the label anchor).
+  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
   const mapAreas: MapArea[] = [];
   // Distinct known cities present among this page's listings, in first-seen
   // order (first city is the default-active shortcut later). Each gets a name,
@@ -348,10 +350,11 @@ export function renderAgencySite(
       if (!centre) continue; // unknown city → not grouped
       const name = ac && area ? area : l.city;
       const loc = ac && area ? `${l.city}|${area}` : l.city;
+      const polygon = (area && areaPolygon(l.city, area)) || cityPolygon(l.city) || undefined;
       const key = `${centre.lat},${centre.lng}|${name}`;
       const existing = byKey.get(key);
       if (existing) existing.count += 1;
-      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc });
+      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc, polygon });
     }
     mapAreas.push(...byKey.values());
   }
@@ -1665,25 +1668,53 @@ export function renderAgencySite(
           if (areas.length) { center = [areas[0].lat, areas[0].lng]; zoom = 13; }
           else if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
 
-          leafletMap = L.map("kluche-map-canvas", { scrollWheelZoom: true }).setView(center, zoom);
+          // Keep the view inside Montenegro: panning is clamped to the national
+          // bounding box (viscosity 1 = hard wall) and you can't zoom out past it.
+          var MNE_BOUNDS = [[41.6, 18.2], [43.7, 20.5]];
+          leafletMap = L.map("kluche-map-canvas", {
+            scrollWheelZoom: true,
+            maxBounds: MNE_BOUNDS,
+            maxBoundsViscosity: 1.0,
+            minZoom: 8
+          }).setView(center, zoom);
           L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
           }).addTo(leafletMap);
 
           var bounds = [];
 
-          // Area circles + permanent label (name · count). Click → ?loc= filter.
+          // Area regions. The outline sits quiet by default; hovering reveals the
+          // name (tooltip) and emphasises the shape (darker fill/stroke). Clicking
+          // zooms the map to fit that region's bounds.
+          // A hand-drawn polygon (a.polygon) is shaded as its true outline; areas
+          // with no polygon yet fall back to an abstract circle at the centre.
+          var regionStyle = { color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.1 };
+          var regionHover = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.28 };
           areas.forEach(function (a) {
-            var circle = L.circle([a.lat, a.lng], {
-              radius: 520, color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.12
-            }).addTo(leafletMap);
             // Build the label as a DOM node (textContent escapes) rather than a raw
             // string — bindTooltip renders strings via innerHTML.
             var lbl = document.createElement("span");
             lbl.textContent = String(a.name) + " · " + String(a.count);
-            circle.bindTooltip(lbl, { permanent: true, direction: "center", className: "area-label" });
-            circle.on("click", function () { window.location.href = locHref(a.loc); });
-            bounds.push([a.lat, a.lng]);
+            var region;
+            if (a.polygon) {
+              region = L.geoJSON({ type: "Feature", geometry: a.polygon, properties: {} }, { style: regionStyle }).addTo(leafletMap);
+              try {
+                var b = region.getBounds();
+                bounds.push([b.getNorth(), b.getEast()]);
+                bounds.push([b.getSouth(), b.getWest()]);
+              } catch (e) { bounds.push([a.lat, a.lng]); }
+            } else {
+              region = L.circle([a.lat, a.lng], Object.assign({ radius: 520 }, regionStyle)).addTo(leafletMap);
+              bounds.push([a.lat, a.lng]);
+            }
+            // Tooltip shows on hover (sticky → follows the cursor), not permanently.
+            region.bindTooltip(lbl, { sticky: true, direction: "top", className: "area-label" });
+            region.on("mouseover", function () { region.setStyle(regionHover); });
+            region.on("mouseout", function () { region.setStyle(regionStyle); });
+            // Click → zoom to fit this region perfectly.
+            region.on("click", function () {
+              try { leafletMap.fitBounds(region.getBounds(), { padding: [30, 30] }); } catch (e) {}
+            });
           });
 
           // Price pins. Pin click → open the listing modal (reused opener).

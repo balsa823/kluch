@@ -1,3 +1,5 @@
+export { MNE_POLYGONS, cityPolygon, areaPolygon, type PolyGeometry } from "./polygons.js";
+
 export type MneCity = { city: string; areas: string[] };
 
 /** Fixed Montenegro cities + curated areas. Single source of truth for both the
