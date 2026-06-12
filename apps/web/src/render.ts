@@ -855,9 +855,29 @@ export function renderAgencySite(
       font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
     }
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
-    #kluche-map { margin: 0 0 1rem; }
-    #kluche-map-canvas { height: 70vh; min-height: 380px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
-    .map-note { margin: 0.6rem 0 0; color: #6b6557; font-size: 0.82rem; }
+    #kluche-map { position: relative; margin: 0 0 1rem; }
+    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    .map-overlay {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
+      background: rgba(255,255,255,0.97); backdrop-filter: blur(6px);
+      border-top: 1px solid var(--color-accent); border-radius: 18px 18px 0 0;
+      box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+      padding: 0.7rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom,0px));
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a8676; margin: 0 0 .35rem .15rem; }
+    .map-overlay-cities { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
+    .map-overlay-cities::-webkit-scrollbar { display: none; }
+    .map-city { flex: 0 0 auto; border: 1.5px solid var(--color-accent); background: #fff; border-radius: 999px; padding: .42rem .85rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; }
+    .map-city:hover { border-color: var(--color-primary); }
+    .map-city.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+    /* hero-form relocated into overlay: compact + popovers open UPWARD */
+    .map-overlay #hero-form { margin: 0; }
+    .map-overlay .chips { margin: 0; gap: 1.1rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .1rem; }
+    .map-overlay .chips::-webkit-scrollbar { display: none; }
+    .map-overlay .pop { top: auto; bottom: calc(100% + 14px); }
+    .map-overlay .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
+    .map-note { margin: 0; color: #6b6557; font-size: 0.78rem; }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
@@ -1002,7 +1022,14 @@ export function renderAgencySite(
       </div>
       <section id="kluche-map" style="display:none">
         <div id="kluche-map-canvas"></div>
-        <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        <div class="map-overlay">
+          <div class="map-overlay-cities-wrap">
+            <p class="map-overlay-label" data-i18n="map.jumpToCity">${T_("map.jumpToCity")}</p>
+            <div class="map-overlay-cities" id="map-overlay-cities"></div>
+          </div>
+          <div id="map-overlay-filters"></div>
+          <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        </div>
       </section>
       <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
       <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`

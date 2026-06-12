@@ -818,3 +818,19 @@ describe("map overlay city shortcuts", () => {
     expect(html).not.toContain("kluche-map-cities");
   });
 });
+
+// --- Map overlay markup -----------------------------------------------------
+
+describe("map overlay markup", () => {
+  test("mapEnabled renders the overlay container, cities box and filters slot", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    expect(html).toContain('class="map-overlay"');
+    expect(html).toContain('id="map-overlay-cities"');
+    expect(html).toContain('id="map-overlay-filters"');
+  });
+
+  test("the map-note (map.approx) text is still present in the overlay", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    expect(html).toContain('data-i18n="map.approx"');
+  });
+});
