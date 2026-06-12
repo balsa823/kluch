@@ -77,6 +77,7 @@ export type Agency = {
   notifyEmail: string | null;
   defaultLang: string | null;
   observeHolidays: boolean;
+  mapEnabled?: boolean;
   businessHours: BusinessHours | null;
   customClosures: CustomClosure[] | null;
   socials: Socials | null;
@@ -272,6 +273,7 @@ export type SettingsPatch = Partial<{
   notifyEmail: string | null;
   defaultLang: string | null;
   observeHolidays: boolean;
+  mapEnabled: boolean;
   businessHours: BusinessHours | null;
   customClosures: CustomClosure[] | null;
   socials: Socials | null;

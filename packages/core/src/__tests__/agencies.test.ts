@@ -123,6 +123,13 @@ test("updateAgencyConfig sets new settings fields", async () => {
   expect(updated.heroImageUrl).toBe("/uploads/hero.jpg");
 });
 
+test("updateAgencyConfig mapEnabled defaults false and persists true", async () => {
+  const a = await createAgency(db, { name: "Map Co" });
+  expect(a.mapEnabled).toBe(false);
+  const updated = await updateAgencyConfig(db, a.id, { mapEnabled: true });
+  expect(updated.mapEnabled).toBe(true);
+});
+
 test("updateAgencyConfig rejects malformed business hours", async () => {
   const a = await createAgency(db, { name: "Adriatic Homes" });
   await expect(

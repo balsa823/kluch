@@ -163,6 +163,9 @@ export const dict: Record<Lang, Record<string, string>> = {
     "settings.closeTime": "Close",
     "settings.timePh": "09:00",
     "settings.observeHolidays": "Observe Montenegro national holidays",
+    "settings.mapEnabled": "Map view",
+    "settings.mapEnabledHelp":
+      "Show an interactive map of your listings on your site.",
     "settings.closures": "Custom closures",
     "settings.closureFrom": "From",
     "settings.closureTo": "To (optional)",
@@ -361,6 +364,9 @@ export const dict: Record<Lang, Record<string, string>> = {
     "settings.closeTime": "Zatvaranje",
     "settings.timePh": "09:00",
     "settings.observeHolidays": "Poštuj državne praznike Crne Gore",
+    "settings.mapEnabled": "Prikaz na mapi",
+    "settings.mapEnabledHelp":
+      "Prikaži interaktivnu mapu vaših oglasa na vašem sajtu.",
     "settings.closures": "Posebna neradna vremena",
     "settings.closureFrom": "Od",
     "settings.closureTo": "Do (opciono)",

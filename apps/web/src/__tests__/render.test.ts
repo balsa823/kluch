@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Agency, Property } from "@kluche/core";
-import { renderAgencySite, thumbSrc } from "../render.js";
+import { renderAgencySite, thumbSrc, listingPin } from "../render.js";
 
 const agency: Agency = {
   id: "a1",
@@ -24,6 +24,7 @@ const agency: Agency = {
   notifyEmail: null,
   defaultLang: null,
   observeHolidays: false,
+  mapEnabled: false,
   businessHours: null,
   customClosures: null,
   socials: null,
@@ -683,6 +684,67 @@ test("card has no arrow buttons when a listing has a single photo", () => {
   expect(html).not.toContain('<button class="card-arrow card-arrow-prev"');
 });
 
+// --- Map view (gated by mapEnabled) ----------------------------------------
+
+const mapAgency: Agency = { ...agency, mapEnabled: true };
+
+test("mapEnabled:false renders no map view, toggle or Leaflet includes", () => {
+  const html = renderAgencySite(agency, listings);
+  expect(html).not.toContain('id="kluche-map"');
+  expect(html).not.toContain('id="kluche-map-areas"');
+  expect(html).not.toContain('data-i18n="view.map"');
+  expect(html).not.toContain("leaflet@1.9.4");
+});
+
+test("mapEnabled:true renders the List/Map toggle, Leaflet includes and map containers", () => {
+  const html = renderAgencySite(mapAgency, listings);
+  expect(html).toContain('data-i18n="view.list"');
+  expect(html).toContain('data-i18n="view.map"');
+  expect(html).toContain('id="kluche-map"');
+  expect(html).toContain('id="kluche-map-canvas"');
+  expect(html).toContain('id="kluche-map-areas"');
+  // Leaflet CSS + JS from unpkg
+  expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
+  expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
+  // grayscale tile filter
+  expect(html).toContain("grayscale(1)");
+});
+
+test("kluche-listings JSON carries numeric lat/lng for a known city and null for an unknown one", () => {
+  // Podgorica is known (p2); "Atlantis" is unknown.
+  const unknown: Property = { ...listings[0], id: "px", city: "Atlantis" } as Property;
+  const html = renderAgencySite(mapAgency, [listings[1], unknown]);
+  const m = html.match(/<script type="application\/json" id="kluche-listings">([\s\S]*?)<\/script>/);
+  expect(m).toBeTruthy();
+  const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
+  const pg = data.find((d: { id: string }) => d.id === "p2");
+  const atl = data.find((d: { id: string }) => d.id === "px");
+  expect(typeof pg.lat).toBe("number");
+  expect(typeof pg.lng).toBe("number");
+  expect(Math.abs(pg.lat - 42.4411)).toBeLessThan(0.006);
+  expect(atl.lat).toBeNull();
+  expect(atl.lng).toBeNull();
+});
+
+test("listingPin is deterministic, within ~0.006° of the centre, and null for unknown cities", () => {
+  const a = listingPin(listings[1]); // Podgorica
+  const b = listingPin(listings[1]);
+  expect(a).not.toBeNull();
+  expect(a).toEqual(b); // same id → same coords
+  expect(Math.abs(a!.lat - 42.4411)).toBeLessThan(0.006);
+  expect(Math.abs(a!.lng - 19.2627)).toBeLessThan(0.006);
+  expect(listingPin({ ...listings[0], city: "Atlantis" } as Property)).toBeNull();
+});
+
+test("listingPin uses the area centre when the listing has known area coords", () => {
+  const blok5: Property = { ...listings[1], id: "pb", area: "Blok 5" } as unknown as Property;
+  const pin = listingPin(blok5);
+  expect(pin).not.toBeNull();
+  // Blok 5 centre is 42.4378, 19.247 — offset, not the Podgorica centre.
+  expect(Math.abs(pin!.lat - 42.4378)).toBeLessThan(0.006);
+  expect(Math.abs(pin!.lng - 19.247)).toBeLessThan(0.006);
+});
+
 test("the inline <script> is syntactically valid JS (no template-literal escape breakage)", () => {
   const html = renderAgencySite(agency, listings);
   // The executable script has a bare <script> tag; the data blobs use type="application/json".
@@ -691,6 +753,17 @@ test("the inline <script> is syntactically valid JS (no template-literal escape 
   const body = m![1];
   // new Function parses (doesn't run) the body — throws on any syntax error.
   expect(() => new Function(body)).not.toThrow();
+});
+
+test("the inline <script> stays valid JS with the map view enabled", () => {
+  const html = renderAgencySite(mapAgency, listings);
+  // Match the executable bare <script> (the map JS lives in the same block); the
+  // leaflet include is <script src=...> so it won't match the bare-tag regex.
+  const matches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+  expect(matches.length).toBeGreaterThan(0);
+  for (const m of matches) {
+    expect(() => new Function(m[1])).not.toThrow();
+  }
 });
 
 test("modal sizes with dvh + safe-area padding so the ✕ isn't clipped on iOS Safari", () => {

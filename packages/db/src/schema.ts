@@ -76,6 +76,7 @@ export const agencies = pgTable("agencies", {
   notifyEmail: text("notify_email"),
   defaultLang: text("default_lang"),
   observeHolidays: boolean("observe_holidays").notNull().default(false),
+  mapEnabled: boolean("map_enabled").notNull().default(false),
   businessHours: jsonb("business_hours"),
   customClosures: jsonb("custom_closures"),
   socials: jsonb("socials"),

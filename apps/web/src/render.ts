@@ -1,6 +1,42 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
-import { MNE_LOCATIONS } from "@kluche/locations";
+import { MNE_LOCATIONS, cityCoords, areaCoords } from "@kluche/locations";
 import { DICT, tr, type Lang } from "./i18n.js";
+
+/**
+ * FNV-1a-seeded LCG producing a deterministic [0,1) stream from a string seed.
+ * Ported from brand/map-mockup.html so a listing's approximate pin never jumps
+ * between renders (seed = listing.id).
+ */
+function seededRng(seed: string): () => number {
+  let s = 2166136261 >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    s ^= seed.charCodeAt(i);
+    s = Math.imul(s, 16777619) >>> 0;
+  }
+  return () => {
+    s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+/**
+ * The approximate map pin for a listing: the area centre when known, else the
+ * city centre, displaced by a deterministic random offset within ~460m so the
+ * exact address is never revealed. Returns null when the city is unknown.
+ * Exported for testing.
+ */
+export function listingPin(listing: Property): { lat: number; lng: number } | null {
+  const area = (listing as { area?: string | null }).area;
+  const c = (area && areaCoords(listing.city, area)) || cityCoords(listing.city);
+  if (!c) return null;
+  const r = seededRng(String(listing.id));
+  const angle = r() * 2 * Math.PI;
+  const rad = 460 * Math.sqrt(r()); // metres, uniform within the disc
+  const dLat = (rad * Math.cos(angle)) / 111320;
+  const dLng = (rad * Math.sin(angle)) / (111320 * Math.cos((c.lat * Math.PI) / 180));
+  const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+  return { lat: round6(c.lat + dLat), lng: round6(c.lng + dLng) };
+}
 
 /** Minimal HTML-escaping for text interpolated into the template. */
 function esc(value: unknown): string {
@@ -280,6 +316,30 @@ export function renderAgencySite(
     ? listings.map((l) => renderCard(l, L)).join("")
     : `<p class="empty" data-i18n="properties.empty">${T_("properties.empty")}</p>`;
 
+  // --- Map view (only when the agency has enabled it) -----------------------
+  const mapEnabled = !!agency.mapEnabled;
+  // Distinct area/city centres present among this page's listings. Each centre
+  // gets a name (the area when it resolved to area coords, else the city), the
+  // coord, a count, and the `?loc=` value the chip/circle navigates to.
+  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string };
+  const mapAreas: MapArea[] = [];
+  if (mapEnabled) {
+    const byKey = new Map<string, MapArea>();
+    for (const l of listings) {
+      const area = (l as { area?: string | null }).area;
+      const ac = area ? areaCoords(l.city, area) : null;
+      const centre = ac || cityCoords(l.city);
+      if (!centre) continue; // unknown city → not grouped
+      const name = ac && area ? area : l.city;
+      const loc = ac && area ? `${l.city}|${area}` : l.city;
+      const key = `${centre.lat},${centre.lng}|${name}`;
+      const existing = byKey.get(key);
+      if (existing) existing.count += 1;
+      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc });
+    }
+    mapAreas.push(...byKey.values());
+  }
+
   // Pager: only shown when there are more results than fit on one page.
   const pageSize = opts.pageSize ?? 0;
   const total = opts.total ?? 0;
@@ -432,7 +492,7 @@ export function renderAgencySite(
   <title>${esc(agency.name)}</title>${favicon}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />${mapEnabled ? `\n  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />` : ""}
   <style>
     :root {
       --color-primary: ${cssColor(agency.colorPrimary, "#1F3A5C")};
@@ -770,7 +830,22 @@ export function renderAgencySite(
     .modal-tour .tour-toggle { background: none; border: 0; color: var(--color-primary); cursor: pointer; font: inherit; text-decoration: underline; padding: 0.5rem 0 0; }
     .modal-tour .tour-msg { font-size: 0.85rem; margin: 0.6rem 0 0; }
     .modal-tour .tour-msg.err { color: #b3261e; }
-    .modal-tour .tour-signed { font-size: 0.85rem; color: #6b6557; margin: 0 0 0.7rem; }
+    .modal-tour .tour-signed { font-size: 0.85rem; color: #6b6557; margin: 0 0 0.7rem; }${mapEnabled ? `
+
+    /* --- Map view ------------------------------------------------------- */
+    .view-toggle { display: inline-flex; border: 1px solid var(--color-accent); border-radius: 999px; overflow: hidden; margin: 0 0 1.2rem; }
+    .view-toggle button {
+      background: #fff; color: var(--color-primary); border: 0; cursor: pointer;
+      font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
+    }
+    .view-toggle button.active { background: var(--color-primary); color: #fff; }
+    #kluche-map { margin: 0 0 1rem; }
+    #kluche-map-canvas { height: 70vh; min-height: 380px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    .map-note { margin: 0.6rem 0 0; color: #6b6557; font-size: 0.82rem; }
+    .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
+    .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
+    .leaflet-tooltip.area-label::before { display: none; }
+    .pin { background: var(--color-accent); color: #fff; font-weight: 800; font-size: .74rem; border: 2px solid #fff; border-radius: 999px; padding: .15rem .5rem; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: pointer; }` : ""}
   </style>
 </head>
 <body>
@@ -903,6 +978,19 @@ export function renderAgencySite(
   <main>
     <section id="properties">
       <h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>
+      ${
+        mapEnabled
+          ? `<div class="view-toggle" role="group" aria-label="View">
+        <button type="button" id="view-list" class="active" data-i18n="view.list">${T_("view.list")}</button>
+        <button type="button" id="view-map" data-i18n="view.map">${T_("view.map")}</button>
+      </div>
+      <section id="kluche-map" style="display:none">
+        <div id="kluche-map-canvas"></div>
+        <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
+      </section>
+      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>`
+          : ""
+      }
       <div class="grid">${cards}</div>
       ${pager}
     </section>
@@ -947,8 +1035,9 @@ export function renderAgencySite(
     </div>
   </div>
 
-  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => ({ id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)) })))}</script>
+  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => { const pin = listingPin(l); return { id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)), lat: pin ? pin.lat : null, lng: pin ? pin.lng : null }; }))}</script>
 
+  ${mapEnabled ? `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>` : ""}
   <script>
   // Translation dict + initial language are injected server-side (see i18n.ts).
   var T = ${jsonForScript(DICT)};
@@ -1458,6 +1547,109 @@ export function renderAgencySite(
             .catch(function () { go.disabled = false; msg.className = "tour-msg err"; msg.textContent = "Error"; });
         });
       }
+
+      ${mapEnabled ? `
+      // --- Map view: List/Map toggle + Leaflet (area circles + approx pins) -
+      // String ops only here (this is a template literal — regex literals would
+      // have their escapes stripped and break the whole inline script).
+      (function () {
+        var listBtn = document.getElementById("view-list");
+        var mapBtn = document.getElementById("view-map");
+        var mapSection = document.getElementById("kluche-map");
+        var grid = document.querySelector("#properties .grid");
+        if (!listBtn || !mapBtn || !mapSection || !grid) return;
+
+        // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
+        // the visitor's other active filters out of the way — same convention the
+        // hero uses. encodeURIComponent keeps the pipe + spaces safe.
+        function locHref(loc) { return "?loc=" + encodeURIComponent(loc); }
+
+        var mapInited = false;
+        var leafletMap = null;
+
+        function initMap() {
+          if (mapInited) return;
+          if (typeof L === "undefined") return; // Leaflet may be slow / blocked
+          mapInited = true;
+
+          var areas = [];
+          try {
+            var ar = document.getElementById("kluche-map-areas");
+            areas = JSON.parse(ar ? ar.textContent : "[]") || [];
+          } catch (e) { areas = []; }
+
+          // All listings with numeric coords, from the shared listings blob.
+          var pinned = [];
+          Object.keys(byId).forEach(function (k) {
+            var l = byId[k];
+            if (l && typeof l.lat === "number" && typeof l.lng === "number") pinned.push(l);
+          });
+
+          // Initial view: centre on the first area, else the first pin, else MNE.
+          var center = [42.4411, 19.2627], zoom = 12;
+          if (areas.length) { center = [areas[0].lat, areas[0].lng]; zoom = 13; }
+          else if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
+
+          leafletMap = L.map("kluche-map-canvas", { scrollWheelZoom: true }).setView(center, zoom);
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+            subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
+          }).addTo(leafletMap);
+
+          var bounds = [];
+
+          // Area circles + permanent label (name · count). Click → ?loc= filter.
+          areas.forEach(function (a) {
+            var circle = L.circle([a.lat, a.lng], {
+              radius: 520, color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.12
+            }).addTo(leafletMap);
+            // Build the label as a DOM node (textContent escapes) rather than a raw
+            // string — bindTooltip renders strings via innerHTML.
+            var lbl = document.createElement("span");
+            lbl.textContent = String(a.name) + " · " + String(a.count);
+            circle.bindTooltip(lbl, { permanent: true, direction: "center", className: "area-label" });
+            circle.on("click", function () { window.location.href = locHref(a.loc); });
+            bounds.push([a.lat, a.lng]);
+          });
+
+          // Price pins. Pin click → open the listing modal (reused opener).
+          pinned.forEach(function (l) {
+            var isRent = l.dealType === "rent";
+            var label = (l.priceMinor != null && Number(l.priceMinor) > 0)
+              ? (fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : ""))
+              : t("card.priceOnRequest");
+            var span = document.createElement("span");
+            span.className = "pin";
+            span.textContent = label;
+            var icon = L.divIcon({ className: "", html: span.outerHTML, iconSize: null });
+            var marker = L.marker([l.lat, l.lng], { icon: icon }).addTo(leafletMap);
+            marker.on("click", (function (id) { return function () { openModal(id); }; })(l.id));
+            bounds.push([l.lat, l.lng]);
+          });
+
+          if (bounds.length > 1) {
+            try { leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); } catch (e) {}
+          }
+        }
+
+        function showMap() {
+          listBtn.classList.remove("active");
+          mapBtn.classList.add("active");
+          grid.style.display = "none";
+          mapSection.style.display = "";
+          initMap();
+          // Leaflet needs a size recalc once its container becomes visible.
+          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+        }
+        function showList() {
+          mapBtn.classList.remove("active");
+          listBtn.classList.add("active");
+          mapSection.style.display = "none";
+          grid.style.display = "";
+        }
+        mapBtn.addEventListener("click", showMap);
+        listBtn.addEventListener("click", showList);
+      })();
+      ` : ""}
     }
   })();
   </script>
