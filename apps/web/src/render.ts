@@ -935,7 +935,12 @@ export function renderAgencySite(
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
-    .pin { background: var(--color-accent); color: #fff; font-weight: 800; font-size: .74rem; border: 2px solid #fff; border-radius: 999px; padding: .15rem .5rem; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: pointer; }` : ""}
+    /* Minimal listing dot, coloured by property type (residential/commercial/land). */
+    .pin-dot { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; transition: transform .1s; }
+    .pin-dot:hover { transform: scale(1.18); }
+    .pin-res { background: #1F3A5C; }
+    .pin-com { background: #C98A3B; }
+    .pin-land { background: #3A7D5C; }` : ""}
   </style>
 </head>
 <body>
@@ -1799,16 +1804,13 @@ export function renderAgencySite(
             });
           });
 
-          // Price pins. Pin click → open the listing modal (reused opener).
+          // Minimal type-coloured dot per listing. Click → open the listing modal.
+          // Colour encodes the property type (residential / commercial / land).
           pinned.forEach(function (l) {
-            var isRent = l.dealType === "rent";
-            var label = (l.priceMinor != null && Number(l.priceMinor) > 0)
-              ? (fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : ""))
-              : t("card.priceOnRequest");
+            var typeCls = l.type === "commercial" ? "pin-com" : (l.type === "land" ? "pin-land" : "pin-res");
             var span = document.createElement("span");
-            span.className = "pin";
-            span.textContent = label;
-            var icon = L.divIcon({ className: "", html: span.outerHTML, iconSize: null });
+            span.className = "pin-dot " + typeCls;
+            var icon = L.divIcon({ className: "", html: span.outerHTML, iconSize: [18, 18], iconAnchor: [9, 9] });
             var marker = L.marker([l.lat, l.lng], { icon: icon }).addTo(leafletMap);
             marker.on("click", (function (id) { return function () { openModal(id); }; })(l.id));
             bounds.push([l.lat, l.lng]);
