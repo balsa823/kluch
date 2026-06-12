@@ -35,3 +35,64 @@ export function areasFor(city: string): string[] {
 export function isKnownArea(city: string, area: string): boolean {
   return areasFor(city).includes(area);
 }
+
+// --- Approximate coordinates -------------------------------------------------
+// NOTE: all coordinates below are APPROXIMATE / ILLUSTRATIVE city & area centres
+// (hand-picked, not surveyed). They are only used to place map pins/circles and
+// must not be treated as authoritative boundaries. Unknown city/area → null and
+// callers fall back to the city centre (or drop the pin entirely).
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+/** Approximate centre of each MNE city. Keys must match `MNE_LOCATIONS` city strings. */
+const CITY_COORDS: Record<string, LatLng> = {
+  Podgorica: { lat: 42.4411, lng: 19.2627 },
+  Budva: { lat: 42.2911, lng: 18.84 },
+  Bar: { lat: 42.0939, lng: 19.1003 },
+  Kotor: { lat: 42.4247, lng: 18.7712 },
+  Tivat: { lat: 42.437, lng: 18.696 },
+  "Herceg Novi": { lat: 42.4531, lng: 18.5375 },
+  Ulcinj: { lat: 41.9294, lng: 19.2244 },
+  Nikšić: { lat: 42.7731, lng: 18.9446 },
+  Cetinje: { lat: 42.3911, lng: 18.9116 },
+  Danilovgrad: { lat: 42.554, lng: 19.108 },
+  "Bijelo Polje": { lat: 43.0383, lng: 19.7458 },
+  Berane: { lat: 42.8469, lng: 19.8744 },
+  Kolašin: { lat: 42.8222, lng: 19.5183 },
+  Žabljak: { lat: 43.1547, lng: 19.1228 },
+  Pljevlja: { lat: 43.3567, lng: 19.3586 },
+  Rožaje: { lat: 42.8408, lng: 20.1664 },
+};
+
+/** Approximate area centres, keyed by city → area. Area strings match `MNE_LOCATIONS`. */
+const AREA_COORDS: Record<string, Record<string, LatLng>> = {
+  Podgorica: {
+    // "Centar / City Kvart" in the mockup maps to the curated "City Kvart" area.
+    "City Kvart": { lat: 42.4411, lng: 19.2627 },
+    "Preko Morače": { lat: 42.4455, lng: 19.2555 },
+    "Blok 5": { lat: 42.4378, lng: 19.247 },
+    "Blok 6": { lat: 42.4345, lng: 19.2438 },
+    "Blok 9": { lat: 42.4308, lng: 19.2505 },
+    "Stari Aerodrom": { lat: 42.4262, lng: 19.2625 },
+    Zabjelo: { lat: 42.4185, lng: 19.2585 },
+    Momišići: { lat: 42.4305, lng: 19.2705 },
+    Konik: { lat: 42.4525, lng: 19.2895 },
+    Tološi: { lat: 42.4705, lng: 19.2355 },
+  },
+  Budva: {
+    Bečići: { lat: 42.287, lng: 18.873 },
+  },
+};
+
+/** Approximate centre for a city, or null if unknown. */
+export function cityCoords(city: string): LatLng | null {
+  return CITY_COORDS[city] ?? null;
+}
+
+/** Approximate centre for an area of a city, or null if no coords are known. */
+export function areaCoords(city: string, area: string): LatLng | null {
+  return AREA_COORDS[city]?.[area] ?? null;
+}
