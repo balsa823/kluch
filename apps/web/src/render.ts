@@ -902,7 +902,19 @@ export function renderAgencySite(
     }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
-    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--overlay-ink); opacity: .82; margin: 0 0 .4rem .15rem; text-shadow: var(--overlay-ink-shadow); }
+    .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+    /* Viewport buttons: back-to-top / fit-to-screen / jump-below. */
+    .map-vp { display: flex; gap: 0.4rem; flex: 0 0 auto; }
+    .map-vp button {
+      width: 2.3rem; height: 2.3rem; display: flex; align-items: center; justify-content: center;
+      border: 1px solid color-mix(in srgb, var(--overlay-ink) 45%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 55%, transparent);
+      border-radius: 11px; cursor: pointer; color: var(--overlay-ink); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+      box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: background .15s, transform .1s;
+    }
+    .map-vp button:hover { background: var(--color-primary); transform: translateY(-1px); }
+    .map-vp button:active { transform: translateY(0); }
+    .map-vp svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
     .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
@@ -918,7 +930,6 @@ export function renderAgencySite(
     .map-overlay .chip { color: var(--overlay-ink); text-shadow: var(--overlay-ink-shadow); }
     .map-overlay .chip .caret { stroke: var(--overlay-ink); }
     /* Overlay sits at the top → popovers open downward (the default). */
-    .map-note { margin: 0; color: var(--overlay-ink); opacity: .7; font-size: 0.72rem; text-shadow: var(--overlay-ink-shadow); }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
@@ -1064,12 +1075,23 @@ export function renderAgencySite(
       <section id="kluche-map" style="display:none">
         <div id="kluche-map-canvas"></div>
         <div class="map-overlay">
-          <div class="map-overlay-cities-wrap">
-            <p class="map-overlay-label" data-i18n="map.jumpToCity">${T_("map.jumpToCity")}</p>
-            <div class="map-overlay-cities" id="map-overlay-cities"></div>
+          <div class="map-overlay-top">
+            <div class="map-overlay-cities-wrap">
+              <div class="map-overlay-cities" id="map-overlay-cities"></div>
+            </div>
+            <div class="map-vp">
+              <button type="button" id="vp-top" aria-label="${attr(T_("map.toTop"))}" title="${attr(T_("map.toTop"))}">
+                <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button type="button" id="vp-fit" aria-label="${attr(T_("map.fitScreen"))}" title="${attr(T_("map.fitScreen"))}">
+                <svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
+              </button>
+              <button type="button" id="vp-below" aria-label="${attr(T_("map.below"))}" title="${attr(T_("map.below"))}">
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
           </div>
           <div id="map-overlay-filters"></div>
-          <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
         </div>
       </section>
       <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
@@ -1671,6 +1693,26 @@ export function renderAgencySite(
             if (leafletMap) { try { leafletMap.flyTo([c.lat, c.lng], c.zoom, { duration: 0.6 }); } catch (e) {} }
           });
           if (citiesBox) citiesBox.appendChild(b);
+        });
+
+        // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
+        var mapEl = document.getElementById("kluche-map");
+        var vpTop = document.getElementById("vp-top");
+        var vpFit = document.getElementById("vp-fit");
+        var vpBelow = document.getElementById("vp-below");
+        function scrollToY(y) {
+          try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
+        }
+        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
+        if (vpFit && mapEl) vpFit.addEventListener("click", function () {
+          // Align the map's top with the viewport top so it fills the screen.
+          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
+          scrollToY(y);
+        });
+        if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
+          // Scroll just past the bottom of the map to reveal what's below it.
+          var r = mapEl.getBoundingClientRect();
+          scrollToY(r.bottom + window.pageYOffset);
         });
 
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping

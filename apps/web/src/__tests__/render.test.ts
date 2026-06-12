@@ -827,9 +827,11 @@ describe("map overlay markup", () => {
     expect(html).toContain('id="map-overlay-filters"');
   });
 
-  test("the map-note (map.approx) text is still present in the overlay", () => {
+  test("renders the three viewport buttons (top / fit / below)", () => {
     const html = renderAgencySite(mapAgency, listings);
-    expect(html).toContain('data-i18n="map.approx"');
+    expect(html).toContain('id="vp-top"');
+    expect(html).toContain('id="vp-fit"');
+    expect(html).toContain('id="vp-below"');
   });
 });
 
