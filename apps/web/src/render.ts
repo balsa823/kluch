@@ -1602,9 +1602,11 @@ export function renderAgencySite(
             var circle = L.circle([a.lat, a.lng], {
               radius: 520, color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.12
             }).addTo(leafletMap);
-            circle.bindTooltip(String(a.name) + " · " + String(a.count), {
-              permanent: true, direction: "center", className: "area-label"
-            });
+            // Build the label as a DOM node (textContent escapes) rather than a raw
+            // string — bindTooltip renders strings via innerHTML.
+            var lbl = document.createElement("span");
+            lbl.textContent = String(a.name) + " · " + String(a.count);
+            circle.bindTooltip(lbl, { permanent: true, direction: "center", className: "area-label" });
             circle.on("click", function () { window.location.href = locHref(a.loc); });
             bounds.push([a.lat, a.lng]);
           });
