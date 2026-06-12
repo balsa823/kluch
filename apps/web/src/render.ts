@@ -868,7 +868,11 @@ export function renderAgencySite(
        row reads as a translucent navbar. No search box here. */
     .map-overlay {
       position: absolute; left: 0; right: 0; top: 0; z-index: 500;
-      background: linear-gradient(to bottom, rgba(31,58,92,0.86) 0%, rgba(31,58,92,0.45) 68%, rgba(31,58,92,0) 100%);
+      /* Tint from the agency's chosen primary colour, fading down to transparent. */
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
+        transparent 100%);
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
