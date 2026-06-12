@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Agency, Property } from "@kluche/core";
 import { renderAgencySite, thumbSrc, listingPin } from "../render.js";
 
@@ -777,4 +777,88 @@ test("when mapEnabled, the site opens on the map view by default", () => {
   const html = renderAgencySite(mapAgency, listings);
   // the toggle JS calls showMap() at init so the map is visible without hunting for the tab
   expect(html).toContain("showMap();");
+});
+
+// --- Map overlay city shortcuts --------------------------------------------
+
+describe("map overlay city shortcuts", () => {
+  const cityListings: Property[] = [
+    { ...listings[0], id: "c1", city: "Podgorica" } as Property,
+    { ...listings[0], id: "c2", city: "Budva" } as Property,
+  ];
+
+  test("emits a kluche-map-cities blob with known cities and numeric lat/lng/zoom", () => {
+    const html = renderAgencySite(mapAgency, cityListings);
+    expect(html).toContain('id="kluche-map-cities"');
+    const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
+    expect(m).toBeTruthy();
+    const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
+    expect(Array.isArray(data)).toBe(true);
+    const pg = data.find((d: { name: string }) => d.name === "Podgorica");
+    expect(pg).toBeTruthy();
+    expect(typeof pg.lat).toBe("number");
+    expect(typeof pg.lng).toBe("number");
+    expect(typeof pg.zoom).toBe("number");
+    expect(Math.abs(pg.lat - 42.44)).toBeLessThan(0.01);
+  });
+
+  test("excludes listings with an unknown city", () => {
+    const withUnknown: Property[] = [
+      ...cityListings,
+      { ...listings[0], id: "c3", city: "Atlantis" } as Property,
+    ];
+    const html = renderAgencySite(mapAgency, withUnknown);
+    const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
+    const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
+    expect(data.find((d: { name: string }) => d.name === "Atlantis")).toBeUndefined();
+  });
+
+  test("emits no kluche-map-cities blob when mapEnabled is false", () => {
+    const html = renderAgencySite(agency, cityListings);
+    expect(html).not.toContain("kluche-map-cities");
+  });
+});
+
+// --- Map overlay markup -----------------------------------------------------
+
+describe("map overlay markup", () => {
+  test("mapEnabled renders the overlay container, cities box and filters slot", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    expect(html).toContain('class="map-overlay"');
+    expect(html).toContain('id="map-overlay-cities"');
+    expect(html).toContain('id="map-overlay-filters"');
+  });
+
+  test("the map-note (map.approx) text is still present in the overlay", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    expect(html).toContain('data-i18n="map.approx"');
+  });
+});
+
+// --- Map overlay: hero-form relocation + city flyTo -------------------------
+
+describe("map overlay hero-form relocation + flyTo", () => {
+  function executableScript(html: string): string {
+    const matches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    expect(matches.length).toBeGreaterThan(0);
+    // The largest bare <script> body is the executable one (data blobs are JSON).
+    return matches.map((m) => m[1]).sort((a, b) => b.length - a.length)[0];
+  }
+
+  test("the inline <script> stays valid JS with the relocation logic", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    const matches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    for (const m of matches) {
+      expect(() => new Function(m[1])).not.toThrow();
+    }
+  });
+
+  test("the map script references the cities blob, filters slot, hero-form and flyTo", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    const body = executableScript(html);
+    expect(body.includes("kluche-map-cities")).toBe(true);
+    expect(body.includes("map-overlay-filters")).toBe(true);
+    expect(body.includes("hero-form")).toBe(true);
+    expect(body.includes("flyTo")).toBe(true);
+  });
 });

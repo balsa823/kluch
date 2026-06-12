@@ -323,6 +323,22 @@ export function renderAgencySite(
   // coord, a count, and the `?loc=` value the chip/circle navigates to.
   type MapArea = { name: string; lat: number; lng: number; count: number; loc: string };
   const mapAreas: MapArea[] = [];
+  // Distinct known cities present among this page's listings, in first-seen
+  // order (first city is the default-active shortcut later). Each gets a name,
+  // its centre coords, and a sensible default zoom.
+  type MapCity = { name: string; lat: number; lng: number; zoom: number };
+  const mapCities: MapCity[] = [];
+  if (mapEnabled) {
+    const seen = new Map<string, MapCity>();
+    for (const l of listings) {
+      if (seen.has(l.city)) continue;
+      const c = cityCoords(l.city);
+      if (!c) continue;
+      const zoom = l.city === "Podgorica" || l.city === "Nikšić" ? 13 : 14;
+      seen.set(l.city, { name: l.city, lat: c.lat, lng: c.lng, zoom });
+    }
+    mapCities.push(...seen.values());
+  }
   if (mapEnabled) {
     const byKey = new Map<string, MapArea>();
     for (const l of listings) {
@@ -512,6 +528,7 @@ export function renderAgencySite(
       background: var(--color-cream);
       min-height: 100vh;
       min-height: 100dvh;
+      overflow-x: hidden; /* contain the full-bleed map's 100vw vs scrollbar-gutter overshoot */
     }
     h1, h2, h3, .logo-text { font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
     a { color: inherit; }
@@ -839,9 +856,30 @@ export function renderAgencySite(
       font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
     }
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
-    #kluche-map { margin: 0 0 1rem; }
-    #kluche-map-canvas { height: 70vh; min-height: 380px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
-    .map-note { margin: 0.6rem 0 0; color: #6b6557; font-size: 0.82rem; }
+    /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
+    #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
+    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    .map-overlay {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
+      background: rgba(255,255,255,0.97); backdrop-filter: blur(6px);
+      border-top: 1px solid var(--color-accent); border-radius: 18px 18px 0 0;
+      box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+      padding: 0.7rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom,0px));
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a8676; margin: 0 0 .35rem .15rem; }
+    .map-overlay-cities { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
+    .map-overlay-cities::-webkit-scrollbar { display: none; }
+    .map-city { flex: 0 0 auto; border: 1.5px solid var(--color-accent); background: #fff; border-radius: 999px; padding: .42rem .85rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; }
+    .map-city:hover { border-color: var(--color-primary); }
+    .map-city.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+    /* hero-form relocated into overlay: compact + popovers open UPWARD */
+    .map-overlay #hero-form { margin: 0; }
+    .map-overlay .chips { margin: 0; gap: 1.1rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .1rem; }
+    .map-overlay .chips::-webkit-scrollbar { display: none; }
+    .map-overlay .pop { top: auto; bottom: calc(100% + 14px); }
+    .map-overlay .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
+    .map-note { margin: 0; color: #6b6557; font-size: 0.78rem; }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
@@ -986,9 +1024,17 @@ export function renderAgencySite(
       </div>
       <section id="kluche-map" style="display:none">
         <div id="kluche-map-canvas"></div>
-        <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        <div class="map-overlay">
+          <div class="map-overlay-cities-wrap">
+            <p class="map-overlay-label" data-i18n="map.jumpToCity">${T_("map.jumpToCity")}</p>
+            <div class="map-overlay-cities" id="map-overlay-cities"></div>
+          </div>
+          <div id="map-overlay-filters"></div>
+          <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        </div>
       </section>
-      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>`
+      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
+      <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`
           : ""
       }
       <div class="grid">${cards}</div>
@@ -1559,6 +1605,35 @@ export function renderAgencySite(
         var grid = document.querySelector("#properties .grid");
         if (!listBtn || !mapBtn || !mapSection || !grid) return;
 
+        // Hero search form gets relocated into the overlay in Map view (the node
+        // is moved, not cloned, so its listeners survive); moved back in List view.
+        var heroForm = document.getElementById("hero-form");
+        var filterSlot = document.getElementById("map-overlay-filters");
+        var heroHost = heroForm ? heroForm.parentNode : null;
+        var citiesBox = document.getElementById("map-overlay-cities");
+        var citiesWrap = citiesBox ? citiesBox.parentNode : null;
+
+        // City shortcut chips (string ops only — no regex literals).
+        var cities = [];
+        try {
+          var cn = document.getElementById("kluche-map-cities");
+          cities = JSON.parse(cn ? cn.textContent : "[]") || [];
+        } catch (e) { cities = []; }
+        if (!cities.length && citiesWrap) citiesWrap.style.display = "none";
+        cities.forEach(function (c, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "map-city" + (i === 0 ? " active" : "");
+          b.textContent = String(c.name);
+          b.addEventListener("click", function () {
+            var all = citiesBox.querySelectorAll(".map-city");
+            for (var j = 0; j < all.length; j++) all[j].classList.remove("active");
+            b.classList.add("active");
+            if (leafletMap) { try { leafletMap.flyTo([c.lat, c.lng], c.zoom, { duration: 0.6 }); } catch (e) {} }
+          });
+          if (citiesBox) citiesBox.appendChild(b);
+        });
+
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
         // the visitor's other active filters out of the way — same convention the
         // hero uses. encodeURIComponent keeps the pipe + spaces safe.
@@ -1639,12 +1714,20 @@ export function renderAgencySite(
           initMap();
           // Leaflet needs a size recalc once its container becomes visible.
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+          // Relocate the live hero search form into the overlay (move, don't clone).
+          if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
+            filterSlot.appendChild(heroForm);
+          }
         }
         function showList() {
           mapBtn.classList.remove("active");
           listBtn.classList.add("active");
           mapSection.style.display = "none";
           grid.style.display = "";
+          // Move the hero search form back to its original header host.
+          if (heroForm && heroHost && heroForm.parentNode !== heroHost) {
+            heroHost.appendChild(heroForm);
+          }
         }
         mapBtn.addEventListener("click", showMap);
         listBtn.addEventListener("click", showList);
