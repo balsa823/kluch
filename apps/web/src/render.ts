@@ -863,13 +863,13 @@ export function renderAgencySite(
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
     #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
-    /* Floats over the bottom of the map: a navy gradient that fades in from
+    /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
     .map-overlay {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
-      background: linear-gradient(to bottom, rgba(31,58,92,0) 0%, rgba(31,58,92,0.45) 32%, rgba(31,58,92,0.86) 100%);
-      padding: 1.6rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
+      position: absolute; left: 0; right: 0; top: 0; z-index: 500;
+      background: linear-gradient(to bottom, rgba(31,58,92,0.86) 0%, rgba(31,58,92,0.45) 68%, rgba(31,58,92,0) 100%);
+      padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
@@ -887,8 +887,7 @@ export function renderAgencySite(
     .map-overlay .chips::-webkit-scrollbar { display: none; }
     .map-overlay .chip { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
     .map-overlay .chip .caret { stroke: #fff; }
-    .map-overlay .pop { top: auto; bottom: calc(100% + 14px); }
-    .map-overlay .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
+    /* Overlay sits at the top → popovers open downward (the default). */
     .map-note { margin: 0; color: rgba(255,255,255,.7); font-size: 0.72rem; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
@@ -1687,6 +1686,8 @@ export function renderAgencySite(
           L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
           }).addTo(leafletMap);
+          // Overlay covers the top-left → move the zoom control out from under it.
+          if (leafletMap.zoomControl) { try { leafletMap.zoomControl.setPosition("bottomleft"); } catch (e) {} }
 
           var bounds = [];
 
