@@ -528,6 +528,7 @@ export function renderAgencySite(
       background: var(--color-cream);
       min-height: 100vh;
       min-height: 100dvh;
+      overflow-x: hidden; /* contain the full-bleed map's 100vw vs scrollbar-gutter overshoot */
     }
     h1, h2, h3, .logo-text { font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
     a { color: inherit; }
