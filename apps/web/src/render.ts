@@ -609,7 +609,7 @@ export function renderAgencySite(
       .langmenu { margin-top: 0.3rem; }
     }
     /* First-visit language picker */
-    .lang-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
+    .lang-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
     .lang-modal-card { background: #fff; color: var(--color-ink); border-radius: 16px; padding: 1.6rem; max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
     .lang-modal-title { font-weight: 700; font-size: 1.1rem; margin: 0 0 1.1rem; text-align: center; }
     .lang-modal-opts { display: flex; flex-direction: column; gap: 0.6rem; }
@@ -828,7 +828,7 @@ export function renderAgencySite(
 
     /* Modal */
     .modal {
-      position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
       /* Pad by the iOS safe-area so the centered card (and its ✕) never tuck under
          the status/URL bar. */
       padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
