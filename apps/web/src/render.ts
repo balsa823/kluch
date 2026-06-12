@@ -325,21 +325,18 @@ export function renderAgencySite(
   // the client draws it instead of a circle (lat/lng stay as the label anchor).
   type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
   const mapAreas: MapArea[] = [];
-  // Distinct known cities present among this page's listings, in first-seen
-  // order (first city is the default-active shortcut later). Each gets a name,
-  // its centre coords, and a sensible default zoom.
+  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist
+  // for now — not derived from listings. Each gets coords + a default zoom.
+  const MAP_SHORTCUT_CITIES = ["Podgorica", "Budva"];
   type MapCity = { name: string; lat: number; lng: number; zoom: number };
   const mapCities: MapCity[] = [];
   if (mapEnabled) {
-    const seen = new Map<string, MapCity>();
-    for (const l of listings) {
-      if (seen.has(l.city)) continue;
-      const c = cityCoords(l.city);
+    for (const city of MAP_SHORTCUT_CITIES) {
+      const c = cityCoords(city);
       if (!c) continue;
-      const zoom = l.city === "Podgorica" || l.city === "Nikšić" ? 13 : 14;
-      seen.set(l.city, { name: l.city, lat: c.lat, lng: c.lng, zoom });
+      const zoom = city === "Podgorica" || city === "Nikšić" ? 13 : 14;
+      mapCities.push({ name: city, lat: c.lat, lng: c.lng, zoom });
     }
-    mapCities.push(...seen.values());
   }
   if (mapEnabled) {
     const byKey = new Map<string, MapArea>();
@@ -862,27 +859,33 @@ export function renderAgencySite(
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
     #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Floats over the bottom of the map: a navy gradient that fades in from
+       transparent, so the city chips read as floating on the map and the filter
+       row reads as a translucent navbar. No search box here. */
     .map-overlay {
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
-      background: rgba(255,255,255,0.97); backdrop-filter: blur(6px);
-      border-top: 1px solid var(--color-accent); border-radius: 18px 18px 0 0;
-      box-shadow: 0 -8px 30px rgba(0,0,0,.18);
-      padding: 0.7rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom,0px));
-      display: flex; flex-direction: column; gap: 0.6rem;
+      background: linear-gradient(to bottom, rgba(31,58,92,0) 0%, rgba(31,58,92,0.45) 32%, rgba(31,58,92,0.86) 100%);
+      padding: 1.6rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
+      display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
-    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a8676; margin: 0 0 .35rem .15rem; }
-    .map-overlay-cities { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
+    /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
+    .map-overlay > * { pointer-events: auto; }
+    .map-overlay-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.8); margin: 0 0 .4rem .15rem; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+    .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
-    .map-city { flex: 0 0 auto; border: 1.5px solid var(--color-accent); background: #fff; border-radius: 999px; padding: .42rem .85rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; }
-    .map-city:hover { border-color: var(--color-primary); }
-    .map-city.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
-    /* hero-form relocated into overlay: compact + popovers open UPWARD */
+    .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .map-city:hover { border-color: #fff; }
+    .map-city.active { background: var(--color-primary); color: #fff; border-color: #fff; }
+    /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
-    .map-overlay .chips { margin: 0; gap: 1.1rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .1rem; }
+    .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
+    .map-overlay .chips { margin: 0; gap: 1.4rem; overflow-x: auto; flex-wrap: nowrap; padding: .15rem .15rem .1rem; }
     .map-overlay .chips::-webkit-scrollbar { display: none; }
+    .map-overlay .chip { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
+    .map-overlay .chip .caret { stroke: #fff; }
     .map-overlay .pop { top: auto; bottom: calc(100% + 14px); }
     .map-overlay .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
-    .map-note { margin: 0; color: #6b6557; font-size: 0.78rem; }
+    .map-note { margin: 0; color: rgba(255,255,255,.7); font-size: 0.72rem; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
