@@ -1603,6 +1603,35 @@ export function renderAgencySite(
         var grid = document.querySelector("#properties .grid");
         if (!listBtn || !mapBtn || !mapSection || !grid) return;
 
+        // Hero search form gets relocated into the overlay in Map view (the node
+        // is moved, not cloned, so its listeners survive); moved back in List view.
+        var heroForm = document.getElementById("hero-form");
+        var filterSlot = document.getElementById("map-overlay-filters");
+        var heroHost = heroForm ? heroForm.parentNode : null;
+        var citiesBox = document.getElementById("map-overlay-cities");
+        var citiesWrap = citiesBox ? citiesBox.parentNode : null;
+
+        // City shortcut chips (string ops only — no regex literals).
+        var cities = [];
+        try {
+          var cn = document.getElementById("kluche-map-cities");
+          cities = JSON.parse(cn ? cn.textContent : "[]") || [];
+        } catch (e) { cities = []; }
+        if (!cities.length && citiesWrap) citiesWrap.style.display = "none";
+        cities.forEach(function (c, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "map-city" + (i === 0 ? " active" : "");
+          b.textContent = String(c.name);
+          b.addEventListener("click", function () {
+            var all = citiesBox.querySelectorAll(".map-city");
+            for (var j = 0; j < all.length; j++) all[j].classList.remove("active");
+            b.classList.add("active");
+            if (leafletMap) { try { leafletMap.flyTo([c.lat, c.lng], c.zoom, { duration: 0.6 }); } catch (e) {} }
+          });
+          if (citiesBox) citiesBox.appendChild(b);
+        });
+
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
         // the visitor's other active filters out of the way — same convention the
         // hero uses. encodeURIComponent keeps the pipe + spaces safe.
@@ -1683,12 +1712,20 @@ export function renderAgencySite(
           initMap();
           // Leaflet needs a size recalc once its container becomes visible.
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+          // Relocate the live hero search form into the overlay (move, don't clone).
+          if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
+            filterSlot.appendChild(heroForm);
+          }
         }
         function showList() {
           mapBtn.classList.remove("active");
           listBtn.classList.add("active");
           mapSection.style.display = "none";
           grid.style.display = "";
+          // Move the hero search form back to its original header host.
+          if (heroForm && heroHost && heroForm.parentNode !== heroHost) {
+            heroHost.appendChild(heroForm);
+          }
         }
         mapBtn.addEventListener("click", showMap);
         listBtn.addEventListener("click", showList);

@@ -834,3 +834,31 @@ describe("map overlay markup", () => {
     expect(html).toContain('data-i18n="map.approx"');
   });
 });
+
+// --- Map overlay: hero-form relocation + city flyTo -------------------------
+
+describe("map overlay hero-form relocation + flyTo", () => {
+  function executableScript(html: string): string {
+    const matches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    expect(matches.length).toBeGreaterThan(0);
+    // The largest bare <script> body is the executable one (data blobs are JSON).
+    return matches.map((m) => m[1]).sort((a, b) => b.length - a.length)[0];
+  }
+
+  test("the inline <script> stays valid JS with the relocation logic", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    const matches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    for (const m of matches) {
+      expect(() => new Function(m[1])).not.toThrow();
+    }
+  });
+
+  test("the map script references the cities blob, filters slot, hero-form and flyTo", () => {
+    const html = renderAgencySite(mapAgency, listings);
+    const body = executableScript(html);
+    expect(body.includes("kluche-map-cities")).toBe(true);
+    expect(body.includes("map-overlay-filters")).toBe(true);
+    expect(body.includes("hero-form")).toBe(true);
+    expect(body.includes("flyTo")).toBe(true);
+  });
+});
