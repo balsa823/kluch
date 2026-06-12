@@ -125,6 +125,9 @@ export const dict: Record<Lang, Record<string, string>> = {
     "website.saving": "Saving…",
     "website.saved": "Saved",
     "website.errorSave": "Failed to save",
+    "website.mapView": "Map view",
+    "website.mapViewHelp":
+      "Show an interactive map of your listings on your site.",
 
     "settings.title": "Settings",
     "settings.subtitle": "Configure the content of your white-label site",
@@ -163,9 +166,6 @@ export const dict: Record<Lang, Record<string, string>> = {
     "settings.closeTime": "Close",
     "settings.timePh": "09:00",
     "settings.observeHolidays": "Observe Montenegro national holidays",
-    "settings.mapEnabled": "Map view",
-    "settings.mapEnabledHelp":
-      "Show an interactive map of your listings on your site.",
     "settings.closures": "Custom closures",
     "settings.closureFrom": "From",
     "settings.closureTo": "To (optional)",
@@ -326,6 +326,9 @@ export const dict: Record<Lang, Record<string, string>> = {
     "website.saving": "Čuvanje…",
     "website.saved": "Sačuvano",
     "website.errorSave": "Čuvanje nije uspjelo",
+    "website.mapView": "Prikaz na mapi",
+    "website.mapViewHelp":
+      "Prikaži interaktivnu mapu vaših oglasa na vašem sajtu.",
 
     "settings.title": "Podešavanja",
     "settings.subtitle": "Podesite sadržaj svog white-label sajta",
@@ -364,9 +367,6 @@ export const dict: Record<Lang, Record<string, string>> = {
     "settings.closeTime": "Zatvaranje",
     "settings.timePh": "09:00",
     "settings.observeHolidays": "Poštuj državne praznike Crne Gore",
-    "settings.mapEnabled": "Prikaz na mapi",
-    "settings.mapEnabledHelp":
-      "Prikaži interaktivnu mapu vaših oglasa na vašem sajtu.",
     "settings.closures": "Posebna neradna vremena",
     "settings.closureFrom": "Od",
     "settings.closureTo": "Do (opciono)",
