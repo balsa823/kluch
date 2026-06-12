@@ -323,6 +323,22 @@ export function renderAgencySite(
   // coord, a count, and the `?loc=` value the chip/circle navigates to.
   type MapArea = { name: string; lat: number; lng: number; count: number; loc: string };
   const mapAreas: MapArea[] = [];
+  // Distinct known cities present among this page's listings, in first-seen
+  // order (first city is the default-active shortcut later). Each gets a name,
+  // its centre coords, and a sensible default zoom.
+  type MapCity = { name: string; lat: number; lng: number; zoom: number };
+  const mapCities: MapCity[] = [];
+  if (mapEnabled) {
+    const seen = new Map<string, MapCity>();
+    for (const l of listings) {
+      if (seen.has(l.city)) continue;
+      const c = cityCoords(l.city);
+      if (!c) continue;
+      const zoom = l.city === "Podgorica" || l.city === "Nikšić" ? 13 : 14;
+      seen.set(l.city, { name: l.city, lat: c.lat, lng: c.lng, zoom });
+    }
+    mapCities.push(...seen.values());
+  }
   if (mapEnabled) {
     const byKey = new Map<string, MapArea>();
     for (const l of listings) {
@@ -988,7 +1004,8 @@ export function renderAgencySite(
         <div id="kluche-map-canvas"></div>
         <p class="map-note" data-i18n="map.approx">${T_("map.approx")}</p>
       </section>
-      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>`
+      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
+      <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`
           : ""
       }
       <div class="grid">${cards}</div>

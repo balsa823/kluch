@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Agency, Property } from "@kluche/core";
 import { renderAgencySite, thumbSrc, listingPin } from "../render.js";
 
@@ -777,4 +777,44 @@ test("when mapEnabled, the site opens on the map view by default", () => {
   const html = renderAgencySite(mapAgency, listings);
   // the toggle JS calls showMap() at init so the map is visible without hunting for the tab
   expect(html).toContain("showMap();");
+});
+
+// --- Map overlay city shortcuts --------------------------------------------
+
+describe("map overlay city shortcuts", () => {
+  const cityListings: Property[] = [
+    { ...listings[0], id: "c1", city: "Podgorica" } as Property,
+    { ...listings[0], id: "c2", city: "Budva" } as Property,
+  ];
+
+  test("emits a kluche-map-cities blob with known cities and numeric lat/lng/zoom", () => {
+    const html = renderAgencySite(mapAgency, cityListings);
+    expect(html).toContain('id="kluche-map-cities"');
+    const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
+    expect(m).toBeTruthy();
+    const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
+    expect(Array.isArray(data)).toBe(true);
+    const pg = data.find((d: { name: string }) => d.name === "Podgorica");
+    expect(pg).toBeTruthy();
+    expect(typeof pg.lat).toBe("number");
+    expect(typeof pg.lng).toBe("number");
+    expect(typeof pg.zoom).toBe("number");
+    expect(Math.abs(pg.lat - 42.44)).toBeLessThan(0.01);
+  });
+
+  test("excludes listings with an unknown city", () => {
+    const withUnknown: Property[] = [
+      ...cityListings,
+      { ...listings[0], id: "c3", city: "Atlantis" } as Property,
+    ];
+    const html = renderAgencySite(mapAgency, withUnknown);
+    const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
+    const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
+    expect(data.find((d: { name: string }) => d.name === "Atlantis")).toBeUndefined();
+  });
+
+  test("emits no kluche-map-cities blob when mapEnabled is false", () => {
+    const html = renderAgencySite(agency, cityListings);
+    expect(html).not.toContain("kluche-map-cities");
+  });
 });
