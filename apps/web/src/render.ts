@@ -888,9 +888,9 @@ export function renderAgencySite(
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
-    /* Fallback height before JS sizes it to the exact viewport; JS sets the
-       precise height (innerHeight − nav) and keeps it updated on resize. */
-    #kluche-map-canvas { height: calc(100dvh - 64px); min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Fallback height before JS sizes it; JS sets the precise viewport height
+       (innerHeight) and keeps it updated on resize. */
+    #kluche-map-canvas { height: 100dvh; min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
     /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
@@ -1724,22 +1724,23 @@ export function renderAgencySite(
         var vpFit = document.getElementById("vp-fit");
         var vpBelow = document.getElementById("vp-below");
         function navHeight() { return siteNav ? siteNav.offsetHeight : 0; }
-        // Size the map canvas to exactly fill the viewport below the sticky nav,
-        // so it shows as much map as possible on any phone/desktop screen.
+        // Size the map canvas to the FULL viewport so, once snapped to the top,
+        // it fills the screen edge-to-edge with no leftover band (the sticky nav
+        // auto-hides on scroll, so we don't reserve space for it).
         function sizeMap() {
           if (!mapCanvasEl) return;
-          var h = Math.max(320, window.innerHeight - navHeight());
+          var h = Math.max(320, window.innerHeight);
           mapCanvasEl.style.height = h + "px";
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
         }
         function scrollToY(y) {
           try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
         }
-        // Snap the map so its top sits just under the nav → it fills the screen.
+        // Snap the map's top to the very top of the viewport → it fills the screen.
         function fitMapToScreen() {
           if (!mapEl) return;
           sizeMap();
-          var y = mapEl.getBoundingClientRect().top + window.pageYOffset - navHeight();
+          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
           scrollToY(y < 0 ? 0 : y);
         }
         // Keep the overlay navbar on screen: anchored at the map top normally,
@@ -1749,9 +1750,13 @@ export function renderAgencySite(
         function positionOverlay() {
           if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
           var r = mapEl.getBoundingClientRect();
-          var topHidden = r.top < navHeight();
-          var mapInView = r.bottom > 140 && r.top < window.innerHeight;
-          if (topHidden && mapInView) overlayEl.classList.add("at-bottom");
+          var vh = window.innerHeight;
+          // Pin to the viewport bottom only while the map's top is off-screen AND
+          // the map still covers the lower part of the screen — so the navbar
+          // never floats over the footer/contact once you've scrolled past the map.
+          var topHidden = r.top < -2;
+          var coversBottom = r.bottom >= vh * 0.66;
+          if (topHidden && coversBottom) overlayEl.classList.add("at-bottom");
           else overlayEl.classList.remove("at-bottom");
         }
         window.addEventListener("scroll", positionOverlay, { passive: true });
