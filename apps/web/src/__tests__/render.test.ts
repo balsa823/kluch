@@ -665,3 +665,20 @@ test("nav is collapsible on scroll (hide-on-down, show-on-up)", () => {
   expect(html).toContain('classList.add("nav-hidden")');  // scroll handler
   expect(html).toContain('classList.remove("nav-hidden")');
 });
+
+test("card has photo arrows when a listing has multiple photos, and gallery swipe wiring", () => {
+  const multi: Property[] = [{ ...listings[0], photos: ["https://cdn.example/a.jpg", "https://cdn.example/b.jpg"] }] as Property[];
+  const html = renderAgencySite(agency, multi);
+  expect(html).toContain('<button class="card-arrow card-arrow-prev"');
+  expect(html).toContain('<button class="card-arrow card-arrow-next"');
+  expect(html).toContain('class="card-media"');
+  // touch-swipe handlers (modal + card)
+  expect(html).toContain('addEventListener("touchend"');
+  expect(html).toContain("galStep(");
+});
+
+test("card has no arrow buttons when a listing has a single photo", () => {
+  const one: Property[] = [{ ...listings[0], photos: ["https://cdn.example/only.jpg"] }] as Property[];
+  const html = renderAgencySite(agency, one);
+  expect(html).not.toContain('<button class="card-arrow card-arrow-prev"');
+});

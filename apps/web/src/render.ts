@@ -60,10 +60,18 @@ export function thumbSrc(fullUrl: string, w: number): string {
 /** Renders a single property card: photo, deal price, city, badge row and type. */
 function renderCard(listing: Property, lang: Lang = "en"): string {
   const t_ = (key: string) => esc(tr(lang, key));
-  const photo = safeUrl(listing.photos?.[0]);
-  const image = photo
-    ? `<img class="card-photo" src="${esc(thumbSrc(photo, 480))}" data-full="${attr(photo)}" alt="${esc(listing.name)}" loading="lazy" decoding="async" />`
+  const cover = safeUrl(listing.photos?.[0]);
+  const photoCount = (listing.photos ?? []).filter((p) => safeUrl(p)).length;
+  const image = cover
+    ? `<img class="card-photo" src="${esc(thumbSrc(cover, 480))}" data-full="${attr(cover)}" alt="${esc(listing.name)}" loading="lazy" decoding="async" />`
     : `<div class="card-photo card-photo--empty"></div>`;
+  // Arrows only when there's more than one photo; they stopPropagation so a tap
+  // flips the photo without opening the modal. JS (mini-gallery) wires them up.
+  const arrows = cover && photoCount > 1
+    ? `<button class="card-arrow card-arrow-prev" type="button" aria-label="Previous photo" onclick="event.stopPropagation()">‹</button>` +
+      `<button class="card-arrow card-arrow-next" type="button" aria-label="Next photo" onclick="event.stopPropagation()">›</button>`
+    : "";
+  const media = `<div class="card-media">${image}${arrows}</div>`;
 
   const isRent = listing.dealType === "rent";
   const hasPrice = listing.priceMinor != null && listing.priceMinor > 0;
@@ -95,7 +103,7 @@ function renderCard(listing: Property, lang: Lang = "en"): string {
   return `
       <article class="card" data-id="${esc(listing.id)}" role="button" tabindex="0">
         ${codeChip}
-        ${image}
+        ${media}
         <div class="card-body">
           ${priceBlock}
           <h3 class="card-title">${esc(listing.name)}</h3>
@@ -617,8 +625,19 @@ export function renderAgencySite(
       box-shadow: 0 1px 3px rgba(0,0,0,.25);
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(31, 58, 92, 0.18); }
+    .card-media { position: relative; }
     .card-photo { width: 100%; height: 180px; object-fit: cover; display: block; }
     .card-photo--empty { background: var(--color-accent); opacity: 0.25; }
+    .card-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 30px; height: 30px; border: 0; border-radius: 50%;
+      background: rgba(0,0,0,0.42); color: #fff; cursor: pointer; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; line-height: 1; padding: 0;
+    }
+    .card-arrow:hover { background: rgba(0,0,0,0.62); }
+    .card-arrow-prev { left: 0.45rem; }
+    .card-arrow-next { right: 0.45rem; }
     .card-body { padding: 0.9rem 1rem 1.1rem; position: relative; }
     .card-tag {
       display: inline-block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
@@ -1213,8 +1232,18 @@ export function renderAgencySite(
         galPrev.style.display = multi ? "" : "none";
         galNext.style.display = multi ? "" : "none";
       }
-      galPrev.addEventListener("click", function () { if (photos.length) { photoIdx = (photoIdx - 1 + photos.length) % photos.length; showPhoto(); } });
-      galNext.addEventListener("click", function () { if (photos.length) { photoIdx = (photoIdx + 1) % photos.length; showPhoto(); } });
+      function galStep(d) { if (photos.length) { photoIdx = (photoIdx + d + photos.length) % photos.length; showPhoto(); } }
+      galPrev.addEventListener("click", function () { galStep(-1); });
+      galNext.addEventListener("click", function () { galStep(1); });
+      // Swipe the modal gallery on touch devices.
+      (function () {
+        var sx = 0, sy = 0;
+        galImg.addEventListener("touchstart", function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+        galImg.addEventListener("touchend", function (e) {
+          var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) galStep(dx < 0 ? 1 : -1);
+        }, { passive: true });
+      })();
 
       function openModal(id) {
         var l = byId[id];
@@ -1253,14 +1282,43 @@ export function renderAgencySite(
       modal.querySelectorAll("[data-close]").forEach(function (el) { el.addEventListener("click", closeModal); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape" && modal.style.display !== "none") closeModal(); });
 
+      // Rewrite a full blob URL to our thumbnail endpoint (mirrors server thumbSrc).
+      function thumb(u) {
+        var m = /^https:\/\/[^/]+\.blob\.core\.windows\.net\/[^/]+\/(.+)$/.exec(u || "");
+        return m ? "/t/" + m[1] + "?w=480" : u;
+      }
       document.querySelectorAll(".card[data-id]").forEach(function (card) {
         card.addEventListener("click", function (e) {
-          if (e.target.closest(".call-btn")) return;
+          if (e.target.closest(".call-btn") || e.target.closest(".card-arrow")) return;
           openModal(card.dataset.id);
         });
         card.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(card.dataset.id); }
         });
+
+        // Mini-gallery: arrows + swipe flip the card's cover through its photos
+        // without opening the modal.
+        var l = byId[card.dataset.id];
+        var cardImg = card.querySelector("img.card-photo");
+        var cardPhotos = l && Array.isArray(l.photos) ? l.photos : [];
+        if (cardImg && cardPhotos.length > 1) {
+          var ci = 0;
+          function showCard(i) {
+            ci = (i + cardPhotos.length) % cardPhotos.length;
+            cardImg.src = thumb(cardPhotos[ci]);
+            cardImg.dataset.full = cardPhotos[ci];
+          }
+          var prev = card.querySelector(".card-arrow-prev");
+          var next = card.querySelector(".card-arrow-next");
+          if (prev) prev.addEventListener("click", function (e) { e.stopPropagation(); showCard(ci - 1); });
+          if (next) next.addEventListener("click", function (e) { e.stopPropagation(); showCard(ci + 1); });
+          var sx = 0, sy = 0;
+          cardImg.addEventListener("touchstart", function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+          cardImg.addEventListener("touchend", function (e) {
+            var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { showCard(ci + (dx < 0 ? 1 : -1)); }
+          }, { passive: true });
+        }
       });
 
       // If a thumbnail fails to load, fall back to the original full-size photo.
