@@ -771,3 +771,10 @@ test("modal sizes with dvh + safe-area padding so the ✕ isn't clipped on iOS S
   expect(html).toContain("88dvh");
   expect(html).toMatch(/\.modal \{[^}]*env\(safe-area-inset-top/s);
 });
+
+test("when mapEnabled, the site opens on the map view by default", () => {
+  const mapAgency = { ...agency, mapEnabled: true } as typeof agency;
+  const html = renderAgencySite(mapAgency, listings);
+  // the toggle JS calls showMap() at init so the map is visible without hunting for the tab
+  expect(html).toContain("showMap();");
+});

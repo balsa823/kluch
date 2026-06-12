@@ -1648,6 +1648,8 @@ export function renderAgencySite(
         }
         mapBtn.addEventListener("click", showMap);
         listBtn.addEventListener("click", showList);
+        // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
+        showMap();
       })();
       ` : ""}
     }
