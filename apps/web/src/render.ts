@@ -1726,8 +1726,8 @@ export function renderAgencySite(
           // zooms the map to fit that region's bounds.
           // A hand-drawn polygon (a.polygon) is shaded as its true outline; areas
           // with no polygon yet fall back to an abstract circle at the centre.
-          var regionStyle = { color: "#1F3A5C", weight: 1.5, fillColor: "#1F3A5C", fillOpacity: 0.1 };
-          var regionHover = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.28 };
+          var regionStyle = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.22 };
+          var regionHover = { color: "#1F3A5C", weight: 3.5, fillColor: "#1F3A5C", fillOpacity: 0.4 };
           areas.forEach(function (a) {
             // Build the label as a DOM node (textContent escapes) rather than a raw
             // string — bindTooltip renders strings via innerHTML.
