@@ -609,7 +609,7 @@ export function renderAgencySite(
       .langmenu { margin-top: 0.3rem; }
     }
     /* First-visit language picker */
-    .lang-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
+    .lang-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
     .lang-modal-card { background: #fff; color: var(--color-ink); border-radius: 16px; padding: 1.6rem; max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
     .lang-modal-title { font-weight: 700; font-size: 1.1rem; margin: 0 0 1.1rem; text-align: center; }
     .lang-modal-opts { display: flex; flex-direction: column; gap: 0.6rem; }
@@ -828,7 +828,7 @@ export function renderAgencySite(
 
     /* Modal */
     .modal {
-      position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
       /* Pad by the iOS safe-area so the centered card (and its ✕) never tuck under
          the status/URL bar. */
       padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
@@ -888,7 +888,9 @@ export function renderAgencySite(
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
     /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
     #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
-    #kluche-map-canvas { height: calc(100dvh - 220px); min-height: 420px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Fallback height before JS sizes it; JS sets the precise viewport height
+       (innerHeight) and keeps it updated on resize. */
+    #kluche-map-canvas { height: 100dvh; min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
     /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
@@ -902,6 +904,18 @@ export function renderAgencySite(
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
+    /* When the map's top scrolls off-screen, the navbar moves to the bottom of
+       the MAP (scrolls away with it, never floats over the footer). */
+    .map-overlay.at-bottom {
+      position: absolute; top: auto; bottom: 0;
+      background: linear-gradient(to top,
+        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
+        transparent 100%);
+      padding: 1.8rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
+    }
+    .map-overlay.at-bottom .pop { top: auto; bottom: calc(100% + 14px); }
+    .map-overlay.at-bottom .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
     .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
@@ -935,7 +949,12 @@ export function renderAgencySite(
     .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
-    .pin { background: var(--color-accent); color: #fff; font-weight: 800; font-size: .74rem; border: 2px solid #fff; border-radius: 999px; padding: .15rem .5rem; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: pointer; }` : ""}
+    /* Minimal listing dot, coloured by property type (residential/commercial/land). */
+    .pin-dot { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; transition: transform .1s; }
+    .pin-dot:hover { transform: scale(1.18); }
+    .pin-res { background: #1F3A5C; }
+    .pin-com { background: #C98A3B; }
+    .pin-land { background: #3A7D5C; }` : ""}
   </style>
 </head>
 <body>
@@ -1699,18 +1718,50 @@ export function renderAgencySite(
 
         // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
         var mapEl = document.getElementById("kluche-map");
+        var mapCanvasEl = document.getElementById("kluche-map-canvas");
+        var siteNav = document.querySelector("nav.site");
         var vpTop = document.getElementById("vp-top");
         var vpFit = document.getElementById("vp-fit");
         var vpBelow = document.getElementById("vp-below");
+        function navHeight() { return siteNav ? siteNav.offsetHeight : 0; }
+        // Size the map canvas to the FULL viewport so, once snapped to the top,
+        // it fills the screen edge-to-edge with no leftover band (the sticky nav
+        // auto-hides on scroll, so we don't reserve space for it).
+        function sizeMap() {
+          if (!mapCanvasEl) return;
+          var h = Math.max(320, window.innerHeight);
+          mapCanvasEl.style.height = h + "px";
+          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+        }
         function scrollToY(y) {
           try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
         }
-        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
-        if (vpFit && mapEl) vpFit.addEventListener("click", function () {
-          // Align the map's top with the viewport top so it fills the screen.
+        // Snap the map's top to the very top of the viewport → it fills the screen.
+        function fitMapToScreen() {
+          if (!mapEl) return;
+          sizeMap();
           var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
-          scrollToY(y);
-        });
+          scrollToY(y < 0 ? 0 : y);
+        }
+        // Keep the overlay navbar on screen: anchored at the map top normally,
+        // but pinned to the viewport bottom once the map's top scrolls off-screen
+        // (and the map is still substantially in view).
+        var overlayEl = mapEl ? mapEl.querySelector(".map-overlay") : null;
+        function positionOverlay() {
+          if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
+          var r = mapEl.getBoundingClientRect();
+          // When the map's top scrolls off-screen, move the navbar to the bottom
+          // of the map. It's absolutely positioned within the map, so it simply
+          // rides the map's bottom edge and scrolls away with it (no viewport
+          // pinning → never floats over the footer).
+          if (r.top < -2) overlayEl.classList.add("at-bottom");
+          else overlayEl.classList.remove("at-bottom");
+        }
+        window.addEventListener("scroll", positionOverlay, { passive: true });
+        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(function () { sizeMap(); positionOverlay(); }, 150); });
+        window.addEventListener("orientationchange", function () { setTimeout(function () { sizeMap(); positionOverlay(); }, 250); });
+        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
+        if (vpFit) vpFit.addEventListener("click", fitMapToScreen);
         if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
           // Scroll just past the bottom of the map to reveal what's below it.
           var r = mapEl.getBoundingClientRect();
@@ -1753,6 +1804,7 @@ export function renderAgencySite(
           var MNE_BOUNDS = [[41.6, 18.2], [43.7, 20.5]];
           leafletMap = L.map("kluche-map-canvas", {
             scrollWheelZoom: true,
+            zoomControl: false, // no +/- buttons; pinch / scroll / double-tap still zoom
             maxBounds: MNE_BOUNDS,
             maxBoundsViscosity: 1.0,
             minZoom: 8
@@ -1760,8 +1812,6 @@ export function renderAgencySite(
           L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
           }).addTo(leafletMap);
-          // Overlay covers the top-left → move the zoom control out from under it.
-          if (leafletMap.zoomControl) { try { leafletMap.zoomControl.setPosition("bottomleft"); } catch (e) {} }
 
           var bounds = [];
 
@@ -1799,16 +1849,13 @@ export function renderAgencySite(
             });
           });
 
-          // Price pins. Pin click → open the listing modal (reused opener).
+          // Minimal type-coloured dot per listing. Click → open the listing modal.
+          // Colour encodes the property type (residential / commercial / land).
           pinned.forEach(function (l) {
-            var isRent = l.dealType === "rent";
-            var label = (l.priceMinor != null && Number(l.priceMinor) > 0)
-              ? (fmtMoney(l.priceMinor, l.currency) + (isRent ? t("card.perMonth") : ""))
-              : t("card.priceOnRequest");
+            var typeCls = l.type === "commercial" ? "pin-com" : (l.type === "land" ? "pin-land" : "pin-res");
             var span = document.createElement("span");
-            span.className = "pin";
-            span.textContent = label;
-            var icon = L.divIcon({ className: "", html: span.outerHTML, iconSize: null });
+            span.className = "pin-dot " + typeCls;
+            var icon = L.divIcon({ className: "", html: span.outerHTML, iconSize: [18, 18], iconAnchor: [9, 9] });
             var marker = L.marker([l.lat, l.lng], { icon: icon }).addTo(leafletMap);
             marker.on("click", (function (id) { return function () { openModal(id); }; })(l.id));
             bounds.push([l.lat, l.lng]);
@@ -1825,7 +1872,9 @@ export function renderAgencySite(
           grid.style.display = "none";
           mapSection.style.display = "";
           initMap();
-          // Leaflet needs a size recalc once its container becomes visible.
+          // Size the canvas to the viewport, then let Leaflet recalc.
+          sizeMap();
+          positionOverlay();
           if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
           // Relocate the live hero search form into the overlay (move, don't clone).
           if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
@@ -1842,7 +1891,8 @@ export function renderAgencySite(
             heroHost.appendChild(heroForm);
           }
         }
-        mapBtn.addEventListener("click", showMap);
+        // Clicking the Map tab also snaps the map to fill the screen.
+        mapBtn.addEventListener("click", function () { showMap(); fitMapToScreen(); });
         listBtn.addEventListener("click", showList);
         // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
         showMap();
