@@ -1549,9 +1549,10 @@ export function renderAgencySite(
         });
         // This listing, on top.
         L.marker([l.lat, l.lng], { icon: miniPinIcon(l.type, "is-here"), interactive: false }).addTo(miniLayer);
-        miniMap.setView([l.lat, l.lng], 14);
+        var MINI_ZOOM = 12;
+        miniMap.setView([l.lat, l.lng], MINI_ZOOM);
         // The modal just became visible → Leaflet needs a size recalc.
-        setTimeout(function () { try { miniMap.invalidateSize(); miniMap.setView([l.lat, l.lng], 14); } catch (e) {} }, 60);
+        setTimeout(function () { try { miniMap.invalidateSize(); miniMap.setView([l.lat, l.lng], MINI_ZOOM); } catch (e) {} }, 60);
       }
       function closeModal() {
         modal.style.display = "none";
