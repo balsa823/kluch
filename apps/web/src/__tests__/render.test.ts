@@ -409,10 +409,14 @@ test("listings with no price show 'Price on request'", () => {
   expect(html).toContain('"card.priceOnRequest":"Price on request"');
 });
 
-test("Clear-filters link appears only when a filter is active", () => {
-  expect(renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] })).toContain('class="search-clear"');
-  expect(renderAgencySite(agency, listings, { text: "sea" })).toContain('class="search-clear"');
-  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
+test("Clear-filters button shows when a filter is active, hidden otherwise", () => {
+  // The clear control is always in the DOM (so JS can reveal it on filter change),
+  // but carries the `hidden` attribute until a filter is active.
+  const withLoc = renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] });
+  expect(withLoc).toContain('id="hero-clear"');
+  expect(withLoc).not.toMatch(/id="hero-clear"[^>]*hidden/);
+  expect(renderAgencySite(agency, listings, { text: "sea" })).not.toMatch(/id="hero-clear"[^>]*hidden/);
+  expect(renderAgencySite(agency, listings, {})).toMatch(/id="hero-clear"[^>]*hidden/);
 });
 
 test("price chip keeps its €range label after a server render (Search), not just 'Price'", () => {

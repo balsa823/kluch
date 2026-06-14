@@ -16,7 +16,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
   en: {
     "nav.properties":"Properties","nav.about":"About","nav.contact":"Contact",
     "search.city":"City","search.cityPh":"Any city","search.dealType":"Listing","search.dealAny":"Any","search.type":"Type","search.typeAny":"Any type","search.typeResidential":"Residential","search.typeLand":"Land","search.typeCommercial":"Commercial",
-    "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search","search.placeholder":"Search by address or ref code (e.g. ST-0042)",
+    "search.minPrice":"Min price (€)","search.maxPrice":"Max price (€)","search.bedrooms":"Bedrooms","search.code":"Ref. code","search.submit":"Search","search.apply":"Apply filters","search.placeholder":"Search by address or ref code (e.g. ST-0042)",
     "filter.location":"Location","filter.price":"Price","filter.listing":"Listing","filter.beds":"Beds","filter.type":"Type","opt.any":"Any",
     "loc.searchPh":"Search city or area…","loc.clear":"Clear","loc.done":"Done",
     "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
@@ -39,7 +39,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
   sr: {
     "nav.properties":"Nekretnine","nav.about":"O nama","nav.contact":"Kontakt",
     "search.city":"Grad","search.cityPh":"Bilo koji grad","search.dealType":"Tip","search.dealAny":"Sve","search.dealRent":"Najam","search.dealSale":"Prodaja","search.typeResidential":"Stambeno","search.typeLand":"Zemljište","search.typeCommercial":"Poslovno",
-    "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga","search.placeholder":"Pretraga po adresi ili šifri (npr. ST-0042)",
+    "search.minPrice":"Min. cijena","search.maxPrice":"Maks. cijena","search.bedrooms":"Spavaće sobe","search.code":"Šifra","search.submit":"Pretraga","search.apply":"Primijeni filtere","search.placeholder":"Pretraga po adresi ili šifri (npr. ST-0042)",
     "filter.location":"Lokacija","filter.price":"Cijena","filter.listing":"Tip","filter.beds":"Sobe","filter.type":"Vrsta","opt.any":"Sve",
     "loc.searchPh":"Pretraži grad ili oblast…","loc.clear":"Poništi","loc.done":"Gotovo",
     "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
@@ -59,7 +59,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
   ru: {
     "nav.properties":"Объекты","nav.about":"О нас","nav.contact":"Контакты",
     "search.city":"Город","search.cityPh":"Любой город","search.dealType":"Тип","search.dealAny":"Все","search.dealRent":"Аренда","search.dealSale":"Продажа","search.typeResidential":"Жилая","search.typeLand":"Земля","search.typeCommercial":"Коммерческая",
-    "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск","search.placeholder":"Поиск по адресу или коду (напр. ST-0042)",
+    "search.minPrice":"Цена от","search.maxPrice":"Цена до","search.bedrooms":"Спальни","search.code":"Код","search.submit":"Поиск","search.apply":"Применить фильтры","search.placeholder":"Поиск по адресу или коду (напр. ST-0042)",
     "filter.location":"Локация","filter.price":"Цена","filter.listing":"Тип","filter.beds":"Спальни","filter.type":"Вид","opt.any":"Все",
     "loc.searchPh":"Поиск города или района…","loc.clear":"Сбросить","loc.done":"Готово",
     "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",
@@ -79,7 +79,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
   tr: {
     "nav.properties":"İlanlar","nav.about":"Hakkımızda","nav.contact":"İletişim",
     "search.city":"Şehir","search.cityPh":"Tüm şehirler","search.dealType":"Tür","search.dealAny":"Tümü","search.dealRent":"Kiralık","search.dealSale":"Satılık","search.typeResidential":"Konut","search.typeLand":"Arsa","search.typeCommercial":"Ticari",
-    "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara","search.placeholder":"Adres veya koda göre ara (örn. ST-0042)",
+    "search.minPrice":"En düşük fiyat","search.maxPrice":"En yüksek fiyat","search.bedrooms":"Yatak odası","search.code":"Kod","search.submit":"Ara","search.apply":"Filtreleri uygula","search.placeholder":"Adres veya koda göre ara (örn. ST-0042)",
     "filter.location":"Konum","filter.price":"Fiyat","filter.listing":"Tür","filter.beds":"Oda","filter.type":"Tip","opt.any":"Tümü",
     "loc.searchPh":"Şehir veya bölge ara…","loc.clear":"Temizle","loc.done":"Tamam",
     "beds.1plus":"1+","beds.2plus":"2+","beds.3plus":"3+","beds.4plus":"4+",

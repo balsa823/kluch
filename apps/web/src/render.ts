@@ -600,8 +600,9 @@ export function renderAgencySite(
     }
     header.hero h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 auto 0.4rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
 
-    /* Search bar — now in a section below the hero (on the cream background). */
-    .search-section { padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 0; }
+    /* Search bar — now in a section below the hero (on the cream background).
+       z-index keeps the filter popovers above the map that sits right below. */
+    .search-section { position: relative; z-index: 600; padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 0; }
     form.search { max-width: 980px; margin: 0 auto; text-align: left; }
     .searchbar { display: flex; gap: 0.6rem; }
     .searchbar input {
@@ -616,9 +617,11 @@ export function renderAgencySite(
       box-shadow: 0 10px 30px rgba(0,0,0,.18);
     }
     .searchbar button.search-go:hover { filter: brightness(1.05); }
+    /* Pending filter changes → draw attention to the (re)search button. */
+    .searchbar button.search-go.dirty { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 45%, transparent); }
     .searchbar button.search-go svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2.4; }
 
-    .chips { display: flex; flex-wrap: wrap; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
+    .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
     .chip {
       position: relative; display: inline-flex; align-items: center; gap: 0.45rem;
       background: transparent; border: 0; cursor: pointer; color: var(--color-primary); font: inherit; font-size: 0.95rem; font-weight: 600;
@@ -671,7 +674,6 @@ export function renderAgencySite(
     .loc-row.sel .loc-check { background: var(--color-primary); border-color: var(--color-primary); }
     .loc-row.sel { background: #F4F0E6; }
     .loc-empty { padding: 0.8rem 0.5rem; color: #8A95A1; font-size: 0.9rem; }
-    .search-clear-row { margin: 0.9rem 0 0; }
     form.search .search-clear {
       display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
       color: #C0392B; font-size: 0.82rem; font-weight: 700;
@@ -912,7 +914,7 @@ export function renderAgencySite(
     .map-city.active { background: var(--color-primary); color: var(--overlay-ink); border-color: #fff; }
     /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
-    .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
+    .map-overlay .searchbar { display: none; }
     /* overflow stays visible so the filter popovers can drop down over the map
        (any overflow value would force overflow-y:auto and clip them); the 5 short
        chips wrap to a second line on very narrow screens instead of scrolling. */
@@ -1061,6 +1063,7 @@ export function renderAgencySite(
             </div>
           </div>
         </div>
+        <a class="search-clear" id="hero-clear" href="?"${hasActiveFilters(filters) ? "" : ' hidden'}><span class="x" aria-hidden="true">✕</span> <span data-i18n="tab.clear">${T_("tab.clear")}</span></a>
       </div>
 
       <!-- Hidden fields carry the active filters on submit (kept live by JS). -->
@@ -1070,7 +1073,6 @@ export function renderAgencySite(
         ${hiddenField("type", filters.type ?? "")}
         ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
       </div>
-      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?"><span class="x" aria-hidden="true">✕</span> <span data-i18n="tab.clear">${T_("tab.clear")}</span></a></p>` : ""}
     </form>
   </section>
 
@@ -1259,6 +1261,19 @@ export function renderAgencySite(
     var locSel = {};
     hidden.querySelectorAll('input[name="loc"]').forEach(function (i) { if (i.value) locSel[i.value] = true; });
 
+    // When a filter changes, the shown results are stale until you re-search →
+    // flip the button label to "Apply filters" and reveal the clear button.
+    var dirty = false;
+    var goLabel = form.querySelector(".search-go [data-i18n]");
+    var clearEl = document.getElementById("hero-clear");
+    function markDirty() {
+      if (dirty) return;
+      dirty = true;
+      if (goLabel) { goLabel.setAttribute("data-i18n", "search.apply"); goLabel.textContent = t("search.apply"); }
+      var go = form.querySelector(".search-go"); if (go) go.classList.add("dirty");
+      if (clearEl) clearEl.hidden = false;
+    }
+
     function closeAll(except) {
       document.querySelectorAll(".pop").forEach(function (p) { if (p !== except) p.classList.remove("open"); });
     }
@@ -1302,6 +1317,7 @@ export function renderAgencySite(
         if (g === "loc") { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); }
         else if (g === "price") { document.querySelector('#pop-price input[name="minPrice"]').value = ""; document.querySelector('#pop-price input[name="maxPrice"]').value = ""; syncPriceChip(); }
         else clearGroup(g);
+        markDirty();
         return;
       }
       var chip = e.target.closest(".chip[data-pop]");
@@ -1328,6 +1344,7 @@ export function renderAgencySite(
         if (g === "deal") setHidden("dealType", val);
         else if (g === "type") setHidden("type", val);
         else if (g === "beds") setHidden("bedrooms", val);
+        markDirty();
         closeAll(null);
       });
     });
@@ -1340,8 +1357,11 @@ export function renderAgencySite(
       var label = !active ? baseLabel("price") : ("€" + (minEl.value || "0") + "–" + (maxEl.value || "∞"));
       setChip("price", label, active);
     }
-    if (minEl) minEl.addEventListener("input", syncPriceChip);
-    if (maxEl) maxEl.addEventListener("input", syncPriceChip);
+    if (minEl) minEl.addEventListener("input", function () { syncPriceChip(); markDirty(); });
+    if (maxEl) maxEl.addEventListener("input", function () { syncPriceChip(); markDirty(); });
+    // Free-text query change → also dirty.
+    var qEl = form.querySelector('input[name="q"]');
+    if (qEl) qEl.addEventListener("input", markDirty);
 
     // Location: searchable multi-select (city or city/area)
     var listEl = document.getElementById("loc-list");
@@ -1378,10 +1398,10 @@ export function renderAgencySite(
         var row = e.target.closest(".loc-row"); if (!row) return;
         var key = row.dataset.key;
         if (locSel[key]) delete locSel[key]; else locSel[key] = true;
-        renderLoc(); syncLocChip(); syncLocHidden();
+        renderLoc(); syncLocChip(); syncLocHidden(); markDirty();
       });
       searchEl.addEventListener("input", renderLoc);
-      document.getElementById("loc-reset").addEventListener("click", function () { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); });
+      document.getElementById("loc-reset").addEventListener("click", function () { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); markDirty(); });
       document.getElementById("loc-apply").addEventListener("click", function () { closeAll(null); });
       renderLoc();
     }
