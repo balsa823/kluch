@@ -409,10 +409,14 @@ test("listings with no price show 'Price on request'", () => {
   expect(html).toContain('"card.priceOnRequest":"Price on request"');
 });
 
-test("Clear-filters link appears only when a filter is active", () => {
-  expect(renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] })).toContain('class="search-clear"');
-  expect(renderAgencySite(agency, listings, { text: "sea" })).toContain('class="search-clear"');
-  expect(renderAgencySite(agency, listings, {})).not.toContain('class="search-clear"');
+test("Clear-filters button shows when a filter is active, hidden otherwise", () => {
+  // The clear control is always in the DOM (so JS can reveal it on filter change),
+  // but carries the `hidden` attribute until a filter is active.
+  const withLoc = renderAgencySite(agency, listings, { locations: [{ city: "Budva" }] });
+  expect(withLoc).toContain('id="hero-action"');
+  expect(withLoc).not.toMatch(/id="hero-action"[^>]*hidden/);
+  expect(renderAgencySite(agency, listings, { text: "sea" })).not.toMatch(/id="hero-action"[^>]*hidden/);
+  expect(renderAgencySite(agency, listings, {})).toMatch(/id="hero-action"[^>]*hidden/);
 });
 
 test("price chip keeps its €range label after a server render (Search), not just 'Price'", () => {
@@ -696,18 +700,19 @@ test("mapEnabled:false renders no map view, toggle or Leaflet includes", () => {
   expect(html).not.toContain("leaflet@1.9.4");
 });
 
-test("mapEnabled:true renders the List/Map toggle, Leaflet includes and map containers", () => {
+test("mapEnabled:true renders the map (always shown), Leaflet includes and map containers", () => {
   const html = renderAgencySite(mapAgency, listings);
-  expect(html).toContain('data-i18n="view.list"');
-  expect(html).toContain('data-i18n="view.map"');
+  // The List/Map toggle was removed — the map shows alongside the list.
+  expect(html).not.toContain('id="view-list"');
   expect(html).toContain('id="kluche-map"');
   expect(html).toContain('id="kluche-map-canvas"');
-  expect(html).toContain('id="kluche-map-areas"');
+  // area-region polygons were removed — no longer emitted
+  expect(html).not.toContain('id="kluche-map-areas"');
   // Leaflet CSS + JS from unpkg
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
-  // grayscale tile filter
-  expect(html).toContain("grayscale(1)");
+  // Carto Voyager basemap tiles
+  expect(html).toContain("basemaps.cartocdn.com/rastertiles/voyager");
 });
 
 test("kluche-listings JSON carries numeric lat/lng for a known city and null for an unknown one", () => {
@@ -772,11 +777,12 @@ test("modal sizes with dvh + safe-area padding so the ✕ isn't clipped on iOS S
   expect(html).toMatch(/\.modal \{[^}]*env\(safe-area-inset-top/s);
 });
 
-test("when mapEnabled, the site opens on the map view by default", () => {
+test("when mapEnabled, the map is initialised on load (shown alongside the list)", () => {
   const mapAgency = { ...agency, mapEnabled: true } as typeof agency;
   const html = renderAgencySite(mapAgency, listings);
-  // the toggle JS calls showMap() at init so the map is visible without hunting for the tab
-  expect(html).toContain("showMap();");
+  // The map is always visible now; the script inits Leaflet on load.
+  expect(html).toContain("initMap();");
+  expect(html).toContain('class="search-section"');
 });
 
 // --- Map overlay city shortcuts --------------------------------------------
@@ -802,13 +808,13 @@ describe("map overlay city shortcuts", () => {
     expect(Math.abs(pg.lat - 42.44)).toBeLessThan(0.01);
   });
 
-  test("is a fixed Podgorica+Budva shortlist, independent of which cities have listings", () => {
-    // Listings only in Kotor — shortcuts stay the curated [Podgorica, Budva].
+  test("is a fixed top-6-towns shortlist, independent of which cities have listings", () => {
+    // Listings only in Kotor — shortcuts stay the curated 6 biggest towns.
     const kotorOnly: Property[] = [{ ...listings[0], id: "k1", city: "Kotor" } as Property];
     const html = renderAgencySite(mapAgency, kotorOnly);
     const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
     const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
-    expect(data.map((d: { name: string }) => d.name)).toEqual(["Podgorica", "Budva"]);
+    expect(data.map((d: { name: string }) => d.name)).toEqual(["Podgorica", "Nikšić", "Bar", "Herceg Novi", "Budva", "Cetinje", "Tivat"]);
   });
 
   test("emits no kluche-map-cities blob when mapEnabled is false", () => {
@@ -817,34 +823,6 @@ describe("map overlay city shortcuts", () => {
   });
 });
 
-// --- Map region polygon assignment -----------------------------------------
-
-describe("map area polygon assignment", () => {
-  const areasOf = (html: string) => {
-    const m = html.match(/<script type="application\/json" id="kluche-map-areas">([\s\S]*?)<\/script>/);
-    return JSON.parse(m![1].replace(/\\u003c/g, "<")) as Array<{ name: string; polygon?: { type: string } }>;
-  };
-
-  test("area WITH a drawn polygon → that polygon", () => {
-    const ls = [{ ...listings[0], id: "p1", city: "Podgorica", area: "Stari Aerodrom" } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Stari Aerodrom");
-    expect(a?.polygon?.type).toBe("Polygon");
-  });
-
-  test("area WITHOUT a drawn polygon → no polygon (circle), NOT the city shape", () => {
-    // Zabjelo has centre coords but no hand-drawn polygon.
-    const ls = [{ ...listings[0], id: "p2", city: "Podgorica", area: "Zabjelo" } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Zabjelo");
-    expect(a).toBeTruthy();
-    expect(a?.polygon).toBeUndefined();
-  });
-
-  test("city-grouped listing (no area) → the city's combined MultiPolygon", () => {
-    const ls = [{ ...listings[0], id: "p3", city: "Podgorica", area: null } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Podgorica");
-    expect(a?.polygon?.type).toBe("MultiPolygon");
-  });
-});
 
 // --- Map overlay markup -----------------------------------------------------
 
@@ -856,11 +834,11 @@ describe("map overlay markup", () => {
     expect(html).toContain('id="map-overlay-filters"');
   });
 
-  test("renders the three viewport buttons (top / fit / below)", () => {
+  test("renders the centre expand/collapse button", () => {
     const html = renderAgencySite(mapAgency, listings);
-    expect(html).toContain('id="vp-top"');
-    expect(html).toContain('id="vp-fit"');
-    expect(html).toContain('id="vp-below"');
+    expect(html).toContain('id="map-expand"');
+    expect(html).toContain('class="ic-expand"');
+    expect(html).toContain('class="ic-collapse"');
   });
 });
 

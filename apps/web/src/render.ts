@@ -1,5 +1,5 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
-import { MNE_LOCATIONS, cityCoords, areaCoords, cityPolygon, areaPolygon, type PolyGeometry } from "@kluche/locations";
+import { MNE_LOCATIONS, cityCoords, areaCoords } from "@kluche/locations";
 import { DICT, tr, type Lang } from "./i18n.js";
 
 /**
@@ -340,48 +340,20 @@ export function renderAgencySite(
 
   // --- Map view (only when the agency has enabled it) -----------------------
   const mapEnabled = !!agency.mapEnabled;
-  // Distinct area/city centres present among this page's listings. Each centre
-  // gets a name (the area when it resolved to area coords, else the city), the
-  // coord, a count, and the `?loc=` value the chip/circle navigates to.
-  // `polygon` is the hand-drawn outline when one exists for this area/city;
-  // the client draws it instead of a circle (lat/lng stay as the label anchor).
-  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
-  const mapAreas: MapArea[] = [];
-  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist
-  // for now — not derived from listings. Each gets coords + a default zoom.
-  const MAP_SHORTCUT_CITIES = ["Podgorica", "Budva"];
+  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist,
+  // ordered by population (largest first).
+  // NOTE: area-region polygons were removed for now (to be re-added later); the
+  // map currently shows only the per-listing pins + the city shortcuts.
+  const MAP_SHORTCUT_CITIES = ["Podgorica", "Nikšić", "Bar", "Herceg Novi", "Budva", "Cetinje", "Tivat"];
   type MapCity = { name: string; lat: number; lng: number; zoom: number };
   const mapCities: MapCity[] = [];
   if (mapEnabled) {
     for (const city of MAP_SHORTCUT_CITIES) {
       const c = cityCoords(city);
       if (!c) continue;
-      const zoom = city === "Podgorica" || city === "Nikšić" ? 13 : 14;
+      const zoom = city === "Podgorica" || city === "Nikšić" ? 12 : 13;
       mapCities.push({ name: city, lat: c.lat, lng: c.lng, zoom });
     }
-  }
-  if (mapEnabled) {
-    const byKey = new Map<string, MapArea>();
-    for (const l of listings) {
-      const area = (l as { area?: string | null }).area;
-      // Group at the area level when the area resolves to *either* a drawn
-      // polygon or a legacy centre point; otherwise group at the city level.
-      const ap = area ? areaPolygon(l.city, area) : null;
-      const ac = area ? areaCoords(l.city, area) : null;
-      const grouped = !!area && (!!ap || !!ac);
-      const centre = ac || cityCoords(l.city);
-      if (!centre) continue; // unknown city → not grouped
-      const name = grouped ? (area as string) : l.city;
-      const loc = grouped ? `${l.city}|${area}` : l.city;
-      // Area-grouped → its own polygon or nothing (circle); never the city shape.
-      // City-grouped (no/unknown area) → the city's combined MultiPolygon.
-      const polygon = (grouped ? ap : cityPolygon(l.city)) || undefined;
-      const key = `${centre.lat},${centre.lng}|${name}`;
-      const existing = byKey.get(key);
-      if (existing) existing.count += 1;
-      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc, polygon });
-    }
-    mapAreas.push(...byKey.values());
   }
 
   // Pager: only shown when there are more results than fit on one page.
@@ -623,19 +595,21 @@ export function renderAgencySite(
     header.hero {
       ${heroStyle}
       color: #fff;
-      padding: clamp(3rem, 12vw, 7rem) clamp(1rem, 4vw, 2.5rem) clamp(4rem, 9vw, 6rem);
+      padding: clamp(1.8rem, 4.5vw, 3rem) clamp(1rem, 4vw, 2.5rem);
       text-align: center;
     }
-    header.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 auto 1.5rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
+    header.hero h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 auto 0.4rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
 
-    /* Hero search bar (keypartners-style) */
+    /* Search bar — now in a section below the hero (on the cream background).
+       z-index keeps the filter popovers above the map that sits right below. */
+    .search-section { position: relative; z-index: 600; padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 0; }
     form.search { max-width: 980px; margin: 0 auto; text-align: left; }
     .searchbar { display: flex; gap: 0.6rem; }
     .searchbar input {
-      flex: 1; border: 0; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
-      background: #fff; color: var(--color-ink); box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 0;
+      flex: 1; border: 1px solid #E7DFCF; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
+      background: #fff; color: var(--color-ink); box-shadow: 0 1px 3px rgba(0,0,0,.06); min-width: 0;
     }
-    .searchbar input:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), 0 10px 30px rgba(0,0,0,.18); }
+    .searchbar input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 30%, transparent); }
     .searchbar button.search-go {
       display: flex; align-items: center; gap: 0.5rem; border: 0; cursor: pointer;
       background: var(--color-accent); color: #fff; font: inherit; font-weight: 700; letter-spacing: .04em;
@@ -645,13 +619,13 @@ export function renderAgencySite(
     .searchbar button.search-go:hover { filter: brightness(1.05); }
     .searchbar button.search-go svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2.4; }
 
-    .chips { display: flex; flex-wrap: wrap; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
+    .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
     .chip {
       position: relative; display: inline-flex; align-items: center; gap: 0.45rem;
-      background: transparent; border: 0; cursor: pointer; color: #fff; font: inherit; font-size: 0.95rem; font-weight: 500;
+      background: transparent; border: 0; cursor: pointer; color: var(--color-primary); font: inherit; font-size: 0.95rem; font-weight: 600;
       padding: 0.2rem 0;
     }
-    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: #fff; fill: none; stroke-width: 2.2; opacity: 0.9; }
+    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: var(--color-primary); fill: none; stroke-width: 2.2; opacity: 0.9; }
     .chip .clear {
       display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem;
       border-radius: 999px; font-size: 0.8rem; line-height: 1; opacity: 0.85;
@@ -698,9 +672,21 @@ export function renderAgencySite(
     .loc-row.sel .loc-check { background: var(--color-primary); border-color: var(--color-primary); }
     .loc-row.sel { background: #F4F0E6; }
     .loc-empty { padding: 0.8rem 0.5rem; color: #8A95A1; font-size: 0.9rem; }
-    .search-clear-row { margin: 1rem 0 0; }
-    form.search .search-clear { color: #fff; font-size: 0.82rem; font-weight: 600; text-decoration: underline; opacity: 0.85; }
-    form.search .search-clear:hover { opacity: 1; }
+    /* Contextual filter button: red "Clear filters" when filters are applied,
+       orange "Apply filters" once you've changed something (not yet applied),
+       hidden when nothing is applied. */
+    form.search .filter-action {
+      display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
+      color: #C0392B; font-size: 0.82rem; font-weight: 700;
+      border: 1px solid color-mix(in srgb, #C0392B 35%, transparent); border-radius: 999px; padding: 0.3rem 0.7rem;
+    }
+    form.search .filter-action .ico { font-size: 0.95rem; line-height: 1; }
+    form.search .filter-action:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
+    form.search .filter-action.is-apply { color: #D97706; border-color: color-mix(in srgb, #D97706 45%, transparent); }
+    form.search .filter-action.is-apply:hover { background: color-mix(in srgb, #D97706 12%, transparent); border-color: #D97706; }
+    /* Over the map (expanded view) → solid pill so the red/orange text stays legible. */
+    .map-overlay form.search .filter-action { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .map-overlay form.search .filter-action:hover { background: #fff; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
@@ -849,9 +835,12 @@ export function renderAgencySite(
       background: rgba(255,255,255,0.92); border: 0; border-radius: 999px;
       width: 2rem; height: 2rem; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-ink);
     }
-    .modal-gallery { position: relative; background: #000; min-height: 240px; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
+    /* Fixed 6:4 frame so every image fills the same box — the modal never jumps
+       when you swipe between images of different sizes. align-self:start keeps
+       the ratio in the desktop grid (instead of stretching to the details column). */
+    .modal-gallery { position: relative; background: #000; aspect-ratio: 6 / 4; align-self: start; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
     @media (max-width: 720px) { .modal-gallery { border-radius: 16px 16px 0 0; } }
-    .gal-img { width: 100%; height: 100%; max-height: 92vh; max-height: 88dvh; object-fit: cover; display: block; }
+    .gal-img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .gal-nav {
       position: absolute; top: 50%; transform: translateY(-50%);
       background: rgba(0,0,0,0.5); color: #fff; border: 0; width: 2.4rem; height: 2.4rem;
@@ -886,11 +875,11 @@ export function renderAgencySite(
       font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
     }
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
-    /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
-    #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
-    /* Fallback height before JS sizes it; JS sets the precise viewport height
-       (innerHeight) and keeps it updated on resize. */
-    #kluche-map-canvas { height: 100dvh; min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Compact by default (a preview), expands to full screen on the centre button. */
+    #kluche-map { position: relative; margin: 0 0 1rem; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    #kluche-map-canvas { height: clamp(300px, 42vh, 460px); width: 100%; overflow: hidden; }
+    #kluche-map.expanded { position: fixed; inset: 0; z-index: 900; margin: 0; border-radius: 0; }
+    #kluche-map.expanded #kluche-map-canvas { height: 100dvh; }
     /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
@@ -904,33 +893,26 @@ export function renderAgencySite(
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
-    /* When the map's top scrolls off-screen, the navbar moves to the bottom of
-       the MAP (scrolls away with it, never floats over the footer). */
-    .map-overlay.at-bottom {
-      position: absolute; top: auto; bottom: 0;
-      background: linear-gradient(to top,
-        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
-        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
-        transparent 100%);
-      padding: 1.8rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
-    }
-    .map-overlay.at-bottom .pop { top: auto; bottom: calc(100% + 14px); }
-    .map-overlay.at-bottom .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
-    .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
-    /* Viewport buttons: back-to-top / fit-to-screen / jump-below. */
-    .map-vp { display: flex; gap: 0.4rem; flex: 0 0 auto; }
-    .map-vp button {
-      width: 2.3rem; height: 2.3rem; display: flex; align-items: center; justify-content: center;
-      border: 1px solid color-mix(in srgb, var(--overlay-ink) 45%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 55%, transparent);
-      border-radius: 11px; cursor: pointer; color: var(--overlay-ink); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-      box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: background .15s, transform .1s;
+    /* Centre expand button (collapsed) → corner collapse button (expanded). */
+    .map-expand {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 600;
+      display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;
+      font: inherit; font-weight: 700; font-size: 0.9rem; color: var(--overlay-ink);
+      background: color-mix(in srgb, var(--color-primary) 82%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--overlay-ink) 55%, transparent);
+      border-radius: 999px; padding: 0.7rem 1.1rem;
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.35); transition: background .15s, transform .1s;
     }
-    .map-vp button:hover { background: var(--color-primary); transform: translateY(-1px); }
-    .map-vp button:active { transform: translateY(0); }
-    .map-vp svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .map-expand:hover { background: var(--color-primary); transform: translate(-50%, -50%) scale(1.04); }
+    .map-expand svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #kluche-map.expanded .map-expand { left: auto; right: 1rem; top: calc(1rem + env(safe-area-inset-top,0px)); transform: none; padding: 0.6rem; border-radius: 12px; }
+    #kluche-map.expanded .map-expand:hover { transform: scale(1.06); }
+    .map-expand .ic-collapse, .map-expand .label-collapse { display: none; }
+    #kluche-map.expanded .map-expand .ic-expand, #kluche-map.expanded .map-expand .label-expand { display: none; }
+    #kluche-map.expanded .map-expand .ic-collapse { display: inline; }
     .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
     .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
@@ -938,7 +920,7 @@ export function renderAgencySite(
     .map-city.active { background: var(--color-primary); color: var(--overlay-ink); border-color: #fff; }
     /* hero-form relocated into overlay: search hidden, chips become the navbar */
     .map-overlay #hero-form { margin: 0; }
-    .map-overlay .searchbar, .map-overlay .search-clear-row { display: none; }
+    .map-overlay .searchbar { display: none; }
     /* overflow stays visible so the filter popovers can drop down over the map
        (any overflow value would force overflow-y:auto and clip them); the 5 short
        chips wrap to a second line on very narrow screens instead of scrolling. */
@@ -946,15 +928,30 @@ export function renderAgencySite(
     .map-overlay .chip { color: var(--overlay-ink); text-shadow: var(--overlay-ink-shadow); }
     .map-overlay .chip .caret { stroke: var(--overlay-ink); }
     /* Overlay sits at the top → popovers open downward (the default). */
-    .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
-    .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
-    .leaflet-tooltip.area-label::before { display: none; }
+    /* Carto Voyager basemap — shown in colour (no grayscale filter). */
     /* Minimal listing dot, coloured by property type (residential/commercial/land). */
     .pin-dot { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; transition: transform .1s; }
     .pin-dot:hover { transform: scale(1.18); }
     .pin-res { background: #1F3A5C; }
     .pin-com { background: #C98A3B; }
-    .pin-land { background: #3A7D5C; }` : ""}
+    .pin-land { background: #3A7D5C; }
+    /* Listing modal: location mini-map. */
+    .modal-minimap-wrap { margin: 0.2rem 0 1rem; }
+    .modal-minimap-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8a8676; margin: 0 0 .45rem; }
+    .modal-minimap { position: relative; height: 170px; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-line, #E7DFCF); cursor: pointer; }
+    .modal-minimap .leaflet-container { background: #eee; }
+    .modal-minimap-cta {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500; pointer-events: none;
+      background: linear-gradient(to top, rgba(31,58,92,.92), transparent); color: #fff; font: inherit; font-weight: 700; font-size: .85rem;
+      padding: 1.4rem .7rem .6rem; display: flex; align-items: center; gap: .4rem;
+    }
+    .modal-minimap-cta svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal-minimap-pin { display: block; background: #1F3A5C; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,.45); box-sizing: border-box; }
+    .modal-minimap-pin.is-here { width: 20px; height: 20px; }
+    .modal-minimap-pin.near { width: 12px; height: 12px; opacity: .85; }
+    .modal-minimap-pin.t-com { background: #C98A3B; }
+    .modal-minimap-pin.t-land { background: #3A7D5C; }
+    .modal-minimap-note { font-size: 0.72rem; color: #8a8676; margin: .45rem 0 0; }` : ""}
   </style>
 </head>
 <body>
@@ -994,6 +991,9 @@ export function renderAgencySite(
   <header class="hero" id="top">
     ${heroH1}
     ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
+  </header>
+
+  <section class="search-section">
     <form class="search" method="get" id="hero-form">
       <div class="searchbar">
         <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="${T_("search.placeholder")}" />
@@ -1069,6 +1069,7 @@ export function renderAgencySite(
             </div>
           </div>
         </div>
+        <a class="filter-action" id="hero-action" href="?"${hasActiveFilters(filters) ? "" : ' hidden'}><span class="ico" aria-hidden="true">✕</span> <span class="lbl" data-i18n="tab.clear">${T_("tab.clear")}</span></a>
       </div>
 
       <!-- Hidden fields carry the active filters on submit (kept live by JS). -->
@@ -1078,44 +1079,32 @@ export function renderAgencySite(
         ${hiddenField("type", filters.type ?? "")}
         ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
       </div>
-      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">${T_("tab.clear")}</a></p>` : ""}
     </form>
-  </header>
+  </section>
 
   <script type="application/json" id="kluche-locations">${jsonForScript(MNE_LOCATIONS)}</script>
 
   <main>
     <section id="properties">
-      <h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>
+      ${
+        hasActiveFilters(filters)
+          ? `<h2 class="section-head" data-i18n="properties.results" data-count="${total}">${esc(T_("properties.results").replace("{n}", String(total)))}</h2>`
+          : `<h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>`
+      }
       ${
         mapEnabled
-          ? `<div class="view-toggle" role="group" aria-label="View">
-        <button type="button" id="view-list" class="active" data-i18n="view.list">${T_("view.list")}</button>
-        <button type="button" id="view-map" data-i18n="view.map">${T_("view.map")}</button>
-      </div>
-      <section id="kluche-map" style="display:none">
+          ? `<section id="kluche-map">
         <div id="kluche-map-canvas"></div>
         <div class="map-overlay">
-          <div class="map-overlay-top">
-            <div class="map-overlay-cities-wrap">
-              <div class="map-overlay-cities" id="map-overlay-cities"></div>
-            </div>
-            <div class="map-vp">
-              <button type="button" id="vp-top" aria-label="${attr(T_("map.toTop"))}" title="${attr(T_("map.toTop"))}">
-                <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
-              </button>
-              <button type="button" id="vp-fit" aria-label="${attr(T_("map.fitScreen"))}" title="${attr(T_("map.fitScreen"))}">
-                <svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
-              </button>
-              <button type="button" id="vp-below" aria-label="${attr(T_("map.below"))}" title="${attr(T_("map.below"))}">
-                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-            </div>
-          </div>
+          <div class="map-overlay-cities" id="map-overlay-cities"></div>
           <div id="map-overlay-filters"></div>
         </div>
+        <button type="button" class="map-expand" id="map-expand" aria-label="${attr(T_("map.expand"))}" title="${attr(T_("map.expand"))}">
+          <svg class="ic-expand" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <svg class="ic-collapse" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <span class="label-expand" data-i18n="map.expand">${T_("map.expand")}</span>
+        </button>
       </section>
-      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
       <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`
           : ""
       }
@@ -1155,6 +1144,16 @@ export function renderAgencySite(
         <p class="modal-city"></p>
         <div class="modal-badges"></div>
         <p class="modal-type"></p>
+        ${mapEnabled ? `<div class="modal-minimap-wrap" id="modal-minimap-wrap" hidden>
+          <p class="modal-minimap-label" data-i18n="map.location">${T_("map.location")}</p>
+          <div class="modal-minimap" id="kluche-minimap" role="button" tabindex="0" aria-label="${attr(T_("map.seeNearby"))}">
+            <div class="modal-minimap-cta">
+              <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><line x1="21" y1="3" x2="14" y2="10"/><circle cx="7" cy="17" r="3"/></svg>
+              <span data-i18n="map.seeNearby">${T_("map.seeNearby")}</span>
+            </div>
+          </div>
+          <p class="modal-minimap-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        </div>` : ""}
         <button class="call-btn modal-call" type="button" aria-label="Call"${agency.phone ? "" : ' style="display:none"'}>
           <span aria-hidden="true">📞</span> <span data-i18n="card.call">${T_("card.call")}</span>
         </button>
@@ -1163,7 +1162,7 @@ export function renderAgencySite(
     </div>
   </div>
 
-  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => { const pin = listingPin(l); return { id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)), lat: pin ? pin.lat : null, lng: pin ? pin.lng : null }; }))}</script>
+  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => { const pin = listingPin(l); return { id: l.id, name: l.name, city: l.city, area: (l as { area?: string | null }).area ?? null, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)), lat: pin ? pin.lat : null, lng: pin ? pin.lng : null }; }))}</script>
 
   ${mapEnabled ? `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>` : ""}
   <script>
@@ -1174,7 +1173,14 @@ export function renderAgencySite(
   function applyLang() {
     // Only rewrite leaf elements: setting textContent on a node that wraps form
     // controls (e.g. a <label> around an <input>) would delete those controls.
-    document.querySelectorAll("[data-i18n]").forEach((el) => { if (!el.firstElementChild) el.textContent = t(el.getAttribute("data-i18n")); });
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      if (el.firstElementChild) return;
+      var s = t(el.getAttribute("data-i18n"));
+      // Templated strings (e.g. "Results for your filters ({n})") carry their
+      // number in data-count so re-translation keeps the count.
+      if (el.hasAttribute("data-count")) s = s.replace("{n}", el.getAttribute("data-count"));
+      el.textContent = s;
+    });
     document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
     document.documentElement.lang = LANG;
     document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
@@ -1261,6 +1267,33 @@ export function renderAgencySite(
     var locSel = {};
     hidden.querySelectorAll('input[name="loc"]').forEach(function (i) { if (i.value) locSel[i.value] = true; });
 
+    // Contextual inline button next to the chips:
+    //  • no filters & nothing changed → hidden
+    //  • a filter changed (not applied yet) → orange "Apply filters" (click = submit)
+    //  • filters applied (page loaded with them) → red "Clear filters" (click = ?)
+    var dirty = false;
+    var actionEl = document.getElementById("hero-action");
+    var actionLbl = actionEl ? actionEl.querySelector(".lbl") : null;
+    var actionIco = actionEl ? actionEl.querySelector(".ico") : null;
+    function markDirty() {
+      if (dirty || !actionEl) return;
+      dirty = true;
+      actionEl.hidden = false;
+      actionEl.classList.add("is-apply");
+      if (actionIco) actionIco.textContent = "";
+      if (actionLbl) { actionLbl.setAttribute("data-i18n", "search.apply"); actionLbl.textContent = t("search.apply"); }
+    }
+    if (actionEl) {
+      actionEl.addEventListener("click", function (e) {
+        // If applying/clearing from the full-screen map, remember to re-open it
+        // expanded after the reload (so you don't get bounced back to compact).
+        var m = document.getElementById("kluche-map");
+        if (m && m.classList.contains("expanded")) { try { sessionStorage.setItem("kluche_map_expanded", "1"); } catch (e2) {} }
+        // Apply mode → submit the form (apply the new filters); clear mode → href="?".
+        if (actionEl.classList.contains("is-apply")) { e.preventDefault(); form.submit(); }
+      });
+    }
+
     function closeAll(except) {
       document.querySelectorAll(".pop").forEach(function (p) { if (p !== except) p.classList.remove("open"); });
     }
@@ -1304,6 +1337,7 @@ export function renderAgencySite(
         if (g === "loc") { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); }
         else if (g === "price") { document.querySelector('#pop-price input[name="minPrice"]').value = ""; document.querySelector('#pop-price input[name="maxPrice"]').value = ""; syncPriceChip(); }
         else clearGroup(g);
+        markDirty();
         return;
       }
       var chip = e.target.closest(".chip[data-pop]");
@@ -1330,6 +1364,7 @@ export function renderAgencySite(
         if (g === "deal") setHidden("dealType", val);
         else if (g === "type") setHidden("type", val);
         else if (g === "beds") setHidden("bedrooms", val);
+        markDirty();
         closeAll(null);
       });
     });
@@ -1342,8 +1377,11 @@ export function renderAgencySite(
       var label = !active ? baseLabel("price") : ("€" + (minEl.value || "0") + "–" + (maxEl.value || "∞"));
       setChip("price", label, active);
     }
-    if (minEl) minEl.addEventListener("input", syncPriceChip);
-    if (maxEl) maxEl.addEventListener("input", syncPriceChip);
+    if (minEl) minEl.addEventListener("input", function () { syncPriceChip(); markDirty(); });
+    if (maxEl) maxEl.addEventListener("input", function () { syncPriceChip(); markDirty(); });
+    // Free-text query change → also dirty.
+    var qEl = form.querySelector('input[name="q"]');
+    if (qEl) qEl.addEventListener("input", markDirty);
 
     // Location: searchable multi-select (city or city/area)
     var listEl = document.getElementById("loc-list");
@@ -1380,10 +1418,10 @@ export function renderAgencySite(
         var row = e.target.closest(".loc-row"); if (!row) return;
         var key = row.dataset.key;
         if (locSel[key]) delete locSel[key]; else locSel[key] = true;
-        renderLoc(); syncLocChip(); syncLocHidden();
+        renderLoc(); syncLocChip(); syncLocHidden(); markDirty();
       });
       searchEl.addEventListener("input", renderLoc);
-      document.getElementById("loc-reset").addEventListener("click", function () { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); });
+      document.getElementById("loc-reset").addEventListener("click", function () { locSel = {}; renderLoc(); syncLocChip(); syncLocHidden(); markDirty(); });
       document.getElementById("loc-apply").addEventListener("click", function () { closeAll(null); });
       renderLoc();
     }
@@ -1497,6 +1535,52 @@ export function renderAgencySite(
         renderTour(id);
         modal.style.display = "flex";
         document.body.style.overflow = "hidden";
+        renderMiniMap(l);
+      }
+
+      // Listing modal location mini-map: this property pinned + nearby listings
+      // (same city, and same area when this one is area-tagged). Non-interactive;
+      // tapping it opens the full map flown to this listing.
+      var miniMap = null, miniLayer = null, miniCurrentId = null, miniBound = false;
+      function miniPinIcon(type, cls) {
+        var sp = document.createElement("span");
+        sp.className = "modal-minimap-pin " + cls + (type === "commercial" ? " t-com" : type === "land" ? " t-land" : "");
+        var size = cls === "is-here" ? 20 : 12;
+        return L.divIcon({ className: "", html: sp.outerHTML, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      }
+      function renderMiniMap(l) {
+        var wrap = document.getElementById("modal-minimap-wrap");
+        if (!wrap) return;
+        if (typeof L === "undefined" || typeof l.lat !== "number" || typeof l.lng !== "number") { wrap.hidden = true; return; }
+        wrap.hidden = false;
+        miniCurrentId = l.id;
+        var el = document.getElementById("kluche-minimap");
+        if (!miniMap) {
+          miniMap = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false });
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20 }).addTo(miniMap);
+          miniLayer = L.layerGroup().addTo(miniMap);
+        }
+        if (!miniBound) {
+          miniBound = true;
+          function openFull() { closeModal(); if (window.__klucheOpenMapAt && miniCurrentId != null) window.__klucheOpenMapAt(miniCurrentId); }
+          el.addEventListener("click", openFull);
+          el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFull(); } });
+        }
+        miniLayer.clearLayers();
+        // Nearby pins (drawn first, under the highlighted one).
+        Object.keys(byId).forEach(function (k) {
+          var n = byId[k];
+          if (!n || n.id === l.id || typeof n.lat !== "number" || typeof n.lng !== "number") return;
+          if (n.city !== l.city) return;
+          if (l.area && n.area !== l.area) return;
+          L.marker([n.lat, n.lng], { icon: miniPinIcon(n.type, "near"), interactive: false }).addTo(miniLayer);
+        });
+        // This listing, on top.
+        L.marker([l.lat, l.lng], { icon: miniPinIcon(l.type, "is-here"), interactive: false }).addTo(miniLayer);
+        var MINI_ZOOM = 12;
+        miniMap.setView([l.lat, l.lng], MINI_ZOOM);
+        // The modal just became visible → Leaflet needs a size recalc.
+        setTimeout(function () { try { miniMap.invalidateSize(); miniMap.setView([l.lat, l.lng], MINI_ZOOM); } catch (e) {} }, 60);
       }
       function closeModal() {
         modal.style.display = "none";
@@ -1677,18 +1761,16 @@ export function renderAgencySite(
       }
 
       ${mapEnabled ? `
-      // --- Map view: List/Map toggle + Leaflet (area circles + approx pins) -
+      // --- Map: compact preview (always shown next to the list) + Leaflet -----
       // String ops only here (this is a template literal — regex literals would
       // have their escapes stripped and break the whole inline script).
       (function () {
-        var listBtn = document.getElementById("view-list");
-        var mapBtn = document.getElementById("view-map");
         var mapSection = document.getElementById("kluche-map");
-        var grid = document.querySelector("#properties .grid");
-        if (!listBtn || !mapBtn || !mapSection || !grid) return;
+        if (!mapSection) return;
 
-        // Hero search form gets relocated into the overlay in Map view (the node
-        // is moved, not cloned, so its listeners survive); moved back in List view.
+        // The search form lives below the hero by default; it gets relocated into
+        // the map overlay only while the map is EXPANDED (the node is moved, not
+        // cloned, so its listeners survive), and moved back on collapse.
         var heroForm = document.getElementById("hero-form");
         var filterSlot = document.getElementById("map-overlay-filters");
         var heroHost = heroForm ? heroForm.parentNode : null;
@@ -1716,62 +1798,49 @@ export function renderAgencySite(
           if (citiesBox) citiesBox.appendChild(b);
         });
 
-        // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
+        // Expand / collapse: the centre button toggles the compact map between a
+        // preview and a full-screen (position:fixed) view. Leaflet needs a size
+        // recalc whenever the container changes size.
         var mapEl = document.getElementById("kluche-map");
-        var mapCanvasEl = document.getElementById("kluche-map-canvas");
-        var siteNav = document.querySelector("nav.site");
-        var vpTop = document.getElementById("vp-top");
-        var vpFit = document.getElementById("vp-fit");
-        var vpBelow = document.getElementById("vp-below");
-        function navHeight() { return siteNav ? siteNav.offsetHeight : 0; }
-        // Size the map canvas to the FULL viewport so, once snapped to the top,
-        // it fills the screen edge-to-edge with no leftover band (the sticky nav
-        // auto-hides on scroll, so we don't reserve space for it).
-        function sizeMap() {
-          if (!mapCanvasEl) return;
-          var h = Math.max(320, window.innerHeight);
-          mapCanvasEl.style.height = h + "px";
-          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
-        }
-        function scrollToY(y) {
-          try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
-        }
-        // Snap the map's top to the very top of the viewport → it fills the screen.
-        function fitMapToScreen() {
+        var expandBtn = document.getElementById("map-expand");
+        function recalcMap() { if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} } }
+        function setExpanded(on) {
           if (!mapEl) return;
-          sizeMap();
-          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
-          scrollToY(y < 0 ? 0 : y);
+          if (on) mapEl.classList.add("expanded");
+          else mapEl.classList.remove("expanded");
+          // Lock background scroll while full-screen.
+          document.body.style.overflow = on ? "hidden" : "";
+          // Filters live in the overlay only while expanded; below the hero otherwise.
+          if (on) {
+            if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) filterSlot.appendChild(heroForm);
+          } else {
+            if (heroForm && heroHost && heroForm.parentNode !== heroHost) heroHost.appendChild(heroForm);
+          }
+          // Two recalcs: one immediately, one after the CSS transition settles.
+          recalcMap();
+          setTimeout(recalcMap, 320);
         }
-        // Keep the overlay navbar on screen: anchored at the map top normally,
-        // but pinned to the viewport bottom once the map's top scrolls off-screen
-        // (and the map is still substantially in view).
-        var overlayEl = mapEl ? mapEl.querySelector(".map-overlay") : null;
-        function positionOverlay() {
-          if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
-          var r = mapEl.getBoundingClientRect();
-          // When the map's top scrolls off-screen, move the navbar to the bottom
-          // of the map. It's absolutely positioned within the map, so it simply
-          // rides the map's bottom edge and scrolls away with it (no viewport
-          // pinning → never floats over the footer).
-          if (r.top < -2) overlayEl.classList.add("at-bottom");
-          else overlayEl.classList.remove("at-bottom");
-        }
-        window.addEventListener("scroll", positionOverlay, { passive: true });
-        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(function () { sizeMap(); positionOverlay(); }, 150); });
-        window.addEventListener("orientationchange", function () { setTimeout(function () { sizeMap(); positionOverlay(); }, 250); });
-        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
-        if (vpFit) vpFit.addEventListener("click", fitMapToScreen);
-        if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
-          // Scroll just past the bottom of the map to reveal what's below it.
-          var r = mapEl.getBoundingClientRect();
-          scrollToY(r.bottom + window.pageYOffset);
+        if (expandBtn) expandBtn.addEventListener("click", function () {
+          setExpanded(!mapEl.classList.contains("expanded"));
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape" || !mapEl || !mapEl.classList.contains("expanded")) return;
+          // If a listing modal is open over the map, let Escape close that first.
+          var md = document.getElementById("kluche-modal");
+          if (md && md.style.display !== "none") return;
+          setExpanded(false);
         });
 
-        // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
-        // the visitor's other active filters out of the way — same convention the
-        // hero uses. encodeURIComponent keeps the pipe + spaces safe.
-        function locHref(loc) { return "?loc=" + encodeURIComponent(loc); }
+        // Exposed for the listing modal's mini-map: open the full map, expanded
+        // and flown to a given listing (its nearby pins are already on the map).
+        window.__klucheOpenMapAt = function (id) {
+          var l = byId[id];
+          setExpanded(true);
+          if (l && typeof l.lat === "number" && typeof l.lng === "number" && leafletMap) {
+            try { leafletMap.flyTo([l.lat, l.lng], 15, { duration: 0.6 }); } catch (e) {}
+          }
+        };
+
 
         var mapInited = false;
         var leafletMap = null;
@@ -1781,12 +1850,6 @@ export function renderAgencySite(
           if (typeof L === "undefined") return; // Leaflet may be slow / blocked
           mapInited = true;
 
-          var areas = [];
-          try {
-            var ar = document.getElementById("kluche-map-areas");
-            areas = JSON.parse(ar ? ar.textContent : "[]") || [];
-          } catch (e) { areas = []; }
-
           // All listings with numeric coords, from the shared listings blob.
           var pinned = [];
           Object.keys(byId).forEach(function (k) {
@@ -1794,10 +1857,9 @@ export function renderAgencySite(
             if (l && typeof l.lat === "number" && typeof l.lng === "number") pinned.push(l);
           });
 
-          // Initial view: centre on the first area, else the first pin, else MNE.
+          // Initial view: centre on the first pin, else Montenegro.
           var center = [42.4411, 19.2627], zoom = 12;
-          if (areas.length) { center = [areas[0].lat, areas[0].lng]; zoom = 13; }
-          else if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
+          if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
 
           // Keep the view inside Montenegro: panning is clamped to the national
           // bounding box (viscosity 1 = hard wall) and you can't zoom out past it.
@@ -1809,45 +1871,11 @@ export function renderAgencySite(
             maxBoundsViscosity: 1.0,
             minZoom: 8
           }).setView(center, zoom);
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-            subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+            subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap contributors, © CARTO"
           }).addTo(leafletMap);
 
           var bounds = [];
-
-          // Area regions. The outline sits quiet by default; hovering reveals the
-          // name (tooltip) and emphasises the shape (darker fill/stroke). Clicking
-          // zooms the map to fit that region's bounds.
-          // A hand-drawn polygon (a.polygon) is shaded as its true outline; areas
-          // with no polygon yet fall back to an abstract circle at the centre.
-          var regionStyle = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.22 };
-          var regionHover = { color: "#1F3A5C", weight: 3.5, fillColor: "#1F3A5C", fillOpacity: 0.4 };
-          areas.forEach(function (a) {
-            // Build the label as a DOM node (textContent escapes) rather than a raw
-            // string — bindTooltip renders strings via innerHTML.
-            var lbl = document.createElement("span");
-            lbl.textContent = String(a.name) + " · " + String(a.count);
-            var region;
-            if (a.polygon) {
-              region = L.geoJSON({ type: "Feature", geometry: a.polygon, properties: {} }, { style: regionStyle }).addTo(leafletMap);
-              try {
-                var b = region.getBounds();
-                bounds.push([b.getNorth(), b.getEast()]);
-                bounds.push([b.getSouth(), b.getWest()]);
-              } catch (e) { bounds.push([a.lat, a.lng]); }
-            } else {
-              region = L.circle([a.lat, a.lng], Object.assign({ radius: 520 }, regionStyle)).addTo(leafletMap);
-              bounds.push([a.lat, a.lng]);
-            }
-            // Tooltip shows on hover (sticky → follows the cursor), not permanently.
-            region.bindTooltip(lbl, { sticky: true, direction: "top", className: "area-label" });
-            region.on("mouseover", function () { region.setStyle(regionHover); });
-            region.on("mouseout", function () { region.setStyle(regionStyle); });
-            // Click → zoom to fit this region perfectly.
-            region.on("click", function () {
-              try { leafletMap.fitBounds(region.getBounds(), { padding: [30, 30] }); } catch (e) {}
-            });
-          });
 
           // Minimal type-coloured dot per listing. Click → open the listing modal.
           // Colour encodes the property type (residential / commercial / land).
@@ -1866,36 +1894,15 @@ export function renderAgencySite(
           }
         }
 
-        function showMap() {
-          listBtn.classList.remove("active");
-          mapBtn.classList.add("active");
-          grid.style.display = "none";
-          mapSection.style.display = "";
-          initMap();
-          // Size the canvas to the viewport, then let Leaflet recalc.
-          sizeMap();
-          positionOverlay();
-          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
-          // Relocate the live hero search form into the overlay (move, don't clone).
-          if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
-            filterSlot.appendChild(heroForm);
+        // The map is always visible (compact) alongside the list — just init it.
+        initMap();
+        // Re-open expanded if we just applied/cleared filters from the full-screen map.
+        try {
+          if (sessionStorage.getItem("kluche_map_expanded") === "1") {
+            sessionStorage.removeItem("kluche_map_expanded");
+            setExpanded(true);
           }
-        }
-        function showList() {
-          mapBtn.classList.remove("active");
-          listBtn.classList.add("active");
-          mapSection.style.display = "none";
-          grid.style.display = "";
-          // Move the hero search form back to its original header host.
-          if (heroForm && heroHost && heroForm.parentNode !== heroHost) {
-            heroHost.appendChild(heroForm);
-          }
-        }
-        // Clicking the Map tab also snaps the map to fill the screen.
-        mapBtn.addEventListener("click", function () { showMap(); fitMapToScreen(); });
-        listBtn.addEventListener("click", showList);
-        // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
-        showMap();
+        } catch (e) {}
       })();
       ` : ""}
     }
