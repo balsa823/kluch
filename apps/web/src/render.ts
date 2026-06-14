@@ -356,7 +356,7 @@ export function renderAgencySite(
     for (const city of MAP_SHORTCUT_CITIES) {
       const c = cityCoords(city);
       if (!c) continue;
-      const zoom = city === "Podgorica" || city === "Nikšić" ? 13 : 14;
+      const zoom = city === "Podgorica" || city === "Nikšić" ? 12 : 13;
       mapCities.push({ name: city, lat: c.lat, lng: c.lng, zoom });
     }
   }
