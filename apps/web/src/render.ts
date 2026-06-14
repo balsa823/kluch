@@ -347,9 +347,9 @@ export function renderAgencySite(
   // the client draws it instead of a circle (lat/lng stay as the label anchor).
   type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
   const mapAreas: MapArea[] = [];
-  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist
-  // for now — not derived from listings. Each gets coords + a default zoom.
-  const MAP_SHORTCUT_CITIES = ["Podgorica", "Budva"];
+  // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist,
+  // ordered by population (largest first).
+  const MAP_SHORTCUT_CITIES = ["Podgorica", "Nikšić", "Bar", "Herceg Novi", "Budva", "Cetinje", "Tivat"];
   type MapCity = { name: string; lat: number; lng: number; zoom: number };
   const mapCities: MapCity[] = [];
   if (mapEnabled) {

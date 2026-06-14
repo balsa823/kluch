@@ -803,13 +803,13 @@ describe("map overlay city shortcuts", () => {
     expect(Math.abs(pg.lat - 42.44)).toBeLessThan(0.01);
   });
 
-  test("is a fixed Podgorica+Budva shortlist, independent of which cities have listings", () => {
-    // Listings only in Kotor — shortcuts stay the curated [Podgorica, Budva].
+  test("is a fixed top-6-towns shortlist, independent of which cities have listings", () => {
+    // Listings only in Kotor — shortcuts stay the curated 6 biggest towns.
     const kotorOnly: Property[] = [{ ...listings[0], id: "k1", city: "Kotor" } as Property];
     const html = renderAgencySite(mapAgency, kotorOnly);
     const m = html.match(/<script type="application\/json" id="kluche-map-cities">([\s\S]*?)<\/script>/);
     const data = JSON.parse(m![1].replace(/\\u003c/g, "<"));
-    expect(data.map((d: { name: string }) => d.name)).toEqual(["Podgorica", "Budva"]);
+    expect(data.map((d: { name: string }) => d.name)).toEqual(["Podgorica", "Nikšić", "Bar", "Herceg Novi", "Budva", "Cetinje", "Tivat"]);
   });
 
   test("emits no kluche-map-cities blob when mapEnabled is false", () => {
