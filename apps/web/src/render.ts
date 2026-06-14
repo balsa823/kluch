@@ -684,6 +684,9 @@ export function renderAgencySite(
     form.search .filter-action:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
     form.search .filter-action.is-apply { color: #D97706; border-color: color-mix(in srgb, #D97706 45%, transparent); }
     form.search .filter-action.is-apply:hover { background: color-mix(in srgb, #D97706 12%, transparent); border-color: #D97706; }
+    /* Over the map (expanded view) → solid pill so the red/orange text stays legible. */
+    .map-overlay form.search .filter-action { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .map-overlay form.search .filter-action:hover { background: #fff; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
