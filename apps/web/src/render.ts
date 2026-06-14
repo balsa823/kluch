@@ -849,9 +849,12 @@ export function renderAgencySite(
       background: rgba(255,255,255,0.92); border: 0; border-radius: 999px;
       width: 2rem; height: 2rem; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-ink);
     }
-    .modal-gallery { position: relative; background: #000; min-height: 240px; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
+    /* Fixed 6:4 frame so every image fills the same box — the modal never jumps
+       when you swipe between images of different sizes. align-self:start keeps
+       the ratio in the desktop grid (instead of stretching to the details column). */
+    .modal-gallery { position: relative; background: #000; aspect-ratio: 6 / 4; align-self: start; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 16px 0 0 16px; }
     @media (max-width: 720px) { .modal-gallery { border-radius: 16px 16px 0 0; } }
-    .gal-img { width: 100%; height: 100%; max-height: 92vh; max-height: 88dvh; object-fit: cover; display: block; }
+    .gal-img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .gal-nav {
       position: absolute; top: 50%; transform: translateY(-50%);
       background: rgba(0,0,0,0.5); color: #fff; border: 0; width: 2.4rem; height: 2.4rem;
