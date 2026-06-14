@@ -947,7 +947,24 @@ export function renderAgencySite(
     .pin-dot:hover { transform: scale(1.18); }
     .pin-res { background: #1F3A5C; }
     .pin-com { background: #C98A3B; }
-    .pin-land { background: #3A7D5C; }` : ""}
+    .pin-land { background: #3A7D5C; }
+    /* Listing modal: location mini-map. */
+    .modal-minimap-wrap { margin: 0.2rem 0 1rem; }
+    .modal-minimap-label { font-size: 0.7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8a8676; margin: 0 0 .45rem; }
+    .modal-minimap { position: relative; height: 170px; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-line, #E7DFCF); cursor: pointer; }
+    .modal-minimap .leaflet-container { background: #eee; }
+    .modal-minimap-cta {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 500; pointer-events: none;
+      background: linear-gradient(to top, rgba(31,58,92,.92), transparent); color: #fff; font: inherit; font-weight: 700; font-size: .85rem;
+      padding: 1.4rem .7rem .6rem; display: flex; align-items: center; gap: .4rem;
+    }
+    .modal-minimap-cta svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal-minimap-pin { background: #1F3A5C; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+    .modal-minimap-pin.is-here { width: 20px; height: 20px; }
+    .modal-minimap-pin.near { width: 12px; height: 12px; opacity: .85; }
+    .modal-minimap-pin.t-com { background: #C98A3B; }
+    .modal-minimap-pin.t-land { background: #3A7D5C; }
+    .modal-minimap-note { font-size: 0.72rem; color: #8a8676; margin: .45rem 0 0; }` : ""}
   </style>
 </head>
 <body>
@@ -1138,6 +1155,16 @@ export function renderAgencySite(
         <p class="modal-city"></p>
         <div class="modal-badges"></div>
         <p class="modal-type"></p>
+        ${mapEnabled ? `<div class="modal-minimap-wrap" id="modal-minimap-wrap" hidden>
+          <p class="modal-minimap-label" data-i18n="map.location">${T_("map.location")}</p>
+          <div class="modal-minimap" id="kluche-minimap" role="button" tabindex="0" aria-label="${attr(T_("map.seeNearby"))}">
+            <div class="modal-minimap-cta">
+              <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><line x1="21" y1="3" x2="14" y2="10"/><circle cx="7" cy="17" r="3"/></svg>
+              <span data-i18n="map.seeNearby">${T_("map.seeNearby")}</span>
+            </div>
+          </div>
+          <p class="modal-minimap-note" data-i18n="map.approx">${T_("map.approx")}</p>
+        </div>` : ""}
         <button class="call-btn modal-call" type="button" aria-label="Call"${agency.phone ? "" : ' style="display:none"'}>
           <span aria-hidden="true">📞</span> <span data-i18n="card.call">${T_("card.call")}</span>
         </button>
@@ -1146,7 +1173,7 @@ export function renderAgencySite(
     </div>
   </div>
 
-  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => { const pin = listingPin(l); return { id: l.id, name: l.name, city: l.city, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)), lat: pin ? pin.lat : null, lng: pin ? pin.lng : null }; }))}</script>
+  <script type="application/json" id="kluche-listings">${jsonForScript(listings.map((l) => { const pin = listingPin(l); return { id: l.id, name: l.name, city: l.city, area: (l as { area?: string | null }).area ?? null, priceMinor: l.priceMinor, currency: l.currency, dealType: l.dealType, bedrooms: l.bedrooms, bathrooms: l.bathrooms, areaM2: l.areaM2, type: l.type, refCode: l.refCode, photos: (l.photos || []).filter((p) => safeUrl(p)), lat: pin ? pin.lat : null, lng: pin ? pin.lng : null }; }))}</script>
 
   ${mapEnabled ? `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>` : ""}
   <script>
@@ -1480,6 +1507,51 @@ export function renderAgencySite(
         renderTour(id);
         modal.style.display = "flex";
         document.body.style.overflow = "hidden";
+        renderMiniMap(l);
+      }
+
+      // Listing modal location mini-map: this property pinned + nearby listings
+      // (same city, and same area when this one is area-tagged). Non-interactive;
+      // tapping it opens the full map flown to this listing.
+      var miniMap = null, miniLayer = null, miniCurrentId = null, miniBound = false;
+      function miniPinIcon(type, cls) {
+        var sp = document.createElement("span");
+        sp.className = "modal-minimap-pin " + cls + (type === "commercial" ? " t-com" : type === "land" ? " t-land" : "");
+        var size = cls === "is-here" ? 20 : 12;
+        return L.divIcon({ className: "", html: sp.outerHTML, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      }
+      function renderMiniMap(l) {
+        var wrap = document.getElementById("modal-minimap-wrap");
+        if (!wrap) return;
+        if (typeof L === "undefined" || typeof l.lat !== "number" || typeof l.lng !== "number") { wrap.hidden = true; return; }
+        wrap.hidden = false;
+        miniCurrentId = l.id;
+        var el = document.getElementById("kluche-minimap");
+        if (!miniMap) {
+          miniMap = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false });
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20 }).addTo(miniMap);
+          miniLayer = L.layerGroup().addTo(miniMap);
+        }
+        if (!miniBound) {
+          miniBound = true;
+          function openFull() { closeModal(); if (window.__klucheOpenMapAt && miniCurrentId != null) window.__klucheOpenMapAt(miniCurrentId); }
+          el.addEventListener("click", openFull);
+          el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFull(); } });
+        }
+        miniLayer.clearLayers();
+        // Nearby pins (drawn first, under the highlighted one).
+        Object.keys(byId).forEach(function (k) {
+          var n = byId[k];
+          if (!n || n.id === l.id || typeof n.lat !== "number" || typeof n.lng !== "number") return;
+          if (n.city !== l.city) return;
+          if (l.area && n.area !== l.area) return;
+          L.marker([n.lat, n.lng], { icon: miniPinIcon(n.type, "near"), interactive: false }).addTo(miniLayer);
+        });
+        // This listing, on top.
+        L.marker([l.lat, l.lng], { icon: miniPinIcon(l.type, "is-here"), interactive: false }).addTo(miniLayer);
+        miniMap.setView([l.lat, l.lng], 14);
+        // The modal just became visible → Leaflet needs a size recalc.
+        setTimeout(function () { try { miniMap.invalidateSize(); miniMap.setView([l.lat, l.lng], 14); } catch (e) {} }, 60);
       }
       function closeModal() {
         modal.style.display = "none";
@@ -1721,6 +1793,17 @@ export function renderAgencySite(
         document.addEventListener("keydown", function (e) {
           if (e.key === "Escape" && mapEl && mapEl.classList.contains("expanded")) setExpanded(false);
         });
+
+        // Exposed for the listing modal's mini-map: open the full map, expanded
+        // and flown to a given listing (its nearby pins are already on the map).
+        window.__klucheOpenMapAt = function (id) {
+          var l = byId[id];
+          showMap();
+          setExpanded(true);
+          if (l && typeof l.lat === "number" && typeof l.lng === "number" && leafletMap) {
+            try { leafletMap.flyTo([l.lat, l.lng], 15, { duration: 0.6 }); } catch (e) {}
+          }
+        };
 
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
         // the visitor's other active filters out of the way — same convention the
