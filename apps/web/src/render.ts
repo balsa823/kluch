@@ -886,11 +886,11 @@ export function renderAgencySite(
       font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.45rem 1.1rem;
     }
     .view-toggle button.active { background: var(--color-primary); color: #fff; }
-    /* Full-bleed: break out of <main>'s max-width + side padding to span the viewport. */
-    #kluche-map { position: relative; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-bottom: 1rem; }
-    /* Fallback height before JS sizes it; JS sets the precise viewport height
-       (innerHeight) and keeps it updated on resize. */
-    #kluche-map-canvas { height: 100dvh; min-height: 320px; width: 100%; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    /* Compact by default (a preview), expands to full screen on the centre button. */
+    #kluche-map { position: relative; margin: 0 0 1rem; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(31,58,92,.12); }
+    #kluche-map-canvas { height: clamp(300px, 42vh, 460px); width: 100%; overflow: hidden; }
+    #kluche-map.expanded { position: fixed; inset: 0; z-index: 900; margin: 0; border-radius: 0; }
+    #kluche-map.expanded #kluche-map-canvas { height: 100dvh; }
     /* Floats over the top of the map: a navy gradient that fades down into
        transparent, so the city chips read as floating on the map and the filter
        row reads as a translucent navbar. No search box here. */
@@ -904,33 +904,26 @@ export function renderAgencySite(
       padding: calc(0.9rem + env(safe-area-inset-top,0px)) 0.9rem 1.8rem;
       display: flex; flex-direction: column; gap: 0.7rem; pointer-events: none;
     }
-    /* When the map's top scrolls off-screen, the navbar moves to the bottom of
-       the MAP (scrolls away with it, never floats over the footer). */
-    .map-overlay.at-bottom {
-      position: absolute; top: auto; bottom: 0;
-      background: linear-gradient(to top,
-        color-mix(in srgb, var(--color-primary) 88%, transparent) 0%,
-        color-mix(in srgb, var(--color-primary) 45%, transparent) 68%,
-        transparent 100%);
-      padding: 1.8rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom,0px));
-    }
-    .map-overlay.at-bottom .pop { top: auto; bottom: calc(100% + 14px); }
-    .map-overlay.at-bottom .pop::before { top: auto; bottom: -8px; box-shadow: 3px 3px 6px rgba(0,0,0,.05); }
     /* Re-enable interaction on the actual controls (the gradient itself is click-through). */
     .map-overlay > * { pointer-events: auto; }
-    .map-overlay-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
-    /* Viewport buttons: back-to-top / fit-to-screen / jump-below. */
-    .map-vp { display: flex; gap: 0.4rem; flex: 0 0 auto; }
-    .map-vp button {
-      width: 2.3rem; height: 2.3rem; display: flex; align-items: center; justify-content: center;
-      border: 1px solid color-mix(in srgb, var(--overlay-ink) 45%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 55%, transparent);
-      border-radius: 11px; cursor: pointer; color: var(--overlay-ink); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-      box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: background .15s, transform .1s;
+    /* Centre expand button (collapsed) → corner collapse button (expanded). */
+    .map-expand {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 600;
+      display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;
+      font: inherit; font-weight: 700; font-size: 0.9rem; color: var(--overlay-ink);
+      background: color-mix(in srgb, var(--color-primary) 82%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--overlay-ink) 55%, transparent);
+      border-radius: 999px; padding: 0.7rem 1.1rem;
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.35); transition: background .15s, transform .1s;
     }
-    .map-vp button:hover { background: var(--color-primary); transform: translateY(-1px); }
-    .map-vp button:active { transform: translateY(0); }
-    .map-vp svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .map-expand:hover { background: var(--color-primary); transform: translate(-50%, -50%) scale(1.04); }
+    .map-expand svg { width: 1.15rem; height: 1.15rem; stroke: var(--overlay-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #kluche-map.expanded .map-expand { left: auto; right: 1rem; top: calc(1rem + env(safe-area-inset-top,0px)); transform: none; padding: 0.6rem; border-radius: 12px; }
+    #kluche-map.expanded .map-expand:hover { transform: scale(1.06); }
+    .map-expand .ic-collapse, .map-expand .label-collapse { display: none; }
+    #kluche-map.expanded .map-expand .ic-expand, #kluche-map.expanded .map-expand .label-expand { display: none; }
+    #kluche-map.expanded .map-expand .ic-collapse { display: inline; }
     .map-overlay-cities { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
     .map-overlay-cities::-webkit-scrollbar { display: none; }
     .map-city { flex: 0 0 auto; border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.92); border-radius: 999px; padding: .42rem .95rem; font: inherit; font-size: .9rem; font-weight: 600; color: var(--color-primary); cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
@@ -1096,24 +1089,14 @@ export function renderAgencySite(
       <section id="kluche-map" style="display:none">
         <div id="kluche-map-canvas"></div>
         <div class="map-overlay">
-          <div class="map-overlay-top">
-            <div class="map-overlay-cities-wrap">
-              <div class="map-overlay-cities" id="map-overlay-cities"></div>
-            </div>
-            <div class="map-vp">
-              <button type="button" id="vp-top" aria-label="${attr(T_("map.toTop"))}" title="${attr(T_("map.toTop"))}">
-                <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
-              </button>
-              <button type="button" id="vp-fit" aria-label="${attr(T_("map.fitScreen"))}" title="${attr(T_("map.fitScreen"))}">
-                <svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
-              </button>
-              <button type="button" id="vp-below" aria-label="${attr(T_("map.below"))}" title="${attr(T_("map.below"))}">
-                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-            </div>
-          </div>
+          <div class="map-overlay-cities" id="map-overlay-cities"></div>
           <div id="map-overlay-filters"></div>
         </div>
+        <button type="button" class="map-expand" id="map-expand" aria-label="${attr(T_("map.expand"))}" title="${attr(T_("map.expand"))}">
+          <svg class="ic-expand" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <svg class="ic-collapse" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <span class="label-expand" data-i18n="map.expand">${T_("map.expand")}</span>
+        </button>
       </section>
       <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
       <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`
@@ -1716,56 +1699,27 @@ export function renderAgencySite(
           if (citiesBox) citiesBox.appendChild(b);
         });
 
-        // Viewport buttons: back-to-top / fit-map-to-screen / jump-below-map.
+        // Expand / collapse: the centre button toggles the compact map between a
+        // preview and a full-screen (position:fixed) view. Leaflet needs a size
+        // recalc whenever the container changes size.
         var mapEl = document.getElementById("kluche-map");
-        var mapCanvasEl = document.getElementById("kluche-map-canvas");
-        var siteNav = document.querySelector("nav.site");
-        var vpTop = document.getElementById("vp-top");
-        var vpFit = document.getElementById("vp-fit");
-        var vpBelow = document.getElementById("vp-below");
-        function navHeight() { return siteNav ? siteNav.offsetHeight : 0; }
-        // Size the map canvas to the FULL viewport so, once snapped to the top,
-        // it fills the screen edge-to-edge with no leftover band (the sticky nav
-        // auto-hides on scroll, so we don't reserve space for it).
-        function sizeMap() {
-          if (!mapCanvasEl) return;
-          var h = Math.max(320, window.innerHeight);
-          mapCanvasEl.style.height = h + "px";
-          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
-        }
-        function scrollToY(y) {
-          try { window.scrollTo({ top: y, behavior: "smooth" }); } catch (e) { window.scrollTo(0, y); }
-        }
-        // Snap the map's top to the very top of the viewport → it fills the screen.
-        function fitMapToScreen() {
+        var expandBtn = document.getElementById("map-expand");
+        function recalcMap() { if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} } }
+        function setExpanded(on) {
           if (!mapEl) return;
-          sizeMap();
-          var y = mapEl.getBoundingClientRect().top + window.pageYOffset;
-          scrollToY(y < 0 ? 0 : y);
+          if (on) mapEl.classList.add("expanded");
+          else mapEl.classList.remove("expanded");
+          // Lock background scroll while full-screen.
+          document.body.style.overflow = on ? "hidden" : "";
+          // Two recalcs: one immediately, one after the CSS transition settles.
+          recalcMap();
+          setTimeout(recalcMap, 320);
         }
-        // Keep the overlay navbar on screen: anchored at the map top normally,
-        // but pinned to the viewport bottom once the map's top scrolls off-screen
-        // (and the map is still substantially in view).
-        var overlayEl = mapEl ? mapEl.querySelector(".map-overlay") : null;
-        function positionOverlay() {
-          if (!mapEl || !overlayEl || mapSection.style.display === "none") return;
-          var r = mapEl.getBoundingClientRect();
-          // When the map's top scrolls off-screen, move the navbar to the bottom
-          // of the map. It's absolutely positioned within the map, so it simply
-          // rides the map's bottom edge and scrolls away with it (no viewport
-          // pinning → never floats over the footer).
-          if (r.top < -2) overlayEl.classList.add("at-bottom");
-          else overlayEl.classList.remove("at-bottom");
-        }
-        window.addEventListener("scroll", positionOverlay, { passive: true });
-        var rsz; window.addEventListener("resize", function () { clearTimeout(rsz); rsz = setTimeout(function () { sizeMap(); positionOverlay(); }, 150); });
-        window.addEventListener("orientationchange", function () { setTimeout(function () { sizeMap(); positionOverlay(); }, 250); });
-        if (vpTop) vpTop.addEventListener("click", function () { scrollToY(0); });
-        if (vpFit) vpFit.addEventListener("click", fitMapToScreen);
-        if (vpBelow && mapEl) vpBelow.addEventListener("click", function () {
-          // Scroll just past the bottom of the map to reveal what's below it.
-          var r = mapEl.getBoundingClientRect();
-          scrollToY(r.bottom + window.pageYOffset);
+        if (expandBtn) expandBtn.addEventListener("click", function () {
+          setExpanded(!mapEl.classList.contains("expanded"));
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && mapEl && mapEl.classList.contains("expanded")) setExpanded(false);
         });
 
         // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
@@ -1872,10 +1826,8 @@ export function renderAgencySite(
           grid.style.display = "none";
           mapSection.style.display = "";
           initMap();
-          // Size the canvas to the viewport, then let Leaflet recalc.
-          sizeMap();
-          positionOverlay();
-          if (leafletMap) { try { leafletMap.invalidateSize(); } catch (e) {} }
+          // Leaflet needs a size recalc once its container becomes visible.
+          recalcMap();
           // Relocate the live hero search form into the overlay (move, don't clone).
           if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
             filterSlot.appendChild(heroForm);
@@ -1884,6 +1836,8 @@ export function renderAgencySite(
         function showList() {
           mapBtn.classList.remove("active");
           listBtn.classList.add("active");
+          // Leaving map view: collapse it (so the fixed full-screen never lingers).
+          setExpanded(false);
           mapSection.style.display = "none";
           grid.style.display = "";
           // Move the hero search form back to its original header host.
@@ -1891,8 +1845,7 @@ export function renderAgencySite(
             heroHost.appendChild(heroForm);
           }
         }
-        // Clicking the Map tab also snaps the map to fill the screen.
-        mapBtn.addEventListener("click", function () { showMap(); fitMapToScreen(); });
+        mapBtn.addEventListener("click", showMap);
         listBtn.addEventListener("click", showList);
         // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
         showMap();

@@ -856,11 +856,11 @@ describe("map overlay markup", () => {
     expect(html).toContain('id="map-overlay-filters"');
   });
 
-  test("renders the three viewport buttons (top / fit / below)", () => {
+  test("renders the centre expand/collapse button", () => {
     const html = renderAgencySite(mapAgency, listings);
-    expect(html).toContain('id="vp-top"');
-    expect(html).toContain('id="vp-fit"');
-    expect(html).toContain('id="vp-below"');
+    expect(html).toContain('id="map-expand"');
+    expect(html).toContain('class="ic-expand"');
+    expect(html).toContain('class="ic-collapse"');
   });
 });
 
