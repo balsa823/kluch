@@ -617,8 +617,6 @@ export function renderAgencySite(
       box-shadow: 0 10px 30px rgba(0,0,0,.18);
     }
     .searchbar button.search-go:hover { filter: brightness(1.05); }
-    /* Pending filter changes → draw attention to the (re)search button. */
-    .searchbar button.search-go.dirty { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 45%, transparent); }
     .searchbar button.search-go svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2.4; }
 
     .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
@@ -674,13 +672,18 @@ export function renderAgencySite(
     .loc-row.sel .loc-check { background: var(--color-primary); border-color: var(--color-primary); }
     .loc-row.sel { background: #F4F0E6; }
     .loc-empty { padding: 0.8rem 0.5rem; color: #8A95A1; font-size: 0.9rem; }
-    form.search .search-clear {
+    /* Contextual filter button: red "Clear filters" when filters are applied,
+       orange "Apply filters" once you've changed something (not yet applied),
+       hidden when nothing is applied. */
+    form.search .filter-action {
       display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
       color: #C0392B; font-size: 0.82rem; font-weight: 700;
       border: 1px solid color-mix(in srgb, #C0392B 35%, transparent); border-radius: 999px; padding: 0.3rem 0.7rem;
     }
-    form.search .search-clear .x { font-size: 0.95rem; line-height: 1; }
-    form.search .search-clear:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
+    form.search .filter-action .ico { font-size: 0.95rem; line-height: 1; }
+    form.search .filter-action:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
+    form.search .filter-action.is-apply { color: #D97706; border-color: color-mix(in srgb, #D97706 45%, transparent); }
+    form.search .filter-action.is-apply:hover { background: color-mix(in srgb, #D97706 12%, transparent); border-color: #D97706; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
@@ -1063,7 +1066,7 @@ export function renderAgencySite(
             </div>
           </div>
         </div>
-        <a class="search-clear" id="hero-clear" href="?"${hasActiveFilters(filters) ? "" : ' hidden'}><span class="x" aria-hidden="true">✕</span> <span data-i18n="tab.clear">${T_("tab.clear")}</span></a>
+        <a class="filter-action" id="hero-action" href="?"${hasActiveFilters(filters) ? "" : ' hidden'}><span class="ico" aria-hidden="true">✕</span> <span class="lbl" data-i18n="tab.clear">${T_("tab.clear")}</span></a>
       </div>
 
       <!-- Hidden fields carry the active filters on submit (kept live by JS). -->
@@ -1261,17 +1264,27 @@ export function renderAgencySite(
     var locSel = {};
     hidden.querySelectorAll('input[name="loc"]').forEach(function (i) { if (i.value) locSel[i.value] = true; });
 
-    // When a filter changes, the shown results are stale until you re-search →
-    // flip the button label to "Apply filters" and reveal the clear button.
+    // Contextual inline button next to the chips:
+    //  • no filters & nothing changed → hidden
+    //  • a filter changed (not applied yet) → orange "Apply filters" (click = submit)
+    //  • filters applied (page loaded with them) → red "Clear filters" (click = ?)
     var dirty = false;
-    var goLabel = form.querySelector(".search-go [data-i18n]");
-    var clearEl = document.getElementById("hero-clear");
+    var actionEl = document.getElementById("hero-action");
+    var actionLbl = actionEl ? actionEl.querySelector(".lbl") : null;
+    var actionIco = actionEl ? actionEl.querySelector(".ico") : null;
     function markDirty() {
-      if (dirty) return;
+      if (dirty || !actionEl) return;
       dirty = true;
-      if (goLabel) { goLabel.setAttribute("data-i18n", "search.apply"); goLabel.textContent = t("search.apply"); }
-      var go = form.querySelector(".search-go"); if (go) go.classList.add("dirty");
-      if (clearEl) clearEl.hidden = false;
+      actionEl.hidden = false;
+      actionEl.classList.add("is-apply");
+      if (actionIco) actionIco.textContent = "";
+      if (actionLbl) { actionLbl.setAttribute("data-i18n", "search.apply"); actionLbl.textContent = t("search.apply"); }
+    }
+    if (actionEl) {
+      actionEl.addEventListener("click", function (e) {
+        // Apply mode → submit the form (apply the new filters); clear mode → href="?".
+        if (actionEl.classList.contains("is-apply")) { e.preventDefault(); form.submit(); }
+      });
     }
 
     function closeAll(except) {
