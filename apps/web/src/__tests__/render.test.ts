@@ -702,7 +702,8 @@ test("mapEnabled:true renders the map (always shown), Leaflet includes and map c
   expect(html).not.toContain('id="view-list"');
   expect(html).toContain('id="kluche-map"');
   expect(html).toContain('id="kluche-map-canvas"');
-  expect(html).toContain('id="kluche-map-areas"');
+  // area-region polygons were removed — no longer emitted
+  expect(html).not.toContain('id="kluche-map-areas"');
   // Leaflet CSS + JS from unpkg
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
@@ -818,34 +819,6 @@ describe("map overlay city shortcuts", () => {
   });
 });
 
-// --- Map region polygon assignment -----------------------------------------
-
-describe("map area polygon assignment", () => {
-  const areasOf = (html: string) => {
-    const m = html.match(/<script type="application\/json" id="kluche-map-areas">([\s\S]*?)<\/script>/);
-    return JSON.parse(m![1].replace(/\\u003c/g, "<")) as Array<{ name: string; polygon?: { type: string } }>;
-  };
-
-  test("area WITH a drawn polygon → that polygon", () => {
-    const ls = [{ ...listings[0], id: "p1", city: "Podgorica", area: "Stari Aerodrom" } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Stari Aerodrom");
-    expect(a?.polygon?.type).toBe("Polygon");
-  });
-
-  test("area WITHOUT a drawn polygon → no polygon (circle), NOT the city shape", () => {
-    // Zabjelo has centre coords but no hand-drawn polygon.
-    const ls = [{ ...listings[0], id: "p2", city: "Podgorica", area: "Zabjelo" } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Zabjelo");
-    expect(a).toBeTruthy();
-    expect(a?.polygon).toBeUndefined();
-  });
-
-  test("city-grouped listing (no area) → the city's combined MultiPolygon", () => {
-    const ls = [{ ...listings[0], id: "p3", city: "Podgorica", area: null } as Property];
-    const a = areasOf(renderAgencySite(mapAgency, ls)).find((x) => x.name === "Podgorica");
-    expect(a?.polygon?.type).toBe("MultiPolygon");
-  });
-});
 
 // --- Map overlay markup -----------------------------------------------------
 

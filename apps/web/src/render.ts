@@ -1,5 +1,5 @@
 import { formatMoney, openStatus, type Agency, type Property, type SearchFilters } from "@kluche/core";
-import { MNE_LOCATIONS, cityCoords, areaCoords, cityPolygon, areaPolygon, type PolyGeometry } from "@kluche/locations";
+import { MNE_LOCATIONS, cityCoords, areaCoords } from "@kluche/locations";
 import { DICT, tr, type Lang } from "./i18n.js";
 
 /**
@@ -340,15 +340,10 @@ export function renderAgencySite(
 
   // --- Map view (only when the agency has enabled it) -----------------------
   const mapEnabled = !!agency.mapEnabled;
-  // Distinct area/city centres present among this page's listings. Each centre
-  // gets a name (the area when it resolved to area coords, else the city), the
-  // coord, a count, and the `?loc=` value the chip/circle navigates to.
-  // `polygon` is the hand-drawn outline when one exists for this area/city;
-  // the client draws it instead of a circle (lat/lng stay as the label anchor).
-  type MapArea = { name: string; lat: number; lng: number; count: number; loc: string; polygon?: PolyGeometry };
-  const mapAreas: MapArea[] = [];
   // Curated "Jump to city" shortcuts (first is default-active). Fixed shortlist,
   // ordered by population (largest first).
+  // NOTE: area-region polygons were removed for now (to be re-added later); the
+  // map currently shows only the per-listing pins + the city shortcuts.
   const MAP_SHORTCUT_CITIES = ["Podgorica", "Nikšić", "Bar", "Herceg Novi", "Budva", "Cetinje", "Tivat"];
   type MapCity = { name: string; lat: number; lng: number; zoom: number };
   const mapCities: MapCity[] = [];
@@ -359,29 +354,6 @@ export function renderAgencySite(
       const zoom = city === "Podgorica" || city === "Nikšić" ? 12 : 13;
       mapCities.push({ name: city, lat: c.lat, lng: c.lng, zoom });
     }
-  }
-  if (mapEnabled) {
-    const byKey = new Map<string, MapArea>();
-    for (const l of listings) {
-      const area = (l as { area?: string | null }).area;
-      // Group at the area level when the area resolves to *either* a drawn
-      // polygon or a legacy centre point; otherwise group at the city level.
-      const ap = area ? areaPolygon(l.city, area) : null;
-      const ac = area ? areaCoords(l.city, area) : null;
-      const grouped = !!area && (!!ap || !!ac);
-      const centre = ac || cityCoords(l.city);
-      if (!centre) continue; // unknown city → not grouped
-      const name = grouped ? (area as string) : l.city;
-      const loc = grouped ? `${l.city}|${area}` : l.city;
-      // Area-grouped → its own polygon or nothing (circle); never the city shape.
-      // City-grouped (no/unknown area) → the city's combined MultiPolygon.
-      const polygon = (grouped ? ap : cityPolygon(l.city)) || undefined;
-      const key = `${centre.lat},${centre.lng}|${name}`;
-      const existing = byKey.get(key);
-      if (existing) existing.count += 1;
-      else byKey.set(key, { name, lat: centre.lat, lng: centre.lng, count: 1, loc, polygon });
-    }
-    mapAreas.push(...byKey.values());
   }
 
   // Pager: only shown when there are more results than fit on one page.
@@ -699,9 +671,14 @@ export function renderAgencySite(
     .loc-row.sel .loc-check { background: var(--color-primary); border-color: var(--color-primary); }
     .loc-row.sel { background: #F4F0E6; }
     .loc-empty { padding: 0.8rem 0.5rem; color: #8A95A1; font-size: 0.9rem; }
-    .search-clear-row { margin: 1rem 0 0; }
-    form.search .search-clear { color: #fff; font-size: 0.82rem; font-weight: 600; text-decoration: underline; opacity: 0.85; }
-    form.search .search-clear:hover { opacity: 1; }
+    .search-clear-row { margin: 0.9rem 0 0; }
+    form.search .search-clear {
+      display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
+      color: #C0392B; font-size: 0.82rem; font-weight: 700;
+      border: 1px solid color-mix(in srgb, #C0392B 35%, transparent); border-radius: 999px; padding: 0.3rem 0.7rem;
+    }
+    form.search .search-clear .x { font-size: 0.95rem; line-height: 1; }
+    form.search .search-clear:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
@@ -944,8 +921,6 @@ export function renderAgencySite(
     .map-overlay .chip .caret { stroke: var(--overlay-ink); }
     /* Overlay sits at the top → popovers open downward (the default). */
     /* Carto Voyager basemap — shown in colour (no grayscale filter). */
-    .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
-    .leaflet-tooltip.area-label::before { display: none; }
     /* Minimal listing dot, coloured by property type (residential/commercial/land). */
     .pin-dot { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; transition: transform .1s; }
     .pin-dot:hover { transform: scale(1.18); }
@@ -1095,7 +1070,7 @@ export function renderAgencySite(
         ${hiddenField("type", filters.type ?? "")}
         ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
       </div>
-      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">${T_("tab.clear")}</a></p>` : ""}
+      ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?"><span class="x" aria-hidden="true">✕</span> <span data-i18n="tab.clear">${T_("tab.clear")}</span></a></p>` : ""}
     </form>
   </section>
 
@@ -1103,7 +1078,11 @@ export function renderAgencySite(
 
   <main>
     <section id="properties">
-      <h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>
+      ${
+        hasActiveFilters(filters)
+          ? `<h2 class="section-head" data-i18n="properties.results" data-count="${total}">${esc(T_("properties.results").replace("{n}", String(total)))}</h2>`
+          : `<h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>`
+      }
       ${
         mapEnabled
           ? `<section id="kluche-map">
@@ -1118,7 +1097,6 @@ export function renderAgencySite(
           <span class="label-expand" data-i18n="map.expand">${T_("map.expand")}</span>
         </button>
       </section>
-      <script type="application/json" id="kluche-map-areas">${jsonForScript(mapAreas)}</script>
       <script type="application/json" id="kluche-map-cities">${jsonForScript(mapCities)}</script>`
           : ""
       }
@@ -1187,7 +1165,14 @@ export function renderAgencySite(
   function applyLang() {
     // Only rewrite leaf elements: setting textContent on a node that wraps form
     // controls (e.g. a <label> around an <input>) would delete those controls.
-    document.querySelectorAll("[data-i18n]").forEach((el) => { if (!el.firstElementChild) el.textContent = t(el.getAttribute("data-i18n")); });
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      if (el.firstElementChild) return;
+      var s = t(el.getAttribute("data-i18n"));
+      // Templated strings (e.g. "Results for your filters ({n})") carry their
+      // number in data-count so re-translation keeps the count.
+      if (el.hasAttribute("data-count")) s = s.replace("{n}", el.getAttribute("data-count"));
+      el.textContent = s;
+    });
     document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
     document.documentElement.lang = LANG;
     document.querySelectorAll("#langMenu button").forEach((b) => b.classList.toggle("active", b.dataset.code === LANG));
@@ -1812,10 +1797,6 @@ export function renderAgencySite(
           }
         };
 
-        // Build a ?loc= URL the server re-filters on (City or City|Area), keeping
-        // the visitor's other active filters out of the way — same convention the
-        // hero uses. encodeURIComponent keeps the pipe + spaces safe.
-        function locHref(loc) { return "?loc=" + encodeURIComponent(loc); }
 
         var mapInited = false;
         var leafletMap = null;
@@ -1825,12 +1806,6 @@ export function renderAgencySite(
           if (typeof L === "undefined") return; // Leaflet may be slow / blocked
           mapInited = true;
 
-          var areas = [];
-          try {
-            var ar = document.getElementById("kluche-map-areas");
-            areas = JSON.parse(ar ? ar.textContent : "[]") || [];
-          } catch (e) { areas = []; }
-
           // All listings with numeric coords, from the shared listings blob.
           var pinned = [];
           Object.keys(byId).forEach(function (k) {
@@ -1838,10 +1813,9 @@ export function renderAgencySite(
             if (l && typeof l.lat === "number" && typeof l.lng === "number") pinned.push(l);
           });
 
-          // Initial view: centre on the first area, else the first pin, else MNE.
+          // Initial view: centre on the first pin, else Montenegro.
           var center = [42.4411, 19.2627], zoom = 12;
-          if (areas.length) { center = [areas[0].lat, areas[0].lng]; zoom = 13; }
-          else if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
+          if (pinned.length) { center = [pinned[0].lat, pinned[0].lng]; zoom = 13; }
 
           // Keep the view inside Montenegro: panning is clamped to the national
           // bounding box (viscosity 1 = hard wall) and you can't zoom out past it.
@@ -1858,40 +1832,6 @@ export function renderAgencySite(
           }).addTo(leafletMap);
 
           var bounds = [];
-
-          // Area regions. The outline sits quiet by default; hovering reveals the
-          // name (tooltip) and emphasises the shape (darker fill/stroke). Clicking
-          // zooms the map to fit that region's bounds.
-          // A hand-drawn polygon (a.polygon) is shaded as its true outline; areas
-          // with no polygon yet fall back to an abstract circle at the centre.
-          var regionStyle = { color: "#1F3A5C", weight: 2.5, fillColor: "#1F3A5C", fillOpacity: 0.22 };
-          var regionHover = { color: "#1F3A5C", weight: 3.5, fillColor: "#1F3A5C", fillOpacity: 0.4 };
-          areas.forEach(function (a) {
-            // Build the label as a DOM node (textContent escapes) rather than a raw
-            // string — bindTooltip renders strings via innerHTML.
-            var lbl = document.createElement("span");
-            lbl.textContent = String(a.name) + " · " + String(a.count);
-            var region;
-            if (a.polygon) {
-              region = L.geoJSON({ type: "Feature", geometry: a.polygon, properties: {} }, { style: regionStyle }).addTo(leafletMap);
-              try {
-                var b = region.getBounds();
-                bounds.push([b.getNorth(), b.getEast()]);
-                bounds.push([b.getSouth(), b.getWest()]);
-              } catch (e) { bounds.push([a.lat, a.lng]); }
-            } else {
-              region = L.circle([a.lat, a.lng], Object.assign({ radius: 520 }, regionStyle)).addTo(leafletMap);
-              bounds.push([a.lat, a.lng]);
-            }
-            // Tooltip shows on hover (sticky → follows the cursor), not permanently.
-            region.bindTooltip(lbl, { sticky: true, direction: "top", className: "area-label" });
-            region.on("mouseover", function () { region.setStyle(regionHover); });
-            region.on("mouseout", function () { region.setStyle(regionStyle); });
-            // Click → zoom to fit this region perfectly.
-            region.on("click", function () {
-              try { leafletMap.fitBounds(region.getBounds(), { padding: [30, 30] }); } catch (e) {}
-            });
-          });
 
           // Minimal type-coloured dot per listing. Click → open the listing modal.
           // Colour encodes the property type (residential / commercial / land).
