@@ -959,7 +959,7 @@ export function renderAgencySite(
       padding: 1.4rem .7rem .6rem; display: flex; align-items: center; gap: .4rem;
     }
     .modal-minimap-cta svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .modal-minimap-pin { background: #1F3A5C; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+    .modal-minimap-pin { display: block; background: #1F3A5C; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,.45); box-sizing: border-box; }
     .modal-minimap-pin.is-here { width: 20px; height: 20px; }
     .modal-minimap-pin.near { width: 12px; height: 12px; opacity: .85; }
     .modal-minimap-pin.t-com { background: #C98A3B; }
