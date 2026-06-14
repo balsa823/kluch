@@ -1824,7 +1824,11 @@ export function renderAgencySite(
           setExpanded(!mapEl.classList.contains("expanded"));
         });
         document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && mapEl && mapEl.classList.contains("expanded")) setExpanded(false);
+          if (e.key !== "Escape" || !mapEl || !mapEl.classList.contains("expanded")) return;
+          // If a listing modal is open over the map, let Escape close that first.
+          var md = document.getElementById("kluche-modal");
+          if (md && md.style.display !== "none") return;
+          setExpanded(false);
         });
 
         // Exposed for the listing modal's mini-map: open the full map, expanded
