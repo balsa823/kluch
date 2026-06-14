@@ -706,8 +706,8 @@ test("mapEnabled:true renders the map (always shown), Leaflet includes and map c
   // Leaflet CSS + JS from unpkg
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
   expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
-  // grayscale tile filter
-  expect(html).toContain("grayscale(1)");
+  // Carto Voyager basemap tiles
+  expect(html).toContain("basemaps.cartocdn.com/rastertiles/voyager");
 });
 
 test("kluche-listings JSON carries numeric lat/lng for a known city and null for an unknown one", () => {

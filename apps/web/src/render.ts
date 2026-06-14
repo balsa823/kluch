@@ -943,7 +943,7 @@ export function renderAgencySite(
     .map-overlay .chip { color: var(--overlay-ink); text-shadow: var(--overlay-ink-shadow); }
     .map-overlay .chip .caret { stroke: var(--overlay-ink); }
     /* Overlay sits at the top → popovers open downward (the default). */
-    .leaflet-tile { filter: grayscale(1) contrast(1.03) brightness(1.02); }
+    /* Carto Voyager basemap — shown in colour (no grayscale filter). */
     .area-label { background: rgba(31,58,92,.92); color: #fff; border: 0; border-radius: 8px; padding: .12rem .45rem; font: 600 .72rem "Inter", sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
     .leaflet-tooltip.area-label::before { display: none; }
     /* Minimal listing dot, coloured by property type (residential/commercial/land). */
@@ -1532,7 +1532,7 @@ export function renderAgencySite(
         var el = document.getElementById("kluche-minimap");
         if (!miniMap) {
           miniMap = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false });
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20 }).addTo(miniMap);
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20 }).addTo(miniMap);
           miniLayer = L.layerGroup().addTo(miniMap);
         }
         if (!miniBound) {
@@ -1853,8 +1853,8 @@ export function renderAgencySite(
             maxBoundsViscosity: 1.0,
             minZoom: 8
           }).setView(center, zoom);
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-            subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap, © CARTO"
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+            subdomains: "abcd", maxZoom: 20, attribution: "© OpenStreetMap contributors, © CARTO"
           }).addTo(leafletMap);
 
           var bounds = [];
