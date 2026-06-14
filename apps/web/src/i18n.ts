@@ -26,7 +26,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
     "card.forRent":"For rent","card.forSale":"For sale","card.perMonth":" / mo","card.priceOnRequest":"Price on request","card.showNumber":"Show number","card.call":"Call",
     "modal.close":"Close","modal.gallery":"Photos",
     "tour.heading":"Schedule a tour","tour.date":"Preferred date","tour.note":"Note (optional)","tour.submit":"Request tour","tour.done":"Tour requested — the agency will be in touch.",
-    "auth.heading":"Sign in to schedule","auth.email":"Email","auth.password":"Password","auth.name":"Name","auth.login":"Log in","auth.register":"Register","auth.toggleToRegister":"New here? Register","auth.toggleToLogin":"Have an account? Log in","auth.signedInAs":"Signed in as",
+    "auth.heading":"Sign in to schedule","auth.email":"Email","auth.password":"Password","auth.name":"Name","auth.login":"Log in","auth.register":"Register","auth.toggleToRegister":"New here? Register on Kluche.me","auth.toggleToLogin":"Have an account? Log in","auth.signedInAs":"Signed in as",
     "properties.heading":"Available properties","properties.empty":"No properties match your search.",
     "about.body":"We help you find the right home — to rent or to buy. Get in touch and our team will guide you, in your language, every step of the way.",
     "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
