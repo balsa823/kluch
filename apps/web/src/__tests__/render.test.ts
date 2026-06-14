@@ -696,10 +696,10 @@ test("mapEnabled:false renders no map view, toggle or Leaflet includes", () => {
   expect(html).not.toContain("leaflet@1.9.4");
 });
 
-test("mapEnabled:true renders the List/Map toggle, Leaflet includes and map containers", () => {
+test("mapEnabled:true renders the map (always shown), Leaflet includes and map containers", () => {
   const html = renderAgencySite(mapAgency, listings);
-  expect(html).toContain('data-i18n="view.list"');
-  expect(html).toContain('data-i18n="view.map"');
+  // The List/Map toggle was removed — the map shows alongside the list.
+  expect(html).not.toContain('id="view-list"');
   expect(html).toContain('id="kluche-map"');
   expect(html).toContain('id="kluche-map-canvas"');
   expect(html).toContain('id="kluche-map-areas"');
@@ -772,11 +772,12 @@ test("modal sizes with dvh + safe-area padding so the ✕ isn't clipped on iOS S
   expect(html).toMatch(/\.modal \{[^}]*env\(safe-area-inset-top/s);
 });
 
-test("when mapEnabled, the site opens on the map view by default", () => {
+test("when mapEnabled, the map is initialised on load (shown alongside the list)", () => {
   const mapAgency = { ...agency, mapEnabled: true } as typeof agency;
   const html = renderAgencySite(mapAgency, listings);
-  // the toggle JS calls showMap() at init so the map is visible without hunting for the tab
-  expect(html).toContain("showMap();");
+  // The map is always visible now; the script inits Leaflet on load.
+  expect(html).toContain("initMap();");
+  expect(html).toContain('class="search-section"');
 });
 
 // --- Map overlay city shortcuts --------------------------------------------

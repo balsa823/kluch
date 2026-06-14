@@ -623,19 +623,20 @@ export function renderAgencySite(
     header.hero {
       ${heroStyle}
       color: #fff;
-      padding: clamp(3rem, 12vw, 7rem) clamp(1rem, 4vw, 2.5rem) clamp(4rem, 9vw, 6rem);
+      padding: clamp(1.8rem, 4.5vw, 3rem) clamp(1rem, 4vw, 2.5rem);
       text-align: center;
     }
-    header.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 auto 1.5rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
+    header.hero h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 auto 0.4rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
 
-    /* Hero search bar (keypartners-style) */
+    /* Search bar — now in a section below the hero (on the cream background). */
+    .search-section { padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 0; }
     form.search { max-width: 980px; margin: 0 auto; text-align: left; }
     .searchbar { display: flex; gap: 0.6rem; }
     .searchbar input {
-      flex: 1; border: 0; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
-      background: #fff; color: var(--color-ink); box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 0;
+      flex: 1; border: 1px solid #E7DFCF; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
+      background: #fff; color: var(--color-ink); box-shadow: 0 1px 3px rgba(0,0,0,.06); min-width: 0;
     }
-    .searchbar input:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), 0 10px 30px rgba(0,0,0,.18); }
+    .searchbar input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 30%, transparent); }
     .searchbar button.search-go {
       display: flex; align-items: center; gap: 0.5rem; border: 0; cursor: pointer;
       background: var(--color-accent); color: #fff; font: inherit; font-weight: 700; letter-spacing: .04em;
@@ -648,10 +649,10 @@ export function renderAgencySite(
     .chips { display: flex; flex-wrap: wrap; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
     .chip {
       position: relative; display: inline-flex; align-items: center; gap: 0.45rem;
-      background: transparent; border: 0; cursor: pointer; color: #fff; font: inherit; font-size: 0.95rem; font-weight: 500;
+      background: transparent; border: 0; cursor: pointer; color: var(--color-primary); font: inherit; font-size: 0.95rem; font-weight: 600;
       padding: 0.2rem 0;
     }
-    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: #fff; fill: none; stroke-width: 2.2; opacity: 0.9; }
+    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: var(--color-primary); fill: none; stroke-width: 2.2; opacity: 0.9; }
     .chip .clear {
       display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem;
       border-radius: 999px; font-size: 0.8rem; line-height: 1; opacity: 0.85;
@@ -1007,6 +1008,9 @@ export function renderAgencySite(
   <header class="hero" id="top">
     ${heroH1}
     ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
+  </header>
+
+  <section class="search-section">
     <form class="search" method="get" id="hero-form">
       <div class="searchbar">
         <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="${T_("search.placeholder")}" />
@@ -1093,7 +1097,7 @@ export function renderAgencySite(
       </div>
       ${hasActiveFilters(filters) ? `<p class="search-clear-row"><a class="search-clear" href="?" data-i18n="tab.clear">${T_("tab.clear")}</a></p>` : ""}
     </form>
-  </header>
+  </section>
 
   <script type="application/json" id="kluche-locations">${jsonForScript(MNE_LOCATIONS)}</script>
 
@@ -1102,11 +1106,7 @@ export function renderAgencySite(
       <h2 class="section-head" data-i18n="properties.heading">${T_("properties.heading")}</h2>
       ${
         mapEnabled
-          ? `<div class="view-toggle" role="group" aria-label="View">
-        <button type="button" id="view-list" class="active" data-i18n="view.list">${T_("view.list")}</button>
-        <button type="button" id="view-map" data-i18n="view.map">${T_("view.map")}</button>
-      </div>
-      <section id="kluche-map" style="display:none">
+          ? `<section id="kluche-map">
         <div id="kluche-map-canvas"></div>
         <div class="map-overlay">
           <div class="map-overlay-cities" id="map-overlay-cities"></div>
@@ -1736,18 +1736,16 @@ export function renderAgencySite(
       }
 
       ${mapEnabled ? `
-      // --- Map view: List/Map toggle + Leaflet (area circles + approx pins) -
+      // --- Map: compact preview (always shown next to the list) + Leaflet -----
       // String ops only here (this is a template literal — regex literals would
       // have their escapes stripped and break the whole inline script).
       (function () {
-        var listBtn = document.getElementById("view-list");
-        var mapBtn = document.getElementById("view-map");
         var mapSection = document.getElementById("kluche-map");
-        var grid = document.querySelector("#properties .grid");
-        if (!listBtn || !mapBtn || !mapSection || !grid) return;
+        if (!mapSection) return;
 
-        // Hero search form gets relocated into the overlay in Map view (the node
-        // is moved, not cloned, so its listeners survive); moved back in List view.
+        // The search form lives below the hero by default; it gets relocated into
+        // the map overlay only while the map is EXPANDED (the node is moved, not
+        // cloned, so its listeners survive), and moved back on collapse.
         var heroForm = document.getElementById("hero-form");
         var filterSlot = document.getElementById("map-overlay-filters");
         var heroHost = heroForm ? heroForm.parentNode : null;
@@ -1787,6 +1785,12 @@ export function renderAgencySite(
           else mapEl.classList.remove("expanded");
           // Lock background scroll while full-screen.
           document.body.style.overflow = on ? "hidden" : "";
+          // Filters live in the overlay only while expanded; below the hero otherwise.
+          if (on) {
+            if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) filterSlot.appendChild(heroForm);
+          } else {
+            if (heroForm && heroHost && heroForm.parentNode !== heroHost) heroHost.appendChild(heroForm);
+          }
           // Two recalcs: one immediately, one after the CSS transition settles.
           recalcMap();
           setTimeout(recalcMap, 320);
@@ -1802,7 +1806,6 @@ export function renderAgencySite(
         // and flown to a given listing (its nearby pins are already on the map).
         window.__klucheOpenMapAt = function (id) {
           var l = byId[id];
-          showMap();
           setExpanded(true);
           if (l && typeof l.lat === "number" && typeof l.lng === "number" && leafletMap) {
             try { leafletMap.flyTo([l.lat, l.lng], 15, { duration: 0.6 }); } catch (e) {}
@@ -1907,35 +1910,8 @@ export function renderAgencySite(
           }
         }
 
-        function showMap() {
-          listBtn.classList.remove("active");
-          mapBtn.classList.add("active");
-          grid.style.display = "none";
-          mapSection.style.display = "";
-          initMap();
-          // Leaflet needs a size recalc once its container becomes visible.
-          recalcMap();
-          // Relocate the live hero search form into the overlay (move, don't clone).
-          if (heroForm && filterSlot && heroForm.parentNode !== filterSlot) {
-            filterSlot.appendChild(heroForm);
-          }
-        }
-        function showList() {
-          mapBtn.classList.remove("active");
-          listBtn.classList.add("active");
-          // Leaving map view: collapse it (so the fixed full-screen never lingers).
-          setExpanded(false);
-          mapSection.style.display = "none";
-          grid.style.display = "";
-          // Move the hero search form back to its original header host.
-          if (heroForm && heroHost && heroForm.parentNode !== heroHost) {
-            heroHost.appendChild(heroForm);
-          }
-        }
-        mapBtn.addEventListener("click", showMap);
-        listBtn.addEventListener("click", showList);
-        // Map is a deliberately-enabled feature → open on it by default (List stays a tap away).
-        showMap();
+        // The map is always visible (compact) alongside the list — just init it.
+        initMap();
       })();
       ` : ""}
     }
