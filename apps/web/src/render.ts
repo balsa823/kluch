@@ -1282,6 +1282,10 @@ export function renderAgencySite(
     }
     if (actionEl) {
       actionEl.addEventListener("click", function (e) {
+        // If applying/clearing from the full-screen map, remember to re-open it
+        // expanded after the reload (so you don't get bounced back to compact).
+        var m = document.getElementById("kluche-map");
+        if (m && m.classList.contains("expanded")) { try { sessionStorage.setItem("kluche_map_expanded", "1"); } catch (e2) {} }
         // Apply mode → submit the form (apply the new filters); clear mode → href="?".
         if (actionEl.classList.contains("is-apply")) { e.preventDefault(); form.submit(); }
       });
@@ -1885,6 +1889,13 @@ export function renderAgencySite(
 
         // The map is always visible (compact) alongside the list — just init it.
         initMap();
+        // Re-open expanded if we just applied/cleared filters from the full-screen map.
+        try {
+          if (sessionStorage.getItem("kluche_map_expanded") === "1") {
+            sessionStorage.removeItem("kluche_map_expanded");
+            setExpanded(true);
+          }
+        } catch (e) {}
       })();
       ` : ""}
     }
