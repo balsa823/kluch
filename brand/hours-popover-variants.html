@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kluche — opening-hours popover variants</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; --open:#3f9d6a; --closed:#b06a6a; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,sans-serif;background:#22344a;color:#1F2937;padding:2rem}
+  .grid{display:flex;flex-wrap:wrap;gap:2rem;align-items:flex-start;justify-content:center}
+  .cell{width:300px}
+  .cell h2{color:#cfd8e6;font-size:.85rem;font-weight:600;margin:0 0 .6rem;text-align:center}
+  .pop{position:relative;background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:.9rem 1rem}
+  .pop::before{content:"";position:absolute;top:-7px;left:24px;width:14px;height:14px;background:#fff;transform:rotate(45deg)}
+  .pop.banner{padding-top:0;overflow:hidden}
+  h4{margin:0 0 .55rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#8a8676}
+  .row{display:flex;justify-content:space-between;gap:1.2rem;font-size:.88rem;padding:.18rem 0}
+  .row .d{color:#555}
+  .row.today{font-weight:700;color:var(--primary)} .row.today .d{color:var(--primary)}
+  .closed{color:var(--closed)}
+
+  /* V2 grouped */
+  .grp{font-size:.9rem;line-height:1.7}
+  .grp .r{display:flex;justify-content:space-between;gap:1rem}
+  .grp .days{color:#555;font-weight:600}
+
+  /* V3 today-first */
+  .todayhead{display:flex;align-items:center;gap:.5rem;background:#eef5f0;border:1px solid #d7e8de;border-radius:10px;padding:.55rem .7rem;margin-bottom:.6rem}
+  .todayhead .dot{width:.6rem;height:.6rem;border-radius:50%;background:var(--open)}
+  .todayhead b{color:var(--primary)} .todayhead small{color:#6b7280;display:block;font-size:.72rem}
+  details summary{cursor:pointer;color:var(--accent);font-size:.82rem;font-weight:600;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details[open] summary{margin-bottom:.4rem}
+
+  /* V4 grid two-col chips */
+  .chips{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+  .chip{display:flex;justify-content:space-between;gap:.5rem;background:#f4f1ea;border-radius:8px;padding:.32rem .5rem;font-size:.8rem}
+  .chip.today{background:var(--primary);color:#fff}
+  .chip .d{opacity:.7} .chip.today .d{opacity:.85}
+
+  /* V5 status banner */
+  .topbanner{background:var(--open);color:#fff;padding:.55rem .9rem;font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:.45rem}
+  .topbanner .dot{width:.55rem;height:.55rem;border-radius:50%;background:#fff}
+  .bbody{padding:.7rem 1rem .9rem}
+
+  /* V6 timeline bars */
+  .tl{font-size:.78rem}
+  .tl .lane{display:flex;align-items:center;gap:.5rem;padding:.2rem 0}
+  .tl .d{width:2.2rem;color:#555}
+  .tl .track{flex:1;height:8px;border-radius:6px;background:#eceae2;position:relative;overflow:hidden}
+  .tl .fill{position:absolute;top:0;bottom:0;background:var(--accent);border-radius:6px}
+  .tl .lane.today .d{font-weight:700;color:var(--primary)}
+  .tl .lane.today .fill{background:var(--open)}
+  .tl .t{width:5.6rem;text-align:right;color:#444}
+  .tl .closed{color:var(--closed)}
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div class="cell">
+    <h2>V1 — Simple list (current)</h2>
+    <div class="pop">
+      <h4>Opening hours</h4>
+      <div class="row today"><span class="d">Mon</span><span>09:00–20:00</span></div>
+      <div class="row"><span class="d">Tue</span><span>09:00–20:00</span></div>
+      <div class="row"><span class="d">Wed</span><span>09:00–20:00</span></div>
+      <div class="row"><span class="d">Thu</span><span>09:00–20:00</span></div>
+      <div class="row"><span class="d">Fri</span><span>09:00–20:00</span></div>
+      <div class="row"><span class="d">Sat</span><span>09:00–15:00</span></div>
+      <div class="row"><span class="d">Sun</span><span class="closed">Closed</span></div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2>V2 — Grouped ranges (collapses equal days)</h2>
+    <div class="pop">
+      <h4>Opening hours</h4>
+      <div class="grp">
+        <div class="r"><span class="days">Mon–Fri</span><span>09:00–20:00</span></div>
+        <div class="r"><span class="days">Sat</span><span>09:00–15:00</span></div>
+        <div class="r"><span class="days">Sun</span><span class="closed">Closed</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2>V3 — Today first, rest expandable</h2>
+    <div class="pop">
+      <div class="todayhead"><span class="dot"></span><div><b>Open until 20:00</b><small>Today · Monday</small></div></div>
+      <details open>
+        <summary>All opening hours ▾</summary>
+        <div class="row"><span class="d">Tue</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Wed</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Thu</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Fri</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Sat</span><span>09:00–15:00</span></div>
+        <div class="row"><span class="d">Sun</span><span class="closed">Closed</span></div>
+      </details>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2>V4 — Two-column chips</h2>
+    <div class="pop">
+      <h4>Opening hours</h4>
+      <div class="chips">
+        <div class="chip today"><span class="d">Mon</span><span>09–20</span></div>
+        <div class="chip"><span class="d">Tue</span><span>09–20</span></div>
+        <div class="chip"><span class="d">Wed</span><span>09–20</span></div>
+        <div class="chip"><span class="d">Thu</span><span>09–20</span></div>
+        <div class="chip"><span class="d">Fri</span><span>09–20</span></div>
+        <div class="chip"><span class="d">Sat</span><span>09–15</span></div>
+        <div class="chip"><span class="d">Sun</span><span class="closed">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2>V5 — Status banner + list</h2>
+    <div class="pop banner">
+      <div class="topbanner"><span class="dot"></span> Open now · until 20:00</div>
+      <div class="bbody">
+        <div class="row today"><span class="d">Mon</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Tue</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Wed</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Thu</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Fri</span><span>09:00–20:00</span></div>
+        <div class="row"><span class="d">Sat</span><span>09:00–15:00</span></div>
+        <div class="row"><span class="d">Sun</span><span class="closed">Closed</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2>V6 — Visual timeline bars</h2>
+    <div class="pop">
+      <h4>Opening hours</h4>
+      <div class="tl">
+        <div class="lane today"><span class="d">Mon</span><span class="track"><span class="fill" style="left:34%;right:8%"></span></span><span class="t">09:00–20:00</span></div>
+        <div class="lane"><span class="d">Tue</span><span class="track"><span class="fill" style="left:34%;right:8%"></span></span><span class="t">09:00–20:00</span></div>
+        <div class="lane"><span class="d">Wed</span><span class="track"><span class="fill" style="left:34%;right:8%"></span></span><span class="t">09:00–20:00</span></div>
+        <div class="lane"><span class="d">Thu</span><span class="track"><span class="fill" style="left:34%;right:8%"></span></span><span class="t">09:00–20:00</span></div>
+        <div class="lane"><span class="d">Fri</span><span class="track"><span class="fill" style="left:34%;right:8%"></span></span><span class="t">09:00–20:00</span></div>
+        <div class="lane"><span class="d">Sat</span><span class="track"><span class="fill" style="left:34%;right:42%"></span></span><span class="t">09:00–15:00</span></div>
+        <div class="lane"><span class="d">Sun</span><span class="track"></span><span class="t closed">Closed</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -512,7 +512,7 @@ test("footer renders 7 business-hours rows with localized day keys and times", (
   expect(html).toContain(`data-i18n="footer.closedDay"`);
 });
 
-test("footer open-now badge reflects openStatus (open within hours)", () => {
+test("nav status bar reflects openStatus (open within hours) + hours popover", () => {
   // Monday 2026-06-08 12:00 Podgorica → open with the HOURS fixture.
   const html = renderAgencySite(
     { ...agency, businessHours: HOURS } as Agency,
@@ -520,11 +520,14 @@ test("footer open-now badge reflects openStatus (open within hours)", () => {
     {},
     { now: new Date("2026-06-08T10:00:00Z") },
   );
-  expect(html).toContain(`open-status is-open`);
+  expect(html).toContain(`navsub-toggle is-open`);
   expect(html).toContain(`data-i18n="footer.openUntil"`);
+  expect(html).toContain(`id="nav-hours-pop"`);
+  // popover lists the week, today highlighted
+  expect(html).toContain(`hp-row today`);
 });
 
-test("footer open status is closed + shows next opening outside hours", () => {
+test("nav status is closed + shows next opening outside hours", () => {
   // Sunday 2026-06-07 → null hours → closed; next open is Monday.
   const html = renderAgencySite(
     { ...agency, businessHours: HOURS } as Agency,
@@ -532,7 +535,7 @@ test("footer open status is closed + shows next opening outside hours", () => {
     {},
     { now: new Date("2026-06-07T10:00:00Z") },
   );
-  expect(html).toContain(`open-status is-closed`);
+  expect(html).toContain(`navsub-toggle is-closed`);
   expect(html).toContain(`data-i18n="footer.opensAt"`);
   expect(html).toContain(`data-day="day.mon"`);
 });

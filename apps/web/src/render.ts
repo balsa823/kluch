@@ -445,24 +445,60 @@ export function renderAgencySite(
         </div>`
     : "";
 
-  // Open status as a short sentence: "Open until HH:MM" / "Opens {day} at HH:MM".
-  // data-time/data-day let applyLang re-interpolate on a client language switch.
-  let openBadge: string;
-  if (status.open && status.closesAt) {
-    openBadge = `<span class="open-status is-open"><span class="open-dot"></span><span class="open-text" data-i18n="footer.openUntil" data-time="${attr(status.closesAt)}">${esc(T_("footer.openUntil").replace("{t}", status.closesAt))}</span></span>`;
-  } else if (status.opensAt && status.opensWeekday) {
-    const dayName = T_(`day.${status.opensWeekday}`);
-    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text" data-i18n="footer.opensAt" data-time="${attr(status.opensAt)}" data-day="day.${status.opensWeekday}">${esc(T_("footer.opensAt").replace("{day}", dayName).replace("{t}", status.opensAt))}</span></span>`;
-  } else if (status.holiday) {
-    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text">${esc(status.holiday)}</span></span>`;
-  } else {
-    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text" data-i18n="footer.closed">${T_("footer.closed")}</span></span>`;
-  }
-  // "Call us now" CTA right next to the status (only when a phone is set).
-  const callNow = agency.phone
-    ? `<a class="footer-call" href="tel:${attr(agency.phone)}"><span aria-hidden="true">📞</span> <span data-i18n="footer.callNow">${T_("footer.callNow")}</span></a>`
+  // Open-status sentence ("Open until HH:MM" / "Opens {day} at HH:MM"). The
+  // data-time/data-day attrs let applyLang re-interpolate on a client lang switch.
+  // Reused in the nav sub-bar toggle and inside the hours popover banner.
+  const statusText = (status.open && status.closesAt)
+    ? `<span class="open-text" data-i18n="footer.openUntil" data-time="${attr(status.closesAt)}">${esc(T_("footer.openUntil").replace("{t}", status.closesAt))}</span>`
+    : (status.opensAt && status.opensWeekday)
+      ? `<span class="open-text" data-i18n="footer.opensAt" data-time="${attr(status.opensAt)}" data-day="day.${status.opensWeekday}">${esc(T_("footer.opensAt").replace("{day}", T_(`day.${status.opensWeekday}`)).replace("{t}", status.opensAt))}</span>`
+      : status.holiday
+        ? `<span class="open-text">${esc(status.holiday)}</span>`
+        : `<span class="open-text" data-i18n="footer.closed">${T_("footer.closed")}</span>`;
+  const dotCls = status.open ? "is-open" : "is-closed";
+
+  // Today's weekday (Podgorica) — to highlight in the popover.
+  const todayKey = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Podgorica", weekday: "short" })
+    .format(opts.now ?? new Date()).toLowerCase().slice(0, 3);
+
+  // Full-week rows for the hours popover (today highlighted).
+  const popRows = bh
+    ? DAY_KEYS.map((d) => {
+        const day = bh[d];
+        const o = day && typeof day === "object" ? (day as { open?: unknown }).open : null;
+        const c = day && typeof day === "object" ? (day as { close?: unknown }).close : null;
+        const val = typeof o === "string" && typeof c === "string" && o && c
+          ? `<span>${esc(o)}–${esc(c)}</span>`
+          : `<span class="hp-closed" data-i18n="footer.closedDay">${T_("footer.closedDay")}</span>`;
+        return `<div class="hp-row${d === todayKey ? " today" : ""}"><span data-i18n="day.${d}">${T_(`day.${d}`)}</span>${val}</div>`;
+      }).join("")
     : "";
-  const statusRow = `<div class="footer-status-row">${openBadge}${callNow}</div>`;
+
+  // "Call us now" CTA (only when a phone is set).
+  const callNow = agency.phone
+    ? `<a class="navsub-call" href="tel:${attr(agency.phone)}"><span aria-hidden="true">📞</span> <span data-i18n="footer.callNow">${T_("footer.callNow")}</span></a>`
+    : "";
+
+  // Transparent sub-bar attached under the nav (over the hero): status (click →
+  // hours popover) on the left, Call-us-now on the right. Rendered only when
+  // there are business hours and/or a phone.
+  const navStatusBar = (bh || agency.phone)
+    ? `<div class="navsub">
+        ${bh
+          ? `<div class="navsub-statuswrap">
+        <button type="button" class="navsub-toggle ${dotCls}" id="nav-hours-toggle" aria-expanded="false" aria-controls="nav-hours-pop">
+          <span class="open-dot"></span>${statusText}<svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="navsub-pop" id="nav-hours-pop" hidden>
+          <div class="navsub-banner ${dotCls}"><span class="open-dot"></span><span class="navsub-banner-text">${statusText}</span></div>
+          <h4 data-i18n="footer.hours">${T_("footer.hours")}</h4>
+          <div class="navsub-hours">${popRows}</div>
+        </div>
+      </div>`
+          : `<span class="navsub-spacer"></span>`}
+        ${callNow}
+      </div>`
+    : "";
 
   // Contact column: only render the bits that are set.
   const phoneRow = agency.phone
@@ -505,7 +541,6 @@ export function renderAgencySite(
       ${contactColumn}
     </div>
     <div class="footer-bar">
-      ${statusRow}
       <span class="footer-legal">${footerLegalName} · <span data-i18n="footer.powered">${T_("footer.powered")}</span></span>
     </div>
   </footer>`;
@@ -819,18 +854,48 @@ export function renderAgencySite(
       max-width: 1180px; margin: 0 auto; padding: 1rem clamp(1rem, 4vw, 2.5rem) 2rem;
       border-top: 1px solid rgba(255,255,255,0.18); font-size: 0.82rem; opacity: 0.9;
     }
-    /* Open-status sentence (e.g. "Open until 17:00") + a Call-us-now button. */
-    .footer-status-row { display: inline-flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-    .open-status { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; font-weight: 600; }
-    .open-status .open-dot { width: 0.55rem; height: 0.55rem; border-radius: 999px; flex: 0 0 auto; }
-    .open-status.is-open { color: #b9f5cf; } .open-status.is-open .open-dot { background: #6fd99a; box-shadow: 0 0 0 3px rgba(111,217,154,0.25); }
-    .open-status.is-closed { color: #e7c9c9; } .open-status.is-closed .open-dot { background: #c98a8a; }
-    .footer-call {
-      display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; cursor: pointer;
-      background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.85rem;
-      padding: 0.4rem 0.9rem; border-radius: 999px;
+    /* Nav sub-bar (appendage under the nav, over the hero): transparent B3 strip
+       with the open-status (→ hours popover) on the left, Call-us-now on the right. */
+    .navsub {
+      display: flex; align-items: center; gap: 1rem;
+      margin: calc(-1 * clamp(2rem, 5vw, 3.5rem)) calc(-1 * clamp(1rem, 4vw, 2.5rem)) clamp(1.2rem, 3vw, 1.8rem);
+      padding: 0.55rem clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.30), rgba(0,0,0,0));
+      text-align: left;
     }
-    .footer-call:hover { filter: brightness(1.08); }
+    .navsub-spacer { flex: 1; }
+    .navsub-statuswrap { position: relative; }
+    .navsub-toggle {
+      display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer;
+      background: none; border: 0; font: inherit; font-size: 0.88rem; font-weight: 600; color: #cfeede;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4); padding: 0.2rem 0;
+    }
+    .navsub-toggle.is-closed { color: #e7c9c9; }
+    .navsub-toggle .open-dot { width: 0.55rem; height: 0.55rem; border-radius: 999px; flex: 0 0 auto; }
+    .navsub-toggle.is-open .open-dot { background: #6fd99a; box-shadow: 0 0 0 3px rgba(111,217,154,0.25); }
+    .navsub-toggle.is-closed .open-dot { background: #c98a8a; }
+    .navsub-toggle .caret { width: 0.6rem; height: 0.6rem; stroke: currentColor; fill: none; stroke-width: 2.4; opacity: 0.85; }
+    .navsub-call {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
+      background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.82rem;
+      padding: 0.42rem 0.9rem; border-radius: 999px; white-space: nowrap;
+    }
+    .navsub-call:hover { filter: brightness(1.08); }
+    /* Hours popover */
+    .navsub-pop {
+      position: absolute; left: 0; top: calc(100% + 8px); z-index: 800;
+      background: #fff; color: var(--color-ink); border-radius: 12px; padding: 0.8rem 0.95rem; min-width: 230px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.3); text-align: left;
+    }
+    .navsub-pop::before { content: ""; position: absolute; top: -7px; left: 20px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); }
+    .navsub-banner { display: flex; align-items: center; gap: 0.5rem; border-radius: 10px; padding: 0.55rem 0.7rem; margin-bottom: 0.6rem; font-weight: 700; }
+    .navsub-banner .open-dot { width: 0.6rem; height: 0.6rem; border-radius: 999px; flex: 0 0 auto; }
+    .navsub-banner.is-open { background: #eef5f0; color: var(--color-primary); } .navsub-banner.is-open .open-dot { background: #3f9d6a; }
+    .navsub-banner.is-closed { background: #f7eeee; color: #8a4a4a; } .navsub-banner.is-closed .open-dot { background: #c98a8a; }
+    .navsub-pop h4 { margin: 0 0 0.4rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8a8676; }
+    .hp-row { display: flex; justify-content: space-between; gap: 1.2rem; font-size: 0.86rem; padding: 0.16rem 0; color: #444; }
+    .hp-row.today { font-weight: 700; color: var(--color-primary); }
+    .hp-closed { color: #b06a6a; }
     .call-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
     .card .call-btn { width: auto; }
     .card[role="button"] { cursor: pointer; }
@@ -1013,6 +1078,7 @@ export function renderAgencySite(
   </div>
 
   <header class="hero" id="top">
+    ${navStatusBar}
     ${heroH1}
     ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
     <form class="search" method="get" id="hero-form">
@@ -1274,6 +1340,20 @@ export function renderAgencySite(
   }
   // Idempotent sync of the active pill / placeholders (text is already translated server-side).
   applyLang();
+
+  // Nav sub-bar: toggle the opening-hours popover (open on click, close on
+  // outside-click / Escape).
+  (function () {
+    var toggle = document.getElementById("nav-hours-toggle");
+    var pop = document.getElementById("nav-hours-pop");
+    if (!toggle || !pop) return;
+    function setOpen(on) { pop.hidden = !on; toggle.setAttribute("aria-expanded", on ? "true" : "false"); }
+    toggle.addEventListener("click", function (e) { e.stopPropagation(); setOpen(pop.hidden); });
+    document.addEventListener("click", function (e) {
+      if (!pop.hidden && !pop.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !pop.hidden) setOpen(false); });
+  })();
 
   // --- Hero search: chip popovers, Location multi-select, hidden-field sync ---
   (function () {
