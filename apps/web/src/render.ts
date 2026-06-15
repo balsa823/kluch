@@ -610,6 +610,7 @@ export function renderAgencySite(
       position: absolute; right: 0; top: calc(100% + 8px); z-index: 800; display: flex; flex-direction: column; min-width: 190px;
       background: #fff; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.3); padding: 0.3rem;
     }
+    .langmenu[hidden] { display: none; }
     .langmenu button {
       background: none; border: 0; cursor: pointer; font: inherit; font-size: 0.9rem; text-align: left;
       color: var(--color-ink); padding: 0.5rem 0.7rem; border-radius: 8px;
