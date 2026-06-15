@@ -870,13 +870,11 @@ export function renderAgencySite(
     /* Nav sub-bar (appendage under the nav, over the hero): transparent B3 strip
        with the open-status (→ hours popover) on the left, Call-us-now on the right. */
     .navsub {
-      display: flex; align-items: center; gap: 1rem;
+      display: flex; align-items: center; justify-content: flex-end; gap: 1rem;
       margin: calc(-1 * clamp(2rem, 5vw, 3.5rem)) calc(-1 * clamp(1rem, 4vw, 2.5rem)) clamp(1.2rem, 3vw, 1.8rem);
       padding: 0.55rem clamp(1rem, 4vw, 2.5rem);
       background: linear-gradient(to bottom, rgba(0,0,0,0.30), rgba(0,0,0,0));
-      text-align: left;
     }
-    .navsub-spacer { flex: 1; }
     .navsub-statuswrap { position: relative; }
     .navsub-toggle {
       display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer;
@@ -896,11 +894,11 @@ export function renderAgencySite(
     .navsub-call:hover { filter: brightness(1.08); }
     /* Hours popover */
     .navsub-pop {
-      position: absolute; left: 0; top: calc(100% + 8px); z-index: 800;
+      position: absolute; right: 0; top: calc(100% + 8px); z-index: 800;
       background: #fff; color: var(--color-ink); border-radius: 12px; padding: 0.8rem 0.95rem; min-width: 230px;
       box-shadow: 0 18px 50px rgba(0,0,0,0.3); text-align: left;
     }
-    .navsub-pop::before { content: ""; position: absolute; top: -7px; left: 20px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); }
+    .navsub-pop::before { content: ""; position: absolute; top: -7px; right: 20px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); }
     .navsub-banner { display: flex; align-items: center; gap: 0.5rem; border-radius: 10px; padding: 0.55rem 0.7rem; margin-bottom: 0.6rem; font-weight: 700; }
     .navsub-banner .open-dot { width: 0.6rem; height: 0.6rem; border-radius: 999px; flex: 0 0 auto; }
     .navsub-banner.is-open { background: #eef5f0; color: var(--color-primary); } .navsub-banner.is-open .open-dot { background: #3f9d6a; }
