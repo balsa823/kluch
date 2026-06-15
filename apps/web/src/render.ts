@@ -445,13 +445,24 @@ export function renderAgencySite(
         </div>`
     : "";
 
-  // Open-now badge: localizable when open; the holiday name (escaped) or a
-  // localizable "Closed" when closed. Literal English fallback shows pre-JS.
-  const openBadge = status.open
-    ? `<span class="open-badge is-open" data-i18n="footer.openNow">${T_("footer.openNow")}</span>`
-    : status.holiday
-      ? `<span class="open-badge is-closed">${esc(status.holiday)}</span>`
-      : `<span class="open-badge is-closed" data-i18n="footer.closed">${T_("footer.closed")}</span>`;
+  // Open status as a short sentence: "Open until HH:MM" / "Opens {day} at HH:MM".
+  // data-time/data-day let applyLang re-interpolate on a client language switch.
+  let openBadge: string;
+  if (status.open && status.closesAt) {
+    openBadge = `<span class="open-status is-open"><span class="open-dot"></span><span class="open-text" data-i18n="footer.openUntil" data-time="${attr(status.closesAt)}">${esc(T_("footer.openUntil").replace("{t}", status.closesAt))}</span></span>`;
+  } else if (status.opensAt && status.opensWeekday) {
+    const dayName = T_(`day.${status.opensWeekday}`);
+    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text" data-i18n="footer.opensAt" data-time="${attr(status.opensAt)}" data-day="day.${status.opensWeekday}">${esc(T_("footer.opensAt").replace("{day}", dayName).replace("{t}", status.opensAt))}</span></span>`;
+  } else if (status.holiday) {
+    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text">${esc(status.holiday)}</span></span>`;
+  } else {
+    openBadge = `<span class="open-status is-closed"><span class="open-dot"></span><span class="open-text" data-i18n="footer.closed">${T_("footer.closed")}</span></span>`;
+  }
+  // "Call us now" CTA right next to the status (only when a phone is set).
+  const callNow = agency.phone
+    ? `<a class="footer-call" href="tel:${attr(agency.phone)}"><span aria-hidden="true">📞</span> <span data-i18n="footer.callNow">${T_("footer.callNow")}</span></a>`
+    : "";
+  const statusRow = `<div class="footer-status-row">${openBadge}${callNow}</div>`;
 
   // Contact column: only render the bits that are set.
   const phoneRow = agency.phone
@@ -494,7 +505,7 @@ export function renderAgencySite(
       ${contactColumn}
     </div>
     <div class="footer-bar">
-      ${openBadge}
+      ${statusRow}
       <span class="footer-legal">${footerLegalName} · <span data-i18n="footer.powered">${T_("footer.powered")}</span></span>
     </div>
   </footer>`;
@@ -808,10 +819,18 @@ export function renderAgencySite(
       max-width: 1180px; margin: 0 auto; padding: 1rem clamp(1rem, 4vw, 2.5rem) 2rem;
       border-top: 1px solid rgba(255,255,255,0.18); font-size: 0.82rem; opacity: 0.9;
     }
-    .open-badge { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.7rem; border-radius: 999px; }
-    .open-badge::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: 999px; background: currentColor; }
-    .open-badge.is-open { background: rgba(78,130,122,0.25); color: #b9f5cf; }
-    .open-badge.is-closed { background: rgba(255,255,255,0.12); color: #f1d6d6; }
+    /* Open-status sentence (e.g. "Open until 17:00") + a Call-us-now button. */
+    .footer-status-row { display: inline-flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .open-status { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; font-weight: 600; }
+    .open-status .open-dot { width: 0.55rem; height: 0.55rem; border-radius: 999px; flex: 0 0 auto; }
+    .open-status.is-open { color: #b9f5cf; } .open-status.is-open .open-dot { background: #6fd99a; box-shadow: 0 0 0 3px rgba(111,217,154,0.25); }
+    .open-status.is-closed { color: #e7c9c9; } .open-status.is-closed .open-dot { background: #c98a8a; }
+    .footer-call {
+      display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; cursor: pointer;
+      background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.85rem;
+      padding: 0.4rem 0.9rem; border-radius: 999px;
+    }
+    .footer-call:hover { filter: brightness(1.08); }
     .call-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
     .card .call-btn { width: auto; }
     .card[role="button"] { cursor: pointer; }
@@ -1181,6 +1200,9 @@ export function renderAgencySite(
       // Templated strings (e.g. "Results for your filters ({n})") carry their
       // number in data-count so re-translation keeps the count.
       if (el.hasAttribute("data-count")) s = s.replace("{n}", el.getAttribute("data-count"));
+      // Footer open-status carries its time (data-time) + day i18n key (data-day).
+      if (el.hasAttribute("data-time")) s = s.replace("{t}", el.getAttribute("data-time"));
+      if (el.hasAttribute("data-day")) s = s.replace("{day}", t(el.getAttribute("data-day")));
       el.textContent = s;
     });
     document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });

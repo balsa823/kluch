@@ -520,19 +520,21 @@ test("footer open-now badge reflects openStatus (open within hours)", () => {
     {},
     { now: new Date("2026-06-08T10:00:00Z") },
   );
-  expect(html).toContain(`class="open-badge is-open"`);
-  expect(html).toContain(`data-i18n="footer.openNow"`);
+  expect(html).toContain(`open-status is-open`);
+  expect(html).toContain(`data-i18n="footer.openUntil"`);
 });
 
-test("footer open-now badge is closed outside hours", () => {
-  // Sunday 2026-06-07 → null hours → closed.
+test("footer open status is closed + shows next opening outside hours", () => {
+  // Sunday 2026-06-07 → null hours → closed; next open is Monday.
   const html = renderAgencySite(
     { ...agency, businessHours: HOURS } as Agency,
     listings,
     {},
     { now: new Date("2026-06-07T10:00:00Z") },
   );
-  expect(html).toContain(`class="open-badge is-closed"`);
+  expect(html).toContain(`open-status is-closed`);
+  expect(html).toContain(`data-i18n="footer.opensAt"`);
+  expect(html).toContain(`data-day="day.mon"`);
 });
 
 test("footer renders social icons only for present, safe socials", () => {

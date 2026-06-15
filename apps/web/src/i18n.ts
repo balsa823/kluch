@@ -32,7 +32,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
     "contact.heading":"Request info / book a viewing","contact.name":"Your name","contact.contact":"Email or phone","contact.message":"Message","contact.submit":"Send request",
     "contact.thankyou":"Thank you — we'll be in touch shortly.",
     "hero.title":"Find Your Perfect Home",
-    "footer.hours":"Opening hours","footer.openNow":"Open now","footer.closed":"Closed","footer.closedDay":"Closed","footer.contact":"Contact","footer.explore":"Explore","footer.about":"About","footer.map":"View on map",
+    "footer.hours":"Opening hours","footer.openNow":"Open now","footer.openUntil":"Open until {t}","footer.opensAt":"Opens {day} at {t}","footer.callNow":"Call us now","footer.closed":"Closed","footer.closedDay":"Closed","footer.contact":"Contact","footer.explore":"Explore","footer.about":"About","footer.map":"View on map",
     "day.mon":"Mon","day.tue":"Tue","day.wed":"Wed","day.thu":"Thu","day.fri":"Fri","day.sat":"Sat","day.sun":"Sun",
     "footer.powered":"Powered by Kluche"
   },
@@ -52,7 +52,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
     "contact.heading":"Zatražite informacije / zakažite obilazak","contact.name":"Vaše ime","contact.contact":"E-pošta ili telefon","contact.message":"Poruka","contact.submit":"Pošalji upit",
     "contact.thankyou":"Hvala — javićemo vam se uskoro.",
     "hero.title":"Pronađite svoj savršen dom",
-    "footer.hours":"Radno vrijeme","footer.openNow":"Otvoreno","footer.closed":"Zatvoreno","footer.closedDay":"Zatvoreno","footer.contact":"Kontakt","footer.explore":"Istražite","footer.about":"O nama","footer.map":"Prikaži na mapi",
+    "footer.hours":"Radno vrijeme","footer.openNow":"Otvoreno","footer.openUntil":"Otvoreno do {t}","footer.opensAt":"Otvara se u {day} u {t}","footer.callNow":"Pozovite nas","footer.closed":"Zatvoreno","footer.closedDay":"Zatvoreno","footer.contact":"Kontakt","footer.explore":"Istražite","footer.about":"O nama","footer.map":"Prikaži na mapi",
     "day.mon":"Pon","day.tue":"Uto","day.wed":"Sri","day.thu":"Čet","day.fri":"Pet","day.sat":"Sub","day.sun":"Ned",
     "footer.powered":"Pokreće Kluche"
   },
@@ -72,7 +72,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
     "contact.heading":"Запросить информацию / записаться на просмотр","contact.name":"Ваше имя","contact.contact":"Эл. почта или телефон","contact.message":"Сообщение","contact.submit":"Отправить запрос",
     "contact.thankyou":"Спасибо — мы скоро свяжемся с вами.",
     "hero.title":"Найдите свой идеальный дом",
-    "footer.hours":"Часы работы","footer.openNow":"Открыто","footer.closed":"Закрыто","footer.closedDay":"Закрыто","footer.contact":"Контакты","footer.explore":"Обзор","footer.about":"О нас","footer.map":"Показать на карте",
+    "footer.hours":"Часы работы","footer.openNow":"Открыто","footer.openUntil":"Открыто до {t}","footer.opensAt":"Откроется в {day} в {t}","footer.callNow":"Позвоните нам","footer.closed":"Закрыто","footer.closedDay":"Закрыто","footer.contact":"Контакты","footer.explore":"Обзор","footer.about":"О нас","footer.map":"Показать на карте",
     "day.mon":"Пн","day.tue":"Вт","day.wed":"Ср","day.thu":"Чт","day.fri":"Пт","day.sat":"Сб","day.sun":"Вс",
     "footer.powered":"Работает на Kluche"
   },
@@ -92,7 +92,7 @@ export const DICT: Record<Lang, Record<string, string>> = {
     "contact.heading":"Bilgi isteyin / randevu alın","contact.name":"Adınız","contact.contact":"E-posta veya telefon","contact.message":"Mesaj","contact.submit":"Gönder",
     "contact.thankyou":"Teşekkürler — en kısa sürede sizinle iletişime geçeceğiz.",
     "hero.title":"Mükemmel Evinizi Bulun",
-    "footer.hours":"Çalışma saatleri","footer.openNow":"Açık","footer.closed":"Kapalı","footer.closedDay":"Kapalı","footer.contact":"İletişim","footer.explore":"Keşfet","footer.about":"Hakkımızda","footer.map":"Haritada göster",
+    "footer.hours":"Çalışma saatleri","footer.openNow":"Açık","footer.openUntil":"{t}'e kadar açık","footer.opensAt":"{day} {t}'de açılır","footer.callNow":"Bizi arayın","footer.closed":"Kapalı","footer.closedDay":"Kapalı","footer.contact":"İletişim","footer.explore":"Keşfet","footer.about":"Hakkımızda","footer.map":"Haritada göster",
     "day.mon":"Pzt","day.tue":"Sal","day.wed":"Çar","day.thu":"Per","day.fri":"Cum","day.sat":"Cmt","day.sun":"Paz",
     "footer.powered":"Kluche tarafından sağlanır"
   }

@@ -58,6 +58,11 @@ export function montenegroHolidays(year: number): Holiday[] {
 export interface OpenStatus {
   open: boolean;
   holiday?: string;
+  /** HH:MM the agency closes today (set when `open`). */
+  closesAt?: string;
+  /** HH:MM of the next opening + its weekday (set when closed). */
+  opensAt?: string;
+  opensWeekday?: DayKey;
 }
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -90,44 +95,65 @@ function localParts(now: Date): { date: string; weekday: DayKey; time: string } 
  * holidays (when observed), and the weekday's business hours. Pure and
  * timezone-correct (Europe/Podgorica). Tolerates null/malformed jsonb.
  */
-export function openStatus(
-  agency: Pick<Agency, "businessHours" | "customClosures" | "observeHolidays">,
-  now: Date,
-): OpenStatus {
-  const { date, weekday, time } = localParts(now);
+type Hours = { open: string; close: string };
+type AgencyHours = Pick<Agency, "businessHours" | "customClosures" | "observeHolidays">;
 
-  // 1. Custom closures (from..to inclusive, or single `from`).
+/** Closure label covering `date` (from..to inclusive, or single `from`), or null. */
+function closureLabel(agency: AgencyHours, date: string): string | null {
   const closures = agency.customClosures;
-  if (Array.isArray(closures)) {
-    for (const c of closures) {
-      if (!c || typeof c !== "object") continue;
-      const from = (c as { from?: unknown }).from;
-      if (typeof from !== "string") continue;
-      const to = (c as { to?: unknown }).to;
-      const end = typeof to === "string" && to ? to : from;
-      if (date >= from && date <= end) {
-        const label = (c as { label?: unknown }).label;
-        return { open: false, holiday: typeof label === "string" && label ? label : "Closed" };
-      }
+  if (!Array.isArray(closures)) return null;
+  for (const c of closures) {
+    if (!c || typeof c !== "object") continue;
+    const from = (c as { from?: unknown }).from;
+    if (typeof from !== "string") continue;
+    const to = (c as { to?: unknown }).to;
+    const end = typeof to === "string" && to ? to : from;
+    if (date >= from && date <= end) {
+      const label = (c as { label?: unknown }).label;
+      return typeof label === "string" && label ? label : "Closed";
     }
   }
+  return null;
+}
 
-  // 2. National holidays.
-  if (agency.observeHolidays) {
-    const year = Number(date.slice(0, 4));
-    const hit = montenegroHolidays(year).find((h) => h.date === date);
-    if (hit) return { open: false, holiday: hit.name };
-  }
+/** National-holiday name on `date` (only when observed), or null. */
+function holidayName(agency: AgencyHours, date: string): string | null {
+  if (!agency.observeHolidays) return null;
+  const hit = montenegroHolidays(Number(date.slice(0, 4))).find((h) => h.date === date);
+  return hit ? hit.name : null;
+}
 
-  // 3. Business hours for the weekday.
+/** Business hours for a specific date, or null if closed (closure/holiday/no hours). */
+function hoursForDate(agency: AgencyHours, date: string, weekday: DayKey): Hours | null {
+  if (closureLabel(agency, date) || holidayName(agency, date)) return null;
   const hours = agency.businessHours;
-  if (!hours || typeof hours !== "object" || Array.isArray(hours)) return { open: false };
+  if (!hours || typeof hours !== "object" || Array.isArray(hours)) return null;
   const day = (hours as Record<string, unknown>)[weekday];
-  if (!day || typeof day !== "object") return { open: false };
+  if (!day || typeof day !== "object") return null;
   const open = (day as { open?: unknown }).open;
   const close = (day as { close?: unknown }).close;
-  if (typeof open !== "string" || typeof close !== "string" || !HHMM.test(open) || !HHMM.test(close)) {
-    return { open: false };
+  if (typeof open !== "string" || typeof close !== "string" || !HHMM.test(open) || !HHMM.test(close)) return null;
+  return { open, close };
+}
+
+export function openStatus(agency: AgencyHours, now: Date): OpenStatus {
+  const { date, weekday, time } = localParts(now);
+  const holiday = closureLabel(agency, date) ?? holidayName(agency, date) ?? undefined;
+  const today = hoursForDate(agency, date, weekday);
+
+  // Open right now → expose today's closing time.
+  if (today && time >= today.open && time < today.close) {
+    return { open: true, closesAt: today.close };
   }
-  return { open: time >= open && time < close };
+  // Closed but opens later today.
+  if (today && time < today.open) {
+    return { open: false, holiday, opensAt: today.open, opensWeekday: weekday };
+  }
+  // Closed → scan up to a week ahead for the next opening day.
+  for (let i = 1; i <= 7; i++) {
+    const f = localParts(new Date(now.getTime() + i * 86400000));
+    const h = hoursForDate(agency, f.date, f.weekday);
+    if (h) return { open: false, holiday, opensAt: h.open, opensWeekday: f.weekday };
+  }
+  return { open: false, holiday };
 }
