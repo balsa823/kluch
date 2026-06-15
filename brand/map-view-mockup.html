@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — Map view (city shortcuts + filters) mock</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --navy:#1F3A5C; --accent:#E8B23A; --ink:#1F2937; --line:#E7DFCF; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink)}
+  #map{position:absolute;inset:0}
+  .leaflet-tile{filter:grayscale(1) contrast(1.03) brightness(1.02);}
+  /* small List/Map toggle top-left to show context */
+  .viewtoggle{position:absolute;top:.8rem;left:.8rem;z-index:500;display:inline-flex;border:1px solid #d8d2c4;border-radius:999px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .viewtoggle button{background:#fff;border:0;padding:.4rem .9rem;font:inherit;font-weight:600;font-size:.85rem;color:var(--navy);cursor:pointer}
+  .viewtoggle button.active{background:var(--navy);color:#fff}
+
+  /* Bottom overlay: city shortcuts, then search + filters */
+  .panel{
+    position:absolute;left:0;right:0;bottom:0;z-index:500;
+    background:rgba(255,255,255,0.97);backdrop-filter:blur(6px);
+    border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+    box-shadow:0 -8px 30px rgba(0,0,0,.18);
+    padding:.7rem .8rem calc(.8rem + env(safe-area-inset-bottom,0px));
+    display:flex;flex-direction:column;gap:.6rem;
+  }
+  .panel .label{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a8676;margin:0 .15rem}
+  /* City shortcuts — horizontally scrollable */
+  .cities{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.15rem;-webkit-overflow-scrolling:touch}
+  .cities::-webkit-scrollbar{display:none}
+  .city{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:.42rem .85rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--navy);cursor:pointer;white-space:nowrap}
+  .city:hover{border-color:var(--navy)}
+  .city.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  /* Search row */
+  .search{display:flex;gap:.5rem}
+  .search input{flex:1;border:1px solid var(--line);border-radius:11px;padding:.7rem .8rem;font:inherit;font-size:.95rem;background:#fff}
+  .search .go{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;border-radius:11px;padding:0 1.1rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;text-transform:uppercase;font-size:.8rem;letter-spacing:.04em}
+  .search .go svg{width:1rem;height:1rem;stroke:#fff;fill:none;stroke-width:2.4}
+  /* Filter chips */
+  .filters{display:flex;gap:1.1rem;overflow-x:auto;padding-bottom:.1rem}
+  .filters::-webkit-scrollbar{display:none}
+  .fchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:.35rem;background:transparent;border:0;color:var(--navy);font:inherit;font-size:.92rem;font-weight:500;cursor:pointer;white-space:nowrap}
+  .fchip svg{width:.7rem;height:.7rem;stroke:var(--navy);fill:none;stroke-width:2.2}
+  /* price pins */
+  .pin{background:var(--accent);color:var(--navy);font-weight:800;font-size:.74rem;border:2px solid #fff;border-radius:999px;padding:.12rem .5rem;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="viewtoggle"><button>List</button><button class="active">Map</button></div>
+
+  <div class="panel">
+    <div>
+      <p class="label">Jump to city</p>
+      <div class="cities" id="cities"></div>
+    </div>
+    <div class="search">
+      <input placeholder="Search by address or ref code (e.g. ST-0042)" />
+      <button class="go"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg> Search</button>
+    </div>
+    <div class="filters">
+      <button class="fchip">📍 Location <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="fchip">Price <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="fchip">Listing <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="fchip">Beds <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="fchip">Type <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  var CITIES = [
+    { name:"Podgorica",   lat:42.4411, lng:19.2627, z:13 },
+    { name:"Budva",       lat:42.2911, lng:18.8400, z:14 },
+    { name:"Kotor",       lat:42.4247, lng:18.7712, z:14 },
+    { name:"Bar",         lat:42.0939, lng:19.1003, z:14 },
+    { name:"Tivat",       lat:42.4370, lng:18.6960, z:14 },
+    { name:"Herceg Novi", lat:42.4531, lng:18.5375, z:14 },
+    { name:"Ulcinj",      lat:41.9294, lng:19.2244, z:14 },
+    { name:"Nikšić",      lat:42.7731, lng:18.9446, z:13 }
+  ];
+
+  function rng(seed){ var s=2166136261; for(var i=0;i<seed.length;i++){ s^=seed.charCodeAt(i); s=Math.imul(s,16777619)>>>0; } return function(){ s=(Math.imul(s,1103515245)+12345)>>>0; return s/4294967296; }; }
+  function scatter(c, seed){ var r=rng(seed),t=r()*6.283,rad=900*Math.sqrt(r()); return [c.lat+(rad*Math.cos(t))/111320, c.lng+(rad*Math.sin(t))/(111320*Math.cos(c.lat*Math.PI/180))]; }
+
+  var map = L.map("map", { zoomControl:true, scrollWheelZoom:true }).setView([42.40,19.10], 9);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains:"abcd", maxZoom:20, attribution:"© OpenStreetMap, © CARTO" }).addTo(map);
+
+  // a few sample price pins per city
+  var prices = ["€600/mj","€98,000","€420/mj","€230,000","€350/mj","€720/mj"];
+  CITIES.forEach(function(c,ci){
+    for(var k=0;k<3;k++){
+      var icon=L.divIcon({className:"",html:'<span class="pin">'+prices[(ci+k)%prices.length]+'</span>'});
+      L.marker(scatter(c, c.name+k), {icon:icon}).addTo(map);
+    }
+  });
+
+  // City shortcut chips → fly to city
+  var box=document.getElementById("cities");
+  CITIES.forEach(function(c,i){
+    var b=document.createElement("button");
+    b.className="city"+(i===0?" active":"");
+    b.textContent=c.name;
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".city").forEach(function(x){x.classList.remove("active")});
+      b.classList.add("active");
+      map.flyTo([c.lat,c.lng], c.z, { duration:.6 });
+    });
+    box.appendChild(b);
+  });
+  // start on Podgorica
+  map.setView([CITIES[0].lat, CITIES[0].lng], CITIES[0].z);
+</script>
+</body>
+</html>

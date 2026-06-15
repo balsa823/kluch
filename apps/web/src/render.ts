@@ -537,7 +537,10 @@ export function renderAgencySite(
 
     /* Nav */
     nav.site {
-      position: sticky; top: 0; z-index: 30;
+      /* z-index above the search-section (600) + map overlay (500) so the sticky
+         nav always stays on top of the map as it scrolls under it; still below the
+         expanded full-screen map (900) and the modals (1000/1100). */
+      position: sticky; top: 0; z-index: 700;
       transition: transform 0.25s ease;
       will-change: transform;
       display: flex; align-items: center; gap: 1rem;
@@ -595,21 +598,21 @@ export function renderAgencySite(
     header.hero {
       ${heroStyle}
       color: #fff;
-      padding: clamp(1.8rem, 4.5vw, 3rem) clamp(1rem, 4vw, 2.5rem);
+      /* z-index keeps the hero's filter popovers above the map further down. */
+      position: relative; z-index: 600;
+      padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem) clamp(2rem, 4.5vw, 3rem);
       text-align: center;
     }
     header.hero h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 auto 0.4rem; max-width: 18ch; text-shadow: 0 2px 16px rgba(0,0,0,.4); }
 
-    /* Search bar — now in a section below the hero (on the cream background).
-       z-index keeps the filter popovers above the map that sits right below. */
-    .search-section { position: relative; z-index: 600; padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 0; }
-    form.search { max-width: 980px; margin: 0 auto; text-align: left; }
+    /* Search bar — lives inside the (dark) hero. */
+    form.search { max-width: 980px; margin: 1.2rem auto 0; text-align: left; }
     .searchbar { display: flex; gap: 0.6rem; }
     .searchbar input {
-      flex: 1; border: 1px solid #E7DFCF; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
-      background: #fff; color: var(--color-ink); box-shadow: 0 1px 3px rgba(0,0,0,.06); min-width: 0;
+      flex: 1; border: 0; border-radius: 10px; padding: 0.95rem 1.1rem; font: inherit; font-size: 1rem;
+      background: #fff; color: var(--color-ink); box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 0;
     }
-    .searchbar input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 30%, transparent); }
+    .searchbar input:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), 0 10px 30px rgba(0,0,0,.18); }
     .searchbar button.search-go {
       display: flex; align-items: center; gap: 0.5rem; border: 0; cursor: pointer;
       background: var(--color-accent); color: #fff; font: inherit; font-weight: 700; letter-spacing: .04em;
@@ -622,10 +625,10 @@ export function renderAgencySite(
     .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
     .chip {
       position: relative; display: inline-flex; align-items: center; gap: 0.45rem;
-      background: transparent; border: 0; cursor: pointer; color: var(--color-primary); font: inherit; font-size: 0.95rem; font-weight: 600;
+      background: transparent; border: 0; cursor: pointer; color: #fff; font: inherit; font-size: 0.95rem; font-weight: 600;
       padding: 0.2rem 0;
     }
-    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: var(--color-primary); fill: none; stroke-width: 2.2; opacity: 0.9; }
+    .chip .caret { width: 0.7rem; height: 0.7rem; stroke: #fff; fill: none; stroke-width: 2.2; opacity: 0.9; }
     .chip .clear {
       display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem;
       border-radius: 999px; font-size: 0.8rem; line-height: 1; opacity: 0.85;
@@ -675,18 +678,20 @@ export function renderAgencySite(
     /* Contextual filter button: red "Clear filters" when filters are applied,
        orange "Apply filters" once you've changed something (not yet applied),
        hidden when nothing is applied. */
+    /* Solid white pill (the form sits on the dark hero / over the map), so the
+       red "Clear" / orange "Apply" text stays legible. */
     form.search .filter-action {
       display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
-      color: #C0392B; font-size: 0.82rem; font-weight: 700;
+      color: #C0392B; font-size: 0.82rem; font-weight: 700; background: #fff;
       border: 1px solid color-mix(in srgb, #C0392B 35%, transparent); border-radius: 999px; padding: 0.3rem 0.7rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
     }
+    /* Respect the hidden attribute (the display rule above would otherwise win). */
+    form.search .filter-action[hidden] { display: none; }
     form.search .filter-action .ico { font-size: 0.95rem; line-height: 1; }
-    form.search .filter-action:hover { background: color-mix(in srgb, #C0392B 10%, transparent); border-color: #C0392B; }
+    form.search .filter-action:hover { border-color: #C0392B; }
     form.search .filter-action.is-apply { color: #D97706; border-color: color-mix(in srgb, #D97706 45%, transparent); }
-    form.search .filter-action.is-apply:hover { background: color-mix(in srgb, #D97706 12%, transparent); border-color: #D97706; }
-    /* Over the map (expanded view) → solid pill so the red/orange text stays legible. */
-    .map-overlay form.search .filter-action { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-    .map-overlay form.search .filter-action:hover { background: #fff; }
+    form.search .filter-action.is-apply:hover { border-color: #D97706; }
     .card-price--ask { color: #6b6557; font-style: italic; font-weight: 600; }
 
     main { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
@@ -991,9 +996,6 @@ export function renderAgencySite(
   <header class="hero" id="top">
     ${heroH1}
     ${agency.tagline ? `<p class="hero-sub">${esc(agency.tagline)}</p>` : ""}
-  </header>
-
-  <section class="search-section">
     <form class="search" method="get" id="hero-form">
       <div class="searchbar">
         <input type="text" name="q" value="${attr(searchValue)}" data-i18n-ph="search.placeholder" placeholder="${T_("search.placeholder")}" />
@@ -1080,7 +1082,7 @@ export function renderAgencySite(
         ${filters.bedrooms !== undefined ? hiddenField("bedrooms", filters.bedrooms) : ""}
       </div>
     </form>
-  </section>
+  </header>
 
   <script type="application/json" id="kluche-locations">${jsonForScript(MNE_LOCATIONS)}</script>
 

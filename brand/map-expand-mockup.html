@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — map expand/collapse mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; --line:#E7DFCF; --ink:#1F2937; }
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:#F1ECE0}
+  .nav{background:var(--primary);color:#fff;padding:.9rem 1.2rem;font-weight:700}
+  .wrap{max-width:1180px;margin:0 auto;padding:1.2rem}
+  h2{margin:.2rem 0 1rem}
+  .toggle{display:inline-flex;border:1px solid var(--accent);border-radius:999px;overflow:hidden;margin-bottom:1rem}
+  .toggle button{background:#fff;border:0;padding:.45rem 1.1rem;font:inherit;font-weight:600;color:var(--primary);cursor:pointer}
+  .toggle button.active{background:var(--primary);color:#fff}
+
+  /* MAP — collapsed by default (smaller), expands to full screen */
+  .map{position:relative;width:100%;height:340px;border-radius:14px;overflow:hidden;
+    box-shadow:0 1px 4px rgba(31,58,92,.12);
+    background:repeating-linear-gradient(35deg,#f3f1ea 0 60px,#eceae2 60px 61px),repeating-linear-gradient(125deg,#f5f3ec 0 80px,#ecebe3 80px 81px);
+    transition:height .28s ease, border-radius .28s ease;}
+  .map.expanded{position:fixed;inset:0;width:100vw;height:100dvh;border-radius:0;z-index:60;margin:0}
+
+  /* top navbar overlay (jump-to-city + filters) */
+  .ov{position:absolute;left:0;right:0;top:0;z-index:4;pointer-events:none;
+    background:linear-gradient(to bottom, color-mix(in srgb,var(--primary) 88%,transparent), color-mix(in srgb,var(--primary) 40%,transparent) 70%, transparent);
+    padding:.9rem .9rem 1.6rem;display:flex;flex-direction:column;gap:.6rem}
+  .ov>*{pointer-events:auto}
+  .cities{display:flex;gap:.5rem}
+  .city{border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.92);border-radius:999px;padding:.4rem .9rem;font:inherit;font-size:.88rem;font-weight:600;color:var(--primary);cursor:pointer}
+  .city.active{background:var(--primary);color:#fff;border-color:#fff}
+  .filters{display:flex;gap:1.3rem;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:.35rem;background:transparent;border:0;color:#fff;font:inherit;font-weight:500;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+  .chip svg{width:.7rem;height:.7rem;stroke:#fff;fill:none;stroke-width:2.2}
+
+  /* CENTER expand/collapse button */
+  .center-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;
+    display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;font:inherit;font-weight:700;font-size:.9rem;
+    color:#fff;background:color-mix(in srgb,var(--primary) 82%,transparent);
+    border:1.5px solid rgba(255,255,255,.6);border-radius:999px;padding:.7rem 1.1rem;
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);box-shadow:0 6px 20px rgba(0,0,0,.35);
+    transition:background .15s, transform .1s}
+  .center-btn:hover{background:var(--primary);transform:translate(-50%,-50%) scale(1.04)}
+  .center-btn svg{width:1.15rem;height:1.15rem;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  /* when expanded the button shrinks to a corner icon so it doesn't block the map */
+  .map.expanded .center-btn{left:auto;right:1rem;top:1rem;transform:none;padding:.6rem;border-radius:12px}
+  .map.expanded .center-btn:hover{transform:scale(1.06)}
+  .center-btn .label-expand{display:inline}
+  .center-btn .ic-collapse,.center-btn .label-collapse{display:none}
+  .map.expanded .center-btn .ic-expand,.map.expanded .center-btn .label-expand{display:none}
+  .map.expanded .center-btn .ic-collapse{display:inline}
+
+  .pin{position:absolute;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+
+  .below{padding:1.4rem 0}
+  .card{background:#fff;border-radius:12px;padding:1rem;margin:.6rem 0;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+  .hint{color:#6b6557;font-size:.85rem;margin:.2rem 0 1rem}
+</style>
+</head>
+<body>
+  <div class="nav">Popović Nekretnine</div>
+  <div class="wrap">
+    <h2>Available properties</h2>
+    <div class="toggle"><button>List</button><button class="active">Map</button></div>
+    <p class="hint">Map starts compact. Tap the centered button to expand it to full screen; tap again (corner) to shrink back.</p>
+
+    <div class="map" id="map">
+      <div class="ov">
+        <div class="cities"><button class="city active">Podgorica</button><button class="city">Budva</button></div>
+        <div class="filters">
+          <button class="chip">Location <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip">Price <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip">Listing <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip">Beds <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip">Type <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        </div>
+      </div>
+
+      <span class="pin" style="left:32%;top:62%;background:#1F3A5C"></span>
+      <span class="pin" style="left:58%;top:48%;background:#C98A3B"></span>
+      <span class="pin" style="left:70%;top:70%;background:#3A7D5C"></span>
+
+      <button class="center-btn" id="toggleBtn" onclick="document.getElementById('map').classList.toggle('expanded')">
+        <svg class="ic-expand" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <svg class="ic-collapse" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <span class="label-expand">Expand map</span>
+      </button>
+    </div>
+
+    <div class="below">
+      <div class="card">Listing card 1…</div>
+      <div class="card">Listing card 2…</div>
+      <div class="card">Listing card 3…</div>
+    </div>
+  </div>
+</body>
+</html>

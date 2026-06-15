@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — map navbar buttons mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{ --color-primary:#1F3A5C; --color-accent:#4E827A; --overlay-ink:#fff; }
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:"Inter",system-ui,sans-serif;color:#1F2937;background:#F1ECE0}
+  .nav{background:var(--color-primary);color:#fff;padding:.9rem 1.2rem;font-weight:700}
+  .head{padding:1rem 1.2rem .4rem}
+  .toggle{display:inline-flex;border:1px solid var(--color-accent);border-radius:999px;overflow:hidden;margin:.4rem 0 0}
+  .toggle button{background:#fff;border:0;padding:.45rem 1.1rem;font:inherit;font-weight:600;color:var(--color-primary);cursor:pointer}
+  .toggle button.active{background:var(--color-primary);color:#fff}
+
+  /* The map + its top overlay navbar */
+  .map{position:relative;width:100%;height:560px;background:
+    repeating-linear-gradient(45deg,#eee 0 22px,#e6e6e6 22px 44px);overflow:hidden}
+  .map .pin{position:absolute;left:55%;top:62%;background:var(--color-accent);color:#fff;font-weight:800;font-size:.8rem;border:2px solid #fff;border-radius:999px;padding:.2rem .6rem;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+
+  .overlay{
+    position:absolute;left:0;right:0;top:0;z-index:5;
+    background:linear-gradient(to bottom, color-mix(in srgb,var(--color-primary) 88%,transparent) 0%, color-mix(in srgb,var(--color-primary) 45%,transparent) 68%, transparent 100%);
+    padding:1rem .9rem 1.8rem;display:flex;flex-direction:column;gap:.7rem;pointer-events:none;
+  }
+  .overlay>*{pointer-events:auto}
+  /* top row: jump-to-city on the left, viewport buttons on the right */
+  .row{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem}
+  .cities-wrap{min-width:0}
+  .label{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--overlay-ink);opacity:.82;margin:0 0 .4rem .15rem;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+  .cities{display:flex;gap:.5rem}
+  .city{border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.92);border-radius:999px;padding:.42rem .95rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--color-primary);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .city.active{background:var(--color-primary);color:#fff;border-color:#fff}
+
+  /* the three viewport buttons */
+  .vp{display:flex;gap:.4rem;flex:0 0 auto}
+  .vp button{
+    width:2.3rem;height:2.3rem;display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.5);background:color-mix(in srgb,var(--color-primary) 55%,transparent);
+    border-radius:11px;cursor:pointer;color:#fff;backdrop-filter:blur(3px);
+    box-shadow:0 2px 8px rgba(0,0,0,.25);transition:background .15s,transform .1s;
+  }
+  .vp button:hover{background:var(--color-primary);transform:translateY(-1px)}
+  .vp button:active{transform:translateY(0)}
+  .vp svg{width:1.15rem;height:1.15rem;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .vp button[aria-label]{position:relative}
+
+  .filters{display:flex;gap:1.4rem;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:.4rem;background:transparent;border:0;color:var(--overlay-ink);font:inherit;font-weight:500;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+  .chip svg{width:.7rem;height:.7rem;stroke:#fff;fill:none;stroke-width:2.2}
+  .note{margin:0;color:var(--overlay-ink);opacity:.7;font-size:.72rem;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+
+  .below{padding:2rem 1.2rem;min-height:400px}
+  .below h2{margin:0 0 1rem}
+  .card{background:#fff;border-radius:12px;padding:1rem;margin:.6rem 0;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+</style>
+</head>
+<body>
+  <div class="nav">Popović Nekretnine</div>
+  <div class="head">
+    <h2 style="margin:.2rem 0">Available properties</h2>
+    <div class="toggle"><button>List</button><button class="active">Map</button></div>
+  </div>
+
+  <div class="map" id="map">
+    <div class="overlay">
+      <div class="row">
+        <div class="cities-wrap">
+          <p class="label">Jump to city</p>
+          <div class="cities">
+            <button class="city active">Podgorica</button>
+            <button class="city">Budva</button>
+          </div>
+        </div>
+        <div class="vp">
+          <!-- Back to top -->
+          <button aria-label="Back to top" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+            <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <!-- Fit map to screen -->
+          <button aria-label="Fit map to screen" title="Fit map to screen" onclick="document.getElementById('map').scrollIntoView({behavior:'smooth',block:'start'})">
+            <svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
+          </button>
+          <!-- Jump below map -->
+          <button aria-label="Jump below map" title="Jump below map" onclick="document.getElementById('below').scrollIntoView({behavior:'smooth',block:'start'})">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="filters">
+        <button class="chip">Location <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <button class="chip">Price <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <button class="chip">Listing <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <button class="chip">Beds <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <button class="chip">Type <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      </div>
+      <p class="note">Approximate location — exact address shared on enquiry</p>
+    </div>
+    <div class="pin">€145,000 / mo</div>
+  </div>
+
+  <div class="below" id="below">
+    <h2>More from this agency</h2>
+    <div class="card">About the agency…</div>
+    <div class="card">Contact…</div>
+  </div>
+</body>
+</html>

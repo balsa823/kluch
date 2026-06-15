@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — map pin → card → modal mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; --gold:#C98A3B; --land:#3A7D5C; --ink:#1F2937; --line:#E7DFCF; }
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:#F1ECE0}
+
+  /* pin-style switcher */
+  .switch{display:flex;gap:.4rem;padding:.7rem .8rem;flex-wrap:wrap;align-items:center}
+  .switch b{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#8a8676;margin-right:.3rem}
+  .switch button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:.4rem .8rem;font:inherit;font-size:.82rem;font-weight:600;color:var(--primary);cursor:pointer}
+  .switch button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+  /* fake map */
+  .map{position:relative;height:560px;overflow:hidden;background:
+    repeating-linear-gradient(35deg,#f3f1ea 0 60px,#eceae2 60px 61px),
+    repeating-linear-gradient(125deg,#f5f3ec 0 80px,#ecebe3 80px 81px);}
+  .map::after{content:"";position:absolute;inset:0;background:
+    radial-gradient(circle at 30% 40%,rgba(0,0,0,.03),transparent 40%),
+    radial-gradient(circle at 70% 65%,rgba(0,0,0,.03),transparent 35%)}
+
+  /* ---- PINS ---- */
+  .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:2;transition:transform .12s}
+  .pin:hover{transform:translate(-50%,-100%) scale(1.06)}
+  .pin .body{position:relative;display:flex;align-items:center;justify-content:center}
+
+  /* style: type icon (teardrop) */
+  .teardrop{width:40px;height:40px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+    box-shadow:0 3px 8px rgba(0,0,0,.35);border:2px solid #fff;display:flex;align-items:center;justify-content:center}
+  .teardrop svg{transform:rotate(45deg);width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .t-res{background:var(--primary)} .t-com{background:var(--gold)} .t-land{background:var(--land)}
+
+  /* style: price pill */
+  .pricepill{background:var(--gold);color:#fff;font-weight:800;font-size:.8rem;border:2px solid #fff;border-radius:999px;padding:.28rem .7rem;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+
+  /* style: minimal dot */
+  .dot{width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .d-res{background:var(--primary)} .d-com{background:var(--gold)} .d-land{background:var(--land)}
+
+  .hide{display:none !important}
+
+  /* ---- EXPANDED CARD (anchored popup) ---- */
+  .card{position:absolute;transform:translate(-50%,calc(-100% - 14px));z-index:5;width:236px;
+    background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.32);cursor:pointer;
+    animation:pop .14s ease-out}
+  @keyframes pop{from{opacity:0;transform:translate(-50%,calc(-100% - 6px)) scale(.96)}to{opacity:1}}
+  .card::after{content:"";position:absolute;left:50%;bottom:-9px;width:18px;height:18px;background:#fff;transform:translateX(-50%) rotate(45deg);box-shadow:3px 3px 6px rgba(0,0,0,.08)}
+  .card .ph{height:118px;background:linear-gradient(135deg,var(--primary),#11203a);position:relative}
+  .card .ph .typechip{position:absolute;top:.5rem;left:.5rem;background:rgba(255,255,255,.92);color:var(--primary);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:.2rem .5rem}
+  .card .x{position:absolute;top:.4rem;right:.4rem;width:1.6rem;height:1.6rem;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:0;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .card .bd{padding:.7rem .8rem .85rem}
+  .card .row1{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem}
+  .card .price{font-family:"Inter";font-weight:800;font-size:1.05rem;color:var(--primary)}
+  .card .ref{font-size:.66rem;font-weight:700;color:#8a8676;background:#F1ECE0;border-radius:6px;padding:.1rem .35rem}
+  .card .title{margin:.25rem 0 .1rem;font-size:.9rem;font-weight:600}
+  .card .loc{font-size:.76rem;color:#6b6557;margin-bottom:.5rem}
+  .card .specs{display:flex;gap:.8rem;font-size:.76rem;color:var(--ink);border-top:1px solid #efeadb;padding-top:.5rem}
+  .card .specs span{display:inline-flex;align-items:center;gap:.25rem}
+  .card .cta{margin-top:.6rem;font-size:.78rem;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:.3rem}
+
+  /* ---- MODAL ---- */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:1rem}
+  .modal.open{display:flex}
+  .modal .sheet{background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .modal .mph{height:200px;background:linear-gradient(135deg,var(--primary),#11203a)}
+  .modal .mbd{padding:1.1rem 1.2rem 1.4rem}
+  .modal h3{margin:.2rem 0}
+  .modal .mprice{font-weight:800;font-size:1.4rem;color:var(--primary)}
+  .modal .mspecs{display:flex;gap:1rem;margin:.7rem 0;color:#444;font-size:.9rem}
+  .modal p{color:#555;line-height:1.5;font-size:.9rem}
+  .modal .mbtn{margin-top:1rem;width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:.8rem;font:inherit;font-weight:700;cursor:pointer}
+  .modal .mclose{float:right;border:0;background:#eee;border-radius:8px;padding:.3rem .6rem;cursor:pointer;font:inherit}
+
+  .hint{padding:.6rem .9rem;color:#6b6557;font-size:.8rem}
+</style>
+</head>
+<body>
+  <div class="switch">
+    <b>Pin style</b>
+    <button data-style="type" class="active">Type icon</button>
+    <button data-style="price">Price pill</button>
+    <button data-style="dot">Minimal dot</button>
+  </div>
+  <p class="hint">Tap a pin → it expands into a card. Tap the card → full listing (modal). Tap ✕ or the map → collapse.</p>
+
+  <div class="map" id="map"></div>
+
+  <!-- modal -->
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <div class="mph"></div>
+      <div class="mbd">
+        <button class="mclose" onclick="closeModal()">Close ✕</button>
+        <div class="mprice">€110,000</div>
+        <h3 id="m-title">Modern 2-bedroom apartment</h3>
+        <div class="mspecs"><span>🛏 2 beds</span><span>🛁 1 bath</span><span>📐 72 m²</span></div>
+        <p>Bright, recently renovated apartment in a quiet street. Close to schools, shops and the river promenade. Exact address shared on enquiry.</p>
+        <button class="mbtn">Request a viewing</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // sample listings
+  var LISTINGS = [
+    { id:1, x:"30%", y:"40%", type:"residential", price:"€110,000", title:"Modern 2-bedroom apartment", loc:"Stari Aerodrom, Podgorica", beds:2, baths:1, m2:72 },
+    { id:2, x:"58%", y:"62%", type:"commercial", price:"€240,000", title:"Ground-floor retail unit", loc:"Stara Varoš, Podgorica", beds:0, baths:1, m2:95 },
+    { id:3, x:"74%", y:"33%", type:"land", price:"€85,000", title:"Building plot, 600 m²", loc:"Tološi, Podgorica", beds:0, baths:0, m2:600 }
+  ];
+  var ICONS = {
+    residential:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
+    commercial:'<svg viewBox="0 0 24 24"><path d="M4 21V8l8-4 8 4v13"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01"/></svg>',
+    land:'<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M5 20l4-9 4 6 3-4 3 7"/></svg>'
+  };
+  var tShort = { residential:"Residential", commercial:"Commercial", land:"Land" };
+  var map = document.getElementById("map");
+  var style = "type";
+  var openCard = null;
+
+  function pinHtml(l){
+    if(style==="price") return '<div class="pricepill">'+l.price+'</div>';
+    if(style==="dot") return '<div class="dot d-'+ (l.type==="residential"?"res":l.type==="commercial"?"com":"land") +'"></div>';
+    var cls = l.type==="residential"?"t-res":l.type==="commercial"?"t-com":"t-land";
+    return '<div class="teardrop '+cls+'">'+ICONS[l.type]+'</div>';
+  }
+  function render(){
+    map.querySelectorAll(".pin,.card").forEach(function(n){n.remove()});
+    openCard=null;
+    LISTINGS.forEach(function(l){
+      var pin=document.createElement("div");
+      pin.className="pin"; pin.style.left=l.x; pin.style.top=l.y;
+      pin.innerHTML='<div class="body">'+pinHtml(l)+'</div>';
+      pin.addEventListener("click",function(e){ e.stopPropagation(); expand(l,pin); });
+      map.appendChild(pin);
+    });
+  }
+  function expand(l,pin){
+    if(openCard){ openCard.remove(); var was=openCard.dataset.id; openCard=null; if(was==String(l.id)) return; }
+    var c=document.createElement("div");
+    c.className="card"; c.dataset.id=l.id; c.style.left=l.x; c.style.top=l.y;
+    var specs = l.type==="land" ? '<span>📐 '+l.m2+' m²</span>' :
+       '<span>🛏 '+l.beds+'</span><span>🛁 '+l.baths+'</span><span>📐 '+l.m2+' m²</span>';
+    c.innerHTML =
+      '<div class="ph"><span class="typechip">'+tShort[l.type]+'</span><button class="x">✕</button></div>'+
+      '<div class="bd"><div class="row1"><span class="price">'+l.price+'</span><span class="ref">ST-00'+l.id+'</span></div>'+
+      '<div class="title">'+l.title+'</div><div class="loc">'+l.loc+'</div>'+
+      '<div class="specs">'+specs+'</div>'+
+      '<div class="cta">View details →</div></div>';
+    c.querySelector(".x").addEventListener("click",function(e){e.stopPropagation();c.remove();openCard=null;});
+    c.addEventListener("click",function(){ openModal(l); });
+    map.appendChild(c); openCard=c;
+  }
+  function openModal(l){ document.getElementById("m-title").textContent=l.title; document.getElementById("modal").classList.add("open"); }
+  function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+  map.addEventListener("click",function(){ if(openCard){openCard.remove();openCard=null;} });
+  document.querySelectorAll(".switch button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".switch button").forEach(function(x){x.classList.remove("active")});
+      b.classList.add("active"); style=b.dataset.style; render();
+    });
+  });
+  render();
+</script>
+</body>
+</html>

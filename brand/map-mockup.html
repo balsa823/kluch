@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kluche — Podgorica area map (mock)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --navy:#1F3A5C; --accent:#E8B23A; --teal:#4E827A; --ink:#1F2937; --line:#E7DFCF; --cream:#F1ECE0; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--cream);display:flex;flex-direction:column}
+  h1,.brand{font-family:"Plus Jakarta Sans","Inter",sans-serif}
+  header.bar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem}
+  header.bar .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:var(--navy);font-weight:800}
+  header.bar .brand{font-weight:800}
+  header.bar .sub{margin-left:auto;font-size:.82rem;opacity:.85}
+  .wrap{flex:1;display:flex;min-height:0}
+  #map{flex:1;min-width:0}
+  aside{width:340px;max-width:42vw;border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+  .panel-head{padding:1rem 1.1rem;border-bottom:1px solid var(--line)}
+  .panel-head h2{margin:0 0 .15rem;font-size:1.05rem}
+  .panel-head p{margin:0;color:#6b6557;font-size:.85rem}
+  .areas{display:flex;flex-wrap:wrap;gap:.4rem;padding:.8rem 1.1rem;border-bottom:1px solid var(--line)}
+  .area-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:.3rem .7rem;font:inherit;font-size:.82rem;cursor:pointer;color:var(--navy)}
+  .area-chip:hover{border-color:var(--navy)}
+  .area-chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .area-chip .n{opacity:.6;margin-left:.25rem}
+  .area-chip.active .n{opacity:.85}
+  .list{flex:1;overflow:auto;padding:.6rem .8rem 1.2rem}
+  .apt{display:flex;gap:.7rem;padding:.6rem;border-radius:12px;cursor:pointer}
+  .apt:hover{background:#F4F0E6}
+  .apt .ph{width:70px;height:54px;border-radius:9px;flex:none;background-size:cover;background-position:center}
+  .apt .meta{min-width:0}
+  .apt .price{font-weight:800;color:var(--navy)}
+  .apt .price .mo{color:#6b6557;font-weight:600;font-size:.8rem}
+  .apt .title{font-size:.92rem;margin:.1rem 0 .15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .apt .where{color:#6b6557;font-size:.82rem}
+  .apt .code{display:inline-block;background:var(--navy);color:#fff;font-size:.66rem;font-weight:700;border-radius:5px;padding:.05rem .35rem;margin-right:.35rem}
+  /* Leaflet area labels + price pins */
+  .area-label{background:rgba(31,58,92,.92);color:#fff;border:0;border-radius:8px;padding:.12rem .45rem;font:600 .72rem "Inter",sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .leaflet-tooltip.area-label::before{display:none}
+  .pin{background:var(--accent);color:var(--navy);font-weight:800;font-size:.74rem;border:2px solid #fff;border-radius:999px;padding:.15rem .5rem;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .pin.dim{opacity:.25}
+  .note{padding:.6rem 1rem;background:#FBF6E9;border-top:1px solid var(--line);color:#6b6557;font-size:.78rem}
+  /* Neutral / non-coloured base map. */
+  .leaflet-tile{filter:grayscale(1) contrast(1.03) brightness(1.02);}
+  @media(max-width:720px){ .wrap{flex-direction:column} aside{width:auto;max-width:none;border-left:0;border-top:1px solid var(--line);height:46%} #map{height:54%} }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <span class="logo">S</span><span class="brand">Stam — Podgorica</span>
+    <span class="sub">Approximate locations — exact address shared on enquiry</span>
+  </header>
+  <div class="wrap">
+    <div id="map"></div>
+    <aside>
+      <div class="panel-head">
+        <h2 id="ph-title">All areas</h2>
+        <p id="ph-sub">Showing all listings in Podgorica</p>
+      </div>
+      <div class="areas" id="areas"></div>
+      <div class="list" id="list"></div>
+      <div class="note">Mock — area placements are approximate (illustrative). Real boundaries/coordinates can be refined; each listing's area comes from the editable “area” field.</div>
+    </aside>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // Approximate centres of Podgorica neighbourhoods (illustrative).
+  var AREAS = [
+    { key:"centar", name:"Centar / City Kvart", lat:42.4411, lng:19.2627 },
+    { key:"preko",  name:"Preko Morače",        lat:42.4455, lng:19.2555 },
+    { key:"blok5",  name:"Blok 5",              lat:42.4378, lng:19.2470 },
+    { key:"blok6",  name:"Blok 6",              lat:42.4345, lng:19.2438 },
+    { key:"blok9",  name:"Blok 9",              lat:42.4308, lng:19.2505 },
+    { key:"aerodrom", name:"Stari Aerodrom",    lat:42.4262, lng:19.2625 },
+    { key:"zabjelo", name:"Zabjelo",            lat:42.4185, lng:19.2585 },
+    { key:"momisici", name:"Momišići",          lat:42.4305, lng:19.2705 },
+    { key:"konik",  name:"Konik",               lat:42.4525, lng:19.2895 },
+    { key:"tolosi", name:"Tološi",              lat:42.4705, lng:19.2355 }
+  ];
+  var AREA = {}; AREAS.forEach(function(a){ AREA[a.key]=a; });
+
+  // Sample apartments scattered near their area centres.
+  function near(k, dlat, dlng){ var a=AREA[k]; return [a.lat+dlat, a.lng+dlng]; }
+  var APTS = [
+    { code:"ST-1230", title:"Izdaje se jednosoban stan", area:"blok5", price:"€600", mo:true,  beds:1, m2:42, ll:near("blok5",  .0008,-.0010) },
+    { code:"ST-1242", title:"Dvosoban stan, novogradnja", area:"blok5", price:"€480", mo:true,  beds:2, m2:58, ll:near("blok5", -.0007, .0012) },
+    { code:"ST-1231", title:"Prodaje se poslovni prostor", area:"centar", price:"€98,000", mo:false, beds:0, m2:40, ll:near("centar", .0006, .0007) },
+    { code:"ST-1255", title:"Lux stan u centru",         area:"centar", price:"€230,000", mo:false, beds:2, m2:78, ll:near("centar",-.0009,-.0006) },
+    { code:"ST-1260", title:"Garsonjera kod Morače",      area:"preko",  price:"€350", mo:true,  beds:0, m2:28, ll:near("preko",  .0005, .0009) },
+    { code:"ST-1271", title:"Trosoban, Stari Aerodrom",   area:"aerodrom", price:"€720", mo:true, beds:3, m2:86, ll:near("aerodrom",.0008,.0008) },
+    { code:"ST-1280", title:"Kuća sa dvorištem",          area:"zabjelo", price:"€195,000", mo:false, beds:4, m2:160, ll:near("zabjelo",-.0006,.0010) },
+    { code:"ST-1288", title:"Stan u Momišićima",          area:"momisici", price:"€99,750", mo:false, beds:1, m2:46, ll:near("momisici",.0007,-.0008) },
+    { code:"ST-1293", title:"Povoljan stan, Konik",       area:"konik",  price:"€430", mo:true,  beds:2, m2:55, ll:near("konik", -.0005,.0011) },
+    { code:"ST-1299", title:"Vila, Tološi",               area:"tolosi", price:"€420,000", mo:false, beds:5, m2:240, ll:near("tolosi",.0006,.0006) },
+    { code:"ST-1301", title:"Dvosoban, Blok 9",           area:"blok9",  price:"€500", mo:true,  beds:2, m2:60, ll:near("blok9",  .0007,.0009) },
+    { code:"ST-1305", title:"Jednosoban, Blok 6",         area:"blok6",  price:"€330", mo:true,  beds:1, m2:38, ll:near("blok6", -.0006,-.0007) }
+  ];
+  var PHOTO = ["#3a6073,#16222a","#4E827A,#243b55","#c79a4b,#5c4326","#577590,#1d2d44","#6a8caf,#22384f","#7d9b76,#2f4731"];
+
+  // Each apartment gets a stable random point INSIDE its area circle — conveys the
+  // neighbourhood without revealing the real address. (Seeded by code → doesn't jump.)
+  function rng(seed){ var s=2166136261; for(var i=0;i<seed.length;i++){ s^=seed.charCodeAt(i); s=Math.imul(s,16777619)>>>0; } return function(){ s=(Math.imul(s,1103515245)+12345)>>>0; return s/4294967296; }; }
+  function randInCircle(a, seed){
+    var r=rng(seed), t=r()*2*Math.PI, rad=460*Math.sqrt(r());
+    var dLat=(rad*Math.cos(t))/111320, dLng=(rad*Math.sin(t))/(111320*Math.cos(a.lat*Math.PI/180));
+    return [a.lat+dLat, a.lng+dLng];
+  }
+  APTS.forEach(function(ap){ ap.ll = randInCircle(AREA[ap.area], ap.code); });
+
+  var map = L.map("map", { scrollWheelZoom:true }).setView([42.4411, 19.2627], 13);
+  // Carto Positron = clean, low-colour base; the grayscale filter (CSS) makes it fully neutral.
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    subdomains:"abcd", maxZoom:20, attribution:"© OpenStreetMap, © CARTO"
+  }).addTo(map);
+
+  var selected = null;
+  var circles = {}, pins = {};
+
+  // Area overlays (circle + permanent label).
+  AREAS.forEach(function(a){
+    var n = APTS.filter(function(x){ return x.area===a.key; }).length;
+    var c = L.circle([a.lat,a.lng], {
+      radius:520, color:"#1F3A5C", weight:1.5, fillColor:"#1F3A5C", fillOpacity:.12
+    }).addTo(map);
+    c.bindTooltip(a.name + " · " + n, { permanent:true, direction:"center", className:"area-label" });
+    c.on("click", function(){ select(a.key); });
+    circles[a.key] = c;
+  });
+
+  // Apartment price pins.
+  APTS.forEach(function(ap, i){
+    var icon = L.divIcon({ className:"", html:'<span class="pin">'+ap.price+(ap.mo?'/mj':'')+'</span>', iconSize:null });
+    var m = L.marker(ap.ll, { icon:icon }).addTo(map);
+    m.on("click", function(){ select(ap.area); openApt(i); });
+    pins[i] = { marker:m, ap:ap };
+  });
+
+  function openApt(i){
+    var ap = APTS[i];
+    pins[i].marker.bindPopup("<b>"+ap.code+"</b><br>"+ap.title+"<br>"+ap.price+(ap.mo?" / mj.":"")).openPopup();
+  }
+
+  function select(key){
+    selected = (selected===key) ? null : key;
+    render();
+    if (selected){
+      var a = AREA[selected];
+      map.flyTo([a.lat,a.lng], 15, { duration:.5 });
+    } else {
+      map.flyTo([42.4411,19.2627], 13, { duration:.5 });
+    }
+  }
+
+  function render(){
+    // area circles + pins styling
+    AREAS.forEach(function(a){
+      var on = !selected || selected===a.key;
+      circles[a.key].setStyle({ fillOpacity:on?(selected===a.key?.28:.12):.04, color:selected===a.key?"#E8B23A":"#1F3A5C", weight:selected===a.key?2.5:1.5 });
+    });
+    Object.keys(pins).forEach(function(i){
+      var ap = pins[i].ap, el = pins[i].marker.getElement();
+      var show = !selected || selected===ap.area;
+      if (el){ var s = el.querySelector(".pin"); if (s) s.classList.toggle("dim", !show); }
+    });
+    // chips
+    var chips = AREAS.map(function(a){
+      var n = APTS.filter(function(x){return x.area===a.key;}).length;
+      return '<button class="area-chip '+(selected===a.key?'active':'')+'" data-k="'+a.key+'">'+a.name+'<span class="n">'+n+'</span></button>';
+    });
+    chips.unshift('<button class="area-chip '+(!selected?'active':'')+'" data-k="">All<span class="n">'+APTS.length+'</span></button>');
+    document.getElementById("areas").innerHTML = chips.join("");
+    document.querySelectorAll(".area-chip").forEach(function(b){
+      b.addEventListener("click", function(){ select(b.dataset.k || (selected===null?null:b.dataset.k) ); if(!b.dataset.k){ selected=null; render(); map.flyTo([42.4411,19.2627],13,{duration:.5}); } });
+    });
+    // header + list
+    var shown = APTS.map(function(ap,i){return {ap:ap,i:i};}).filter(function(o){ return !selected || o.ap.area===selected; });
+    document.getElementById("ph-title").textContent = selected ? AREA[selected].name : "All areas";
+    document.getElementById("ph-sub").textContent = shown.length + " listing" + (shown.length===1?"":"s") + (selected? " in this area" : " across Podgorica");
+    document.getElementById("list").innerHTML = shown.map(function(o){
+      var ap=o.ap; var g = PHOTO[o.i % PHOTO.length];
+      return '<div class="apt" data-i="'+o.i+'"><div class="ph" style="background-image:linear-gradient(135deg,'+g+')"></div>'+
+        '<div class="meta"><div class="price">'+ap.price+(ap.mo?'<span class="mo"> / mj.</span>':'')+'</div>'+
+        '<div class="title">'+ap.title+'</div>'+
+        '<div class="where"><span class="code">'+ap.code+'</span>'+AREA[ap.area].name+' · '+ap.m2+' m²</div></div></div>';
+    }).join("") || '<p style="color:#6b6557;padding:.6rem">No listings here yet.</p>';
+    document.querySelectorAll(".apt").forEach(function(el){
+      el.addEventListener("click", function(){ var i=+el.dataset.i; map.flyTo(APTS[i].ll,16,{duration:.5}); openApt(i); });
+    });
+  }
+  render();
+</script>
+</body>
+</html>

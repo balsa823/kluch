@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kluche — Leaflet basemap style options</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,sans-serif;background:#F1ECE0;color:#1F2937;padding:1.2rem}
+  h1{font-size:1.3rem;margin:.2rem 0 .2rem}
+  p.note{color:#6b6557;margin:0 0 1.2rem;font-size:.9rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.1rem}
+  .cell{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+  .cell h3{margin:0;padding:.6rem .8rem;font-size:.92rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+  .cell h3 .tag{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:var(--accent);border-radius:999px;padding:.12rem .5rem}
+  .cell h3 .cur{background:var(--primary)}
+  .map{height:280px;width:100%}
+  .pin{display:block;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+  <h1>Map basemap options (no API key needed)</h1>
+  <p class="note">All centred on Podgorica with our area polygon + price-type pins, so you can judge contrast of the overlay against each basemap. Pick one and I'll wire it in.</p>
+  <div class="grid" id="grid"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  var STYLES = [
+    { name:"Carto Positron + grayscale", tag:"CURRENT", cur:true, url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", sub:"abcd", filter:"grayscale(1) contrast(1.03) brightness(1.02)" },
+    { name:"Carto Positron (no filter)", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", sub:"abcd" },
+    { name:"Carto Voyager (colour)", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", sub:"abcd" },
+    { name:"Carto Voyager (no labels)", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png", sub:"abcd" },
+    { name:"Carto Dark Matter", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", sub:"abcd", dark:true },
+    { name:"OpenStreetMap (standard)", url:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", sub:"abc" },
+    { name:"Esri World Street Map", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", sub:"" },
+    { name:"Esri Topographic", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", sub:"" },
+    { name:"Esri Light Gray Canvas", url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", sub:"" },
+    { name:"OpenTopoMap", url:"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", sub:"abc" }
+  ];
+  var POLY = [[19.2725,42.4364],[19.2874,42.4316],[19.2880,42.4304],[19.2803,42.4200],[19.2776,42.4163],[19.2752,42.4183],[19.2685,42.4239],[19.2660,42.4259],[19.2725,42.4364]];
+  function pin(color){ var s=document.createElement("span"); s.className="pin"; s.style.background=color; return L.divIcon({className:"",html:s.outerHTML,iconSize:[16,16],iconAnchor:[8,8]}); }
+
+  var grid = document.getElementById("grid");
+  STYLES.forEach(function(st,i){
+    var cell=document.createElement("div"); cell.className="cell";
+    cell.innerHTML='<h3><span>'+st.name+'</span>'+(st.tag?'<span class="tag '+(st.cur?'cur':'')+'">'+st.tag+'</span>':'')+'</h3><div class="map" id="m'+i+'"></div>';
+    grid.appendChild(cell);
+    var map=L.map("m"+i,{zoomControl:false,attributionControl:false,dragging:true,scrollWheelZoom:false}).setView([42.435,19.27],12);
+    var opt={maxZoom:19}; if(st.sub) opt.subdomains=st.sub;
+    L.tileLayer(st.url,opt).addTo(map);
+    if(st.filter){ var pane=map.getPanes().tilePane; pane.style.filter=st.filter; }
+    // polygon (navy) + pins, same as our overlay
+    L.polygon(POLY.map(function(c){return [c[1],c[0]];}),{color:"#1F3A5C",weight:2.5,fillColor:"#1F3A5C",fillOpacity:0.22}).addTo(map);
+    L.marker([42.426,19.277],{icon:pin("#C98A3B")}).addTo(map);
+    L.marker([42.447,19.255],{icon:pin("#1F3A5C")}).addTo(map);
+    L.marker([42.430,19.262],{icon:pin("#3A7D5C")}).addTo(map);
+  });
+</script>
+</body>
+</html>

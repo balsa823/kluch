@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — listing modal with mini-map mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; --ink:#1F2937; --line:#E7DFCF; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:rgba(15,23,42,.55);padding:2rem;display:flex;justify-content:center}
+  .modal-card{background:#fff;border-radius:16px;max-width:920px;width:100%;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .gallery{background:#4E827A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:5rem;font-weight:800;min-height:560px}
+  .body{padding:1.6rem 1.8rem;overflow:auto;max-height:80vh}
+  .tag{display:inline-block;background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.04em;border-radius:8px;padding:.25rem .55rem}
+  .ref{color:#8a8676;font-weight:700;margin:.7rem 0 .2rem}
+  h3{margin:.1rem 0;font-size:1.7rem}
+  .price{color:var(--primary);font-weight:800;font-size:1.5rem;margin:.3rem 0}
+  .loc{color:#6b6557;margin:.2rem 0}
+  .specs{color:#444;margin:.4rem 0}
+  .type{color:#8a8676;margin:.2rem 0 1rem}
+  hr{border:0;border-top:1px solid #efeadb;margin:1.1rem 0}
+
+  /* mini-map */
+  .minimap-wrap{margin:.2rem 0 1.1rem}
+  .minimap-label{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a8676;margin:0 0 .45rem}
+  .minimap{position:relative;height:170px;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:pointer;
+    background:repeating-linear-gradient(35deg,#f3f1ea 0 50px,#eceae2 50px 51px),repeating-linear-gradient(125deg,#f5f3ec 0 70px,#ecebe3 70px 71px)}
+  .minimap .approx{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:50%;background:color-mix(in srgb,var(--primary) 14%,transparent);border:1.5px solid color-mix(in srgb,var(--primary) 45%,transparent)}
+  .minimap .marker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:var(--primary);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .minimap .near{position:absolute;width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);opacity:.85}
+  .minimap .cta{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(31,58,92,.92),transparent);
+    color:#fff;font-weight:700;font-size:.85rem;padding:1.4rem .7rem .6rem;display:flex;align-items:center;gap:.4rem}
+  .minimap .cta svg{width:1rem;height:1rem;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .approx-note{font-size:.72rem;color:#8a8676;margin:.45rem 0 0}
+
+  .sched h4{margin:0 0 .8rem;font-size:1.15rem}
+  label{display:block;font-weight:600;margin:.6rem 0 .3rem}
+  input{width:100%;border:1px solid var(--line);border-radius:9px;padding:.7rem .8rem;font:inherit}
+  .btn{margin-top:1rem;width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:.85rem;font:inherit;font-weight:700;cursor:pointer}
+  .reg{display:block;margin-top:.9rem;color:var(--primary);font-weight:600}
+  @media(max-width:760px){.modal-card{grid-template-columns:1fr}.gallery{min-height:220px;font-size:3rem}}
+</style>
+</head>
+<body>
+  <div class="modal-card">
+    <div class="gallery">Land</div>
+    <div class="body">
+      <span class="tag">ZA NAJAM</span>
+      <p class="ref">PO-0005</p>
+      <h3>Plot</h3>
+      <div class="price">85.000,00 € / mj.</div>
+      <p class="loc">Podgorica</p>
+      <p class="specs">0 bd · 0 ba · 600 m²</p>
+      <p class="type">Land</p>
+
+      <div class="minimap-wrap">
+        <p class="minimap-label">Location</p>
+        <div class="minimap" onclick="alert('→ opens full map, expanded & zoomed to this listing with nearby pins')">
+          <div class="approx"></div>
+          <span class="near" style="left:34%;top:38%;background:#C98A3B"></span>
+          <span class="near" style="left:66%;top:34%;background:#1F3A5C"></span>
+          <span class="near" style="left:60%;top:68%;background:#3A7D5C"></span>
+          <span class="near" style="left:30%;top:64%;background:#1F3A5C"></span>
+          <div class="marker"></div>
+          <div class="cta">
+            <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><line x1="21" y1="3" x2="14" y2="10"/><circle cx="7" cy="17" r="3"/></svg>
+            Tap to view on map &amp; see nearby
+          </div>
+        </div>
+        <p class="approx-note">Approximate location — exact address shared on enquiry</p>
+      </div>
+
+      <hr/>
+      <div class="sched">
+        <h4>Sign in to schedule</h4>
+        <label>Email</label><input/>
+        <label>Password</label><input type="password"/>
+        <button class="btn">Log in</button>
+        <a class="reg" href="#">New here? Register</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

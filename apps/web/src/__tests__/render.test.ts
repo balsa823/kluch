@@ -782,7 +782,8 @@ test("when mapEnabled, the map is initialised on load (shown alongside the list)
   const html = renderAgencySite(mapAgency, listings);
   // The map is always visible now; the script inits Leaflet on load.
   expect(html).toContain("initMap();");
-  expect(html).toContain('class="search-section"');
+  // Search form lives inside the hero.
+  expect(html).toMatch(/<header class="hero"[\s\S]*id="hero-form"[\s\S]*<\/header>/);
 });
 
 // --- Map overlay city shortcuts --------------------------------------------

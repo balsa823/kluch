@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kluche — home layout mock (search below hero, list + map)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --primary:#1F3A5C; --accent:#4E827A; --cream:#F1ECE0; --ink:#1F2937; --line:#E7DFCF; }
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--cream)}
+  .nav{background:var(--primary);color:#fff;padding:.9rem 1.2rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .nav .links{display:flex;gap:1.2rem;font-size:.9rem;opacity:.92}
+
+  /* HERO — smaller, title + subtitle only */
+  .hero{background:linear-gradient(135deg,var(--primary),#11203a);color:#fff;padding:clamp(1.8rem,4.5vw,3rem) clamp(1rem,4vw,2.5rem);text-align:center}
+  .hero h1{font-family:"Plus Jakarta Sans";font-size:clamp(1.8rem,5vw,2.8rem);margin:0 auto .4rem;max-width:18ch}
+  .hero .sub{opacity:.9;margin:0}
+
+  /* SEARCH — below the hero, on the cream area */
+  .searchsection{max-width:980px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) .2rem}
+  .searchbar{display:flex;gap:.6rem}
+  .searchbar input{flex:1;border:1px solid var(--line);border-radius:12px;padding:.85rem 1rem;font:inherit;font-size:1rem;background:#fff}
+  .searchbar .go{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;border-radius:12px;padding:0 1.4rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;text-transform:uppercase;font-size:.85rem;letter-spacing:.04em}
+  .searchbar .go svg{width:1rem;height:1rem;stroke:#fff;fill:none;stroke-width:2.4}
+  .hchips{display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:.9rem;padding-left:.2rem}
+  .hchip{display:inline-flex;align-items:center;gap:.4rem;background:transparent;border:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer}
+  .hchip svg{width:.7rem;height:.7rem;stroke:var(--primary);fill:none;stroke-width:2.2}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:1.2rem clamp(1rem,4vw,2.5rem) 3rem}
+  h2{margin:.2rem 0 1.1rem}
+
+  /* compact map: only city navigators + expand, NO filters */
+  .map{position:relative;height:clamp(240px,32vh,360px);border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-bottom:1.6rem;
+    background:repeating-linear-gradient(35deg,#f3f1ea 0 60px,#eceae2 60px 61px),repeating-linear-gradient(125deg,#f5f3ec 0 80px,#ecebe3 80px 81px)}
+  .map .nav-overlay{position:absolute;left:0;right:0;top:0;z-index:4;pointer-events:none;
+    background:linear-gradient(to bottom,color-mix(in srgb,var(--primary) 80%,transparent),transparent 80%);padding:.9rem}
+  .map .cities{display:flex;gap:.5rem;pointer-events:auto}
+  .city{border:1.5px solid rgba(255,255,255,.6);background:rgba(255,255,255,.92);border-radius:999px;padding:.42rem .95rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--primary);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .city.active{background:var(--primary);color:#fff;border-color:#fff}
+  .map .expand{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;display:inline-flex;align-items:center;gap:.5rem;
+    background:color-mix(in srgb,var(--primary) 82%,transparent);color:#fff;border:1.5px solid rgba(255,255,255,.6);border-radius:999px;padding:.7rem 1.1rem;font:inherit;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  .map .expand svg{width:1.1rem;height:1.1rem;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .pin{position:absolute;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+
+  /* list grid (on the same screen, below the map) */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.2rem}
+  .card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .card .ph{aspect-ratio:6/4;background:linear-gradient(135deg,var(--primary),#11203a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem}
+  .card .b{padding:.8rem .9rem 1rem}
+  .card .pr{color:var(--primary);font-weight:800;font-size:1.1rem}
+  .card .ti{font-weight:600;margin:.2rem 0}
+  .card .sp{color:#6b6557;font-size:.85rem}
+  .note{color:#8a8676;font-size:.8rem;margin:.8rem 0 0}
+</style>
+</head>
+<body>
+  <div class="nav"><span>Popović Nekretnine</span><span class="links">Properties · About · Contact · EN</span></div>
+
+  <header class="hero">
+    <h1>Find Your Perfect Home</h1>
+    <p class="sub">Your home on the Adriatic</p>
+  </header>
+
+  <section class="searchsection">
+    <div class="searchbar">
+      <input placeholder="Search by address or ref code (e.g. ST-0042)" />
+      <button class="go"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg> Search</button>
+    </div>
+    <div class="hchips">
+      <button class="hchip">Location <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="hchip">Price <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="hchip">Listing <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="hchip">Beds <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="hchip">Type <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <h2>Available properties</h2>
+
+    <!-- compact map: ONLY city navigators + expand, no filters -->
+    <div class="map">
+      <div class="nav-overlay">
+        <div class="cities"><button class="city active">Podgorica</button><button class="city">Budva</button></div>
+      </div>
+      <span class="pin" style="left:40%;top:55%;background:#1F3A5C"></span>
+      <span class="pin" style="left:52%;top:48%;background:#C98A3B"></span>
+      <span class="pin" style="left:60%;top:64%;background:#3A7D5C"></span>
+      <button class="expand"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Expand map</button>
+    </div>
+
+    <!-- the list, on the same screen -->
+    <div class="grid">
+      <div class="card"><div class="ph">Apartment</div><div class="b"><div class="pr">€145,000</div><div class="ti">Old Town Apartment</div><div class="sp">Podgorica · 2 bd · 1 ba · 72 m²</div></div></div>
+      <div class="card"><div class="ph">Retail</div><div class="b"><div class="pr">€240,000</div><div class="ti">Retail unit, centre</div><div class="sp">Podgorica · 95 m²</div></div></div>
+      <div class="card"><div class="ph">Studio</div><div class="b"><div class="pr">€98,000</div><div class="ti">Bay View Studio</div><div class="sp">Kotor · 1 bd · 38 m²</div></div></div>
+      <div class="card"><div class="ph">Land</div><div class="b"><div class="pr">€85,000</div><div class="ti">Building plot</div><div class="sp">Podgorica · 600 m²</div></div></div>
+    </div>
+    <p class="note">Tap “Expand map” for the full map with filters and nearby listings.</p>
+  </div>
+</body>
+</html>
