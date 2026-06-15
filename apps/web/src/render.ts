@@ -598,7 +598,9 @@ export function renderAgencySite(
     nav.site.nav-hidden { transform: translateY(-100%); }
     nav.site .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; }
     nav.site .logo { height: 38px; width: auto; border-radius: 6px; }
-    nav.site .nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; }
+    /* Right cluster: nav-links (drawer on mobile) + always-visible Call + burger. */
+    nav.site .nav-right { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; }
+    nav.site .nav-links { display: flex; align-items: center; gap: 1.1rem; }
     nav.site .nav-links a { text-decoration: none; opacity: 0.9; font-size: 0.92rem; }
     nav.site .nav-links a:hover { opacity: 1; }
     /* Language: a single globe icon → dropdown of languages (saved to cookie). */
@@ -623,7 +625,7 @@ export function renderAgencySite(
     .nav-call:hover { filter: brightness(1.08); }
     /* Mobile burger menu */
     nav.site .nav-burger {
-      display: none; margin-left: auto; flex-direction: column; gap: 4px;
+      display: none; flex-direction: column; gap: 4px;
       background: transparent; border: 0; cursor: pointer; padding: 0.45rem;
     }
     nav.site .nav-burger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; }
@@ -1054,10 +1056,8 @@ export function renderAgencySite(
       ${logo}
       <span>${esc(agency.name)}</span>
     </a>
-    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-    <div class="nav-links" id="navLinks">
+    <div class="nav-right">
+      <div class="nav-links" id="navLinks">
       <a href="#properties" data-i18n="nav.properties">${T_("nav.properties")}</a>
       <a href="#about" data-i18n="nav.about">${T_("nav.about")}</a>
       <a href="#contact" data-i18n="nav.contact">${T_("nav.contact")}</a>
@@ -1072,7 +1072,11 @@ export function renderAgencySite(
           <button type="button" data-code="tr"${L === "tr" ? ' class="active"' : ""}>🇹🇷 Türkçe</button>
         </div>
       </div>
+      </div>
       ${callNow}
+      <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
 
