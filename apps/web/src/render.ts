@@ -886,12 +886,6 @@ export function renderAgencySite(
     .navsub-toggle.is-open .open-dot { background: #6fd99a; box-shadow: 0 0 0 3px rgba(111,217,154,0.25); }
     .navsub-toggle.is-closed .open-dot { background: #c98a8a; }
     .navsub-toggle .caret { width: 0.6rem; height: 0.6rem; stroke: currentColor; fill: none; stroke-width: 2.4; opacity: 0.85; }
-    .navsub-call {
-      margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;
-      background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.82rem;
-      padding: 0.42rem 0.9rem; border-radius: 999px; white-space: nowrap;
-    }
-    .navsub-call:hover { filter: brightness(1.08); }
     /* Hours popover */
     .navsub-pop {
       position: absolute; right: 0; top: calc(100% + 8px); z-index: 800;
