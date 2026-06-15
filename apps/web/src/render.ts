@@ -474,29 +474,25 @@ export function renderAgencySite(
       }).join("")
     : "";
 
-  // "Call us now" CTA (only when a phone is set).
+  // "Call us now" CTA in the nav (only when a phone is set).
   const callNow = agency.phone
-    ? `<a class="navsub-call" href="tel:${attr(agency.phone)}"><span aria-hidden="true">📞</span> <span data-i18n="footer.callNow">${T_("footer.callNow")}</span></a>`
+    ? `<a class="nav-call" href="tel:${attr(agency.phone)}"><span aria-hidden="true">📞</span> <span data-i18n="footer.callNow">${T_("footer.callNow")}</span></a>`
     : "";
 
-  // Transparent sub-bar attached under the nav (over the hero): status (click →
-  // hours popover) on the left, Call-us-now on the right. Rendered only when
-  // there are business hours and/or a phone.
-  const navStatusBar = (bh || agency.phone)
+  // Transparent sub-bar attached under the nav (over the hero): the open-status,
+  // which opens an opening-hours popover on click. Only when hours are set.
+  const navStatusBar = bh
     ? `<div class="navsub">
-        ${bh
-          ? `<div class="navsub-statuswrap">
-        <button type="button" class="navsub-toggle ${dotCls}" id="nav-hours-toggle" aria-expanded="false" aria-controls="nav-hours-pop">
-          <span class="open-dot"></span>${statusText}<svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="navsub-pop" id="nav-hours-pop" hidden>
-          <div class="navsub-banner ${dotCls}"><span class="open-dot"></span><span class="navsub-banner-text">${statusText}</span></div>
-          <h4 data-i18n="footer.hours">${T_("footer.hours")}</h4>
-          <div class="navsub-hours">${popRows}</div>
+        <div class="navsub-statuswrap">
+          <button type="button" class="navsub-toggle ${dotCls}" id="nav-hours-toggle" aria-expanded="false" aria-controls="nav-hours-pop">
+            <span class="open-dot"></span>${statusText}<svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="navsub-pop" id="nav-hours-pop" hidden>
+            <div class="navsub-banner ${dotCls}"><span class="open-dot"></span><span class="navsub-banner-text">${statusText}</span></div>
+            <h4 data-i18n="footer.hours">${T_("footer.hours")}</h4>
+            <div class="navsub-hours">${popRows}</div>
+          </div>
         </div>
-      </div>`
-          : `<span class="navsub-spacer"></span>`}
-        ${callNow}
       </div>`
     : "";
 
@@ -605,12 +601,25 @@ export function renderAgencySite(
     nav.site .nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; }
     nav.site .nav-links a { text-decoration: none; opacity: 0.9; font-size: 0.92rem; }
     nav.site .nav-links a:hover { opacity: 1; }
-    .langmenu { display: flex; gap: 0.25rem; }
-    .langmenu button {
-      background: rgba(255,255,255,0.12); color: #fff; border: 0;
-      padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; font: inherit; font-size: 0.82rem;
+    /* Language: a single globe icon → dropdown of languages (saved to cookie). */
+    .langpick { position: relative; }
+    .langpick-btn { display: inline-flex; align-items: center; gap: 0.3rem; background: transparent; border: 0; color: #fff; cursor: pointer; padding: 0.3rem; border-radius: 8px; }
+    .langpick-btn:hover { background: rgba(255,255,255,0.12); }
+    .langpick-btn svg { width: 1.25rem; height: 1.25rem; stroke: #fff; fill: none; stroke-width: 2; }
+    .langmenu {
+      position: absolute; right: 0; top: calc(100% + 8px); z-index: 800; display: flex; flex-direction: column; min-width: 190px;
+      background: #fff; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.3); padding: 0.3rem;
     }
-    .langmenu button.active { background: var(--color-accent); }
+    .langmenu button {
+      background: none; border: 0; cursor: pointer; font: inherit; font-size: 0.9rem; text-align: left;
+      color: var(--color-ink); padding: 0.5rem 0.7rem; border-radius: 8px;
+    }
+    .langmenu button:hover { background: #f4f0e6; }
+    .langmenu button.active { font-weight: 700; color: var(--color-primary); }
+    /* Call-us-now button in the nav. */
+    .nav-call { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; white-space: nowrap;
+      background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.82rem; padding: 0.42rem 0.9rem; border-radius: 999px; }
+    .nav-call:hover { filter: brightness(1.08); }
     /* Mobile burger menu */
     nav.site .nav-burger {
       display: none; margin-left: auto; flex-direction: column; gap: 4px;
@@ -627,7 +636,10 @@ export function renderAgencySite(
       }
       nav.site .nav-links.open { display: flex; }
       nav.site .nav-links a { font-size: 1rem; }
-      .langmenu { margin-top: 0.3rem; }
+      /* In the mobile drawer the language menu opens in-flow (not absolute). */
+      .langmenu { position: static; right: auto; top: auto; box-shadow: none; min-width: 0; padding: 0; background: transparent; }
+      .langmenu button { color: #fff; } .langmenu button:hover { background: rgba(255,255,255,0.12); }
+      .langmenu button.active { color: #fff; }
     }
     /* First-visit language picker */
     .lang-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
@@ -1056,12 +1068,18 @@ export function renderAgencySite(
       <a href="#properties" data-i18n="nav.properties">${T_("nav.properties")}</a>
       <a href="#about" data-i18n="nav.about">${T_("nav.about")}</a>
       <a href="#contact" data-i18n="nav.contact">${T_("nav.contact")}</a>
-      <div class="langmenu" id="langMenu">
-        <button type="button" data-code="en"${L === "en" ? ' class="active"' : ""}>EN</button>
-        <button type="button" data-code="sr"${L === "sr" ? ' class="active"' : ""}>SR</button>
-        <button type="button" data-code="ru"${L === "ru" ? ' class="active"' : ""}>RU</button>
-        <button type="button" data-code="tr"${L === "tr" ? ' class="active"' : ""}>TR</button>
+      <div class="langpick">
+        <button type="button" class="langpick-btn" id="langPickBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>
+        </button>
+        <div class="langmenu" id="langMenu" hidden>
+          <button type="button" data-code="en"${L === "en" ? ' class="active"' : ""}>🇬🇧 English</button>
+          <button type="button" data-code="sr"${L === "sr" ? ' class="active"' : ""}>🇲🇪 Crnogorski / Srpski</button>
+          <button type="button" data-code="ru"${L === "ru" ? ' class="active"' : ""}>🇷🇺 Русский</button>
+          <button type="button" data-code="tr"${L === "tr" ? ' class="active"' : ""}>🇹🇷 Türkçe</button>
+        </div>
       </div>
+      ${callNow}
     </div>
   </nav>
 
@@ -1285,6 +1303,20 @@ export function renderAgencySite(
     applyLang();
   }
   document.querySelectorAll("#langMenu button").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.code)));
+
+  // Globe icon → toggle the language dropdown (close on pick / outside / Escape).
+  (function () {
+    var btn = document.getElementById("langPickBtn");
+    var menu = document.getElementById("langMenu");
+    if (!btn || !menu) return;
+    function setOpen(on) { menu.hidden = !on; btn.setAttribute("aria-expanded", on ? "true" : "false"); }
+    btn.addEventListener("click", function (e) { e.stopPropagation(); setOpen(menu.hidden); });
+    menu.addEventListener("click", function () { setOpen(false); });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) setOpen(false); });
+  })();
 
   // Mobile burger menu
   var navBurger = document.getElementById("navBurger");
