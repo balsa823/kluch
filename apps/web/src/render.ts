@@ -678,6 +678,12 @@ export function renderAgencySite(
     }
     .searchbar button.search-go:hover { filter: brightness(1.05); }
     .searchbar button.search-go svg { width: 1rem; height: 1rem; stroke: #fff; fill: none; stroke-width: 2.4; }
+    /* On small screens the Search button is just the magnifying-glass icon. */
+    @media (max-width: 600px) {
+      .searchbar button.search-go span { display: none; }
+      .searchbar button.search-go { gap: 0; padding: 0 1rem; }
+      .searchbar button.search-go svg { width: 1.15rem; height: 1.15rem; }
+    }
 
     .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem; margin: 1.1rem 0 0; padding-left: 0.2rem; }
     .chip {
