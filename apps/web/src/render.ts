@@ -639,10 +639,6 @@ export function renderAgencySite(
       }
       nav.site .nav-links.open { display: flex; }
       nav.site .nav-links a { font-size: 1rem; }
-      /* In the mobile drawer the language menu opens in-flow (not absolute). */
-      .langmenu { position: static; right: auto; top: auto; box-shadow: none; min-width: 0; padding: 0; background: transparent; }
-      .langmenu button { color: #fff; } .langmenu button:hover { background: rgba(255,255,255,0.12); }
-      .langmenu button.active { color: #fff; }
     }
     /* First-visit language picker */
     .lang-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 1rem; }
@@ -1060,7 +1056,8 @@ export function renderAgencySite(
       <div class="nav-links" id="navLinks">
       <a href="#properties" data-i18n="nav.properties">${T_("nav.properties")}</a>
       <a href="#about" data-i18n="nav.about">${T_("nav.about")}</a>
-      <a href="#contact" data-i18n="nav.contact">${T_("nav.contact")}</a>
+      </div>
+      ${callNow}
       <div class="langpick">
         <button type="button" class="langpick-btn" id="langPickBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>
@@ -1072,8 +1069,6 @@ export function renderAgencySite(
           <button type="button" data-code="tr"${L === "tr" ? ' class="active"' : ""}>🇹🇷 Türkçe</button>
         </div>
       </div>
-      </div>
-      ${callNow}
       <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
